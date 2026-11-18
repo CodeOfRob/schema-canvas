@@ -1,0 +1,42 @@
+# Storage
+
+Edits of the target model and the layout are saved automatically through one of three stores. The page
+picks the best available one at start.
+
+| Order | Store | When | Scope |
+|---|---|---|---|
+| 1 | **Shared artifact store** | the host offers `window.claude.use("db")` (a claude.ai artifact) | everyone with the page, live |
+| 2 | **localStorage** | otherwise | this browser; other tabs of the same page stay in sync via the `storage` event |
+| 3 | **File** | the browser blocks storage | nothing is saved automatically |
+
+Export and import of the target model and the layout as JSON files (**More** menu) work in every mode.
+A host that refuses the shared store is treated as "not available", not as an error.
+
+Keys: the localStorage key and the artifact document path come from `storageKey` and `dbDocPath` in
+[config.md](config.md). Viewer preferences (tile tables, hidden kinds, index display, zone distance) always
+stay in this browser.
+
+## Snapshot format
+
+What is saved (and what other tabs / the shared store exchange):
+
+```json
+{ "format": "schema-canvas/state", "target": { "...": "a model.json" }, "layout": { "...": "a layout.json" }, "savedAt": "2026-01-01T12:00:00.000Z" }
+```
+
+`target` is `null` for pages built without a target model. Snapshots are validated on load; one that does
+not validate is ignored with a message.
+
+## Conflict rule
+
+Saving is debounced (about one second after the last edit). A snapshot that arrives from elsewhere is
+never allowed to silently replace unsaved local edits:
+
+- No unsaved local edits: the remote state is adopted.
+- Unsaved local edits and a different remote state arrives: a dialog asks **keep mine** (save the local state over the
+  remote one) or **take theirs** (drop local edits, adopt the remote state).
+- The echo of your own save is ignored. A remote snapshot that arrives while you drag waits until you stop.
+- A failing save is reported and the edits stay marked as unsaved.
+
+There is no merging: the dialog picks one whole state. The logic lives in `createSync` in
+`src/viewer/storage.js` and is covered by `test/sync.test.js`.

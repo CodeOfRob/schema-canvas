@@ -1,0 +1,56 @@
+# Architecture
+
+## Data flow
+
+```
+Prisma schema ─┐
+               ├─ adapter ─► model.json ─┐
+tbls JSON ─────┘                          ├─ bin/schema-canvas.mjs ─► buildPage() ─► page.html
+target.model.json, layout.json, config.json ┘   (validate, warn)      (esbuild)
+                                                                            │
+                                                         browser: main.js reads window data, renders, saves
+```
+
+1. The **CLI** (`bin/schema-canvas.mjs`) reads the source, runs an adapter, validates every input with
+   `src/model/` and reports unresolved origins.
+2. **`src/build/page.js`** bundles `src/viewer/main.js` with esbuild (IIFE), inlines script, stylesheet and the
+   validated data (as `window.__SCHEMA_CANVAS__` JSON) into `src/viewer/template.html`. Output: one HTML file.
+3. In the **browser**, `main.js` validates the data again with the same `src/model/` code, computes the diff,
+   renders the canvas, inspector and toolbar, and wires persistence ([storage.md](storage.md)).
+
+## Module map
+
+| Path | Role |
+|---|---|
+| `bin/schema-canvas.mjs` | CLI: argument parsing, file IO, calling adapters and the page builder |
+| `src/model/normalize.js` | Validation and normalisation of `model.json`; shared by CLI and viewer |
+| `src/model/page-data.js` | Validation of `config.json` and `layout.json` |
+| `src/adapters/` | Prisma and tbls mapping to the model (no viewer knowledge) |
+| `src/build/page.js` | esbuild bundle + template + data -> HTML |
+| `src/viewer/main.js` | Browser entry point |
+| `src/viewer/model.js` | Loads and validates page data and saved snapshots |
+| `src/viewer/diff.js` | Current vs. target diff from `origin` references |
+| `src/viewer/layout.js` | Automatic layouts (stress layout by relations, by data kind) |
+| `src/viewer/storage.js` | Stores and the sync / conflict rule (`createSync`) |
+| `src/viewer/strings.js` | All UI texts; the template carries only `data-s` keys |
+| `src/viewer/ui/state.js` | The single mutable UI state and preferences |
+| `src/viewer/ui/actions.js` | All edits; every change goes through `commit()` (undo + save) |
+| `src/viewer/ui/canvas.js` | Tables, links, zones, pan / zoom |
+| `src/viewer/ui/inspector.js` | Detail panel |
+| `src/viewer/ui/toolbar.js` | Toolbar, menus, import / export |
+| `src/viewer/ui/persistence.js` | Connects state to storage and the conflict dialog |
+| `src/viewer/ui/view.js` | Late-bound render functions that keep the UI import graph acyclic |
+| `schema/model.schema.json` | JSON Schema of `model.json` for editors |
+
+## Boundaries
+
+Checked by `npm run lint:arch` (dependency-cruiser, `.dependency-cruiser.cjs`):
+
+- No circular dependencies.
+- `src/viewer/` may import only `src/model/` from the rest of the repo (it runs in the browser).
+- `src/adapters/` must not import `src/viewer/`.
+- `src/model/` is the shared core and depends on nothing else.
+
+The UI modules call each other (an edit re-renders canvas, panel and chrome; the canvas triggers edits).
+`ui/view.js` holds these render and viewport functions behind a registry that `main.js` binds once, so the
+modules stay independent of one another.
