@@ -1,7 +1,7 @@
 // Page chrome around the canvas: header counts, toolbar state, menus, kind filter, enums, keyboard, full screen.
 import { normalizeModel, toDocument } from "../../model/normalize.js";
 import { normalizeLayout } from "../../model/page-data.js";
-import { downloadJson, pickJsonFile } from "../storage.js";
+import { saveJsonFile, pickJsonFile } from "../storage.js";
 import { S, STATUS_LABEL } from "../strings.js";
 import { applyTransform, clearMultiSelection, drawLinks, fitAll, renderCanvas, setZoom } from "./canvas.js";
 import { addGroup, addTable, arrange, commit, placeMissing, restoreArrangement, select, setView, startGrouping, startLinking, undo } from "./actions.js";
@@ -139,17 +139,19 @@ async function importFile(apply) {
   }
 }
 
+async function exportFile(name, getData) {
+  try {
+    await saveJsonFile(name, getData());
+    flash(S.exported(name));
+  } catch (error) {
+    flash(S.exportFailed(name));
+    console.error(error);
+  }
+}
+
 function bindFileActions() {
-  $("export-target").addEventListener("click", () => {
-    const name = fileBaseName() + ".target.model.json";
-    downloadJson(name, toDocument(state.target));
-    flash(S.exported(name));
-  });
-  $("export-layout").addEventListener("click", () => {
-    const name = fileBaseName() + ".layout.json";
-    downloadJson(name, state.layout);
-    flash(S.exported(name));
-  });
+  $("export-target").addEventListener("click", () => exportFile(fileBaseName() + ".target.model.json", () => toDocument(state.target)));
+  $("export-layout").addEventListener("click", () => exportFile(fileBaseName() + ".layout.json", () => state.layout));
   $("import-target").addEventListener("click", () => importFile((data, name) => {
     const model = normalizeModel(data, name);
     state.sel = null;

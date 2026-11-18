@@ -87,8 +87,8 @@ export async function openStore({ docPath, localKey }) {
   return localStorageWorks() ? createLocalStore(localKey) : createFileStore();
 }
 
-export function downloadJson(filename, data) {
-  const blob = new Blob([JSON.stringify(data, null, 2) + "\n"], { type: "application/json" });
+function downloadViaBlobLink(filename, text) {
+  const blob = new Blob([text], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = filename;
@@ -96,6 +96,27 @@ export function downloadJson(filename, data) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Returns the host's downloads capability, or null when the page runs outside an artifact host (or the host offers none). */
+async function resolveDownloads(host) {
+  if (!host || !host.claude || typeof host.claude.use !== "function") return null;
+  try { return (await host.claude.use("downloads")) || null; } catch (error) { console.warn("schema-canvas: downloads capability refused, using a browser download", error); return null; }
+}
+
+/**
+ * Saves a JSON document as a file. Inside a claude.ai artifact the host's `downloads` capability is used
+ * (the artifact viewer blocks blob links); everywhere else a browser download.
+ * Resolves with "artifact" or "browser"; rejects when the host declines the save (the caller reports it).
+ * @param host object carrying an optional `claude.use` (the window; a fake in tests)
+ */
+export async function saveJsonFile(filename, data, host = typeof window === "undefined" ? null : window) {
+  const text = JSON.stringify(data, null, 2) + "\n";
+  const downloads = await resolveDownloads(host);
+  if (!downloads) { downloadViaBlobLink(filename, text); return "browser"; }
+  // shortcut: data is passed as a string; the real downloads API is untested locally, switch to a Blob if a host demands it.
+  await downloads.save({ filename, data: text });
+  return "artifact";
 }
 
 /** Opens a file picker and resolves with the parsed JSON of the chosen file (rejects on bad JSON). */

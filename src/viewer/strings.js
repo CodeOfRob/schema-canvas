@@ -173,6 +173,7 @@ export const S = {
   conflictStatus: "Conflict: please choose",
   imported: name => "Imported " + name,
   importFailed: message => "Import failed: " + message,
+  exportFailed: name => "Could not save " + name + " (the host declined)",
   exported: name => "Downloaded " + name,
   resetDone: "Reset to the page data",
   dataError: "This page could not load its schema data",

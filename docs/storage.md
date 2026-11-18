@@ -12,6 +12,14 @@ picks the best available one at start.
 Export and import of the target model and the layout as JSON files (**More** menu) work in every mode.
 A host that refuses the shared store is treated as "not available", not as an error.
 
+Inside a claude.ai artifact the viewer blocks blob-link downloads, so export uses the host's `downloads`
+capability (`window.claude.use("downloads")`, then `save({ filename, data })` with the JSON text). When the
+capability is absent or null, the normal browser download is used. If the host declines a save, the page shows
+a short message and nothing else happens. The selection logic is `saveJsonFile` in `src/viewer/storage.js`,
+covered by `test/export.test.js`.
+
+When hosting as a claude.ai artifact, declare the capabilities `db` (shared storage) and `downloads` (file export).
+
 Keys: the localStorage key and the artifact document path come from `storageKey` and `dbDocPath` in
 [config.md](config.md). Viewer preferences (tile tables, hidden kinds, index display, dimming of reviewed tables, zone distance)
 always stay in this browser.

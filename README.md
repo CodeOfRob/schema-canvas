@@ -103,6 +103,8 @@ The page is one HTML file with no external requests:
 - put it on any static host (GitHub Pages, S3, an intranet server, a mail attachment),
 - or use it as a claude.ai artifact, where edits are shared live between everyone with the page.
 
+As a claude.ai artifact, declare the capabilities `db` (shared storage) and `downloads` (file export).
+
 How edits are saved in each case: [docs/storage.md](docs/storage.md).
 
 ## Limitations
