@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/CodeOfRob/schema-canvas/schema/model.schema.json",
+  "title": "schema-canvas model",
+  "description": "Database-agnostic description of a schema: entities (tables), their fields, relations, indexes and enums. A target model may point back to the current model with origin[].",
+  "type": "object",
+  "required": ["version", "entities"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1 },
+    "name": { "type": "string", "description": "Display name of the schema." },
+    "entities": { "type": "array", "items": { "$ref": "#/$defs/entity" } },
+    "relations": { "type": "array", "items": { "$ref": "#/$defs/relation" } },
+    "indexes": { "type": "array", "items": { "$ref": "#/$defs/index" } },
+    "enums": { "type": "array", "items": { "$ref": "#/$defs/enum" } }
+  },
+  "$defs": {
+    "cardinality": { "enum": ["1", "0..1", "n"] },
+    "entity": {
+      "type": "object",
+      "required": ["name", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "description": "Stable id; defaults to name. Relations and indexes refer to it." },
+        "name": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "description": "Data kind (a key of config.dataKinds); overrides config.entityKinds." },
+        "note": { "type": "string" },
+        "origin": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Target model only: names of the entities in the current model this entity continues. Two or more = merged."
+        },
+        "fields": { "type": "array", "items": { "$ref": "#/$defs/field" } }
+      }
+    },
+    "field": {
+      "type": "object",
+      "required": ["name", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "description": "Stable id; defaults to \"<entity id>.<field name>\"." },
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "list": { "type": "boolean" },
+        "nullable": { "type": "boolean" },
+        "default": { "type": "string", "description": "Default value as source text, e.g. \"now()\" or \"'draft'\"." },
+        "pk": { "type": "boolean" },
+        "uk": { "type": "boolean", "description": "Unique on its own." },
+        "fk": { "type": "boolean", "description": "Part of a foreign key (details in relations)." },
+        "note": { "type": "string" },
+        "origin": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Target model only: \"Entity.field\" references into the current model this field comes from."
+        }
+      }
+    },
+    "relation": {
+      "type": "object",
+      "required": ["from", "to"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "from": { "type": "string", "description": "Entity id of the referencing side (holds fromFields)." },
+        "to": { "type": "string", "description": "Entity id of the referenced side." },
+        "fromFields": { "type": "array", "items": { "type": "string" } },
+        "toFields": { "type": "array", "items": { "type": "string" } },
+        "cardinality": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "from": { "$ref": "#/$defs/cardinality", "description": "How many 'from' rows point at one 'to' row (default n)." },
+            "to": { "$ref": "#/$defs/cardinality", "description": "How many 'to' rows one 'from' row points at (default 1)." }
+          }
+        },
+        "label": { "type": "string" }
+      }
+    },
+    "index": {
+      "type": "object",
+      "required": ["entity", "fields"],
+      "additionalProperties": false,
+      "properties": {
+        "entity": { "type": "string" },
+        "name": { "type": "string" },
+        "fields": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "unique": { "type": "boolean" },
+        "where": { "type": "string", "description": "Predicate of a partial index." }
+      }
+    },
+    "enum": {
+      "type": "object",
+      "required": ["name", "values"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "values": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

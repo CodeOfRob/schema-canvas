@@ -1,0 +1,234 @@
+{
+  "version": 1,
+  "name": "shopdb",
+  "entities": [
+    {
+      "id": "customers",
+      "name": "customers",
+      "note": "People who order",
+      "fields": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": false,
+          "default": "nextval('customers_id_seq'::regclass)",
+          "pk": true
+        },
+        {
+          "name": "email",
+          "type": "varchar(255)",
+          "nullable": false,
+          "uk": true
+        },
+        {
+          "name": "status",
+          "type": "customer_status",
+          "nullable": false,
+          "default": "'active'::customer_status"
+        },
+        {
+          "name": "tags",
+          "type": "text",
+          "nullable": true,
+          "list": true
+        },
+        {
+          "name": "deleted_at",
+          "type": "timestamp with time zone",
+          "nullable": true,
+          "note": "soft delete marker"
+        }
+      ]
+    },
+    {
+      "id": "orders",
+      "name": "orders",
+      "fields": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": false,
+          "default": "nextval('orders_id_seq'::regclass)",
+          "pk": true
+        },
+        {
+          "name": "customer_id",
+          "type": "bigint",
+          "nullable": false,
+          "fk": true
+        },
+        {
+          "name": "placed_at",
+          "type": "timestamp with time zone",
+          "nullable": false,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "id": "order_lines",
+      "name": "order_lines",
+      "fields": [
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "fk": true
+        },
+        {
+          "name": "line_no",
+          "type": "integer",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "name": "sku",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "quantity",
+          "type": "integer",
+          "nullable": false,
+          "default": "1"
+        }
+      ]
+    },
+    {
+      "id": "loyalty_accounts",
+      "name": "loyalty_accounts",
+      "fields": [
+        {
+          "name": "customer_id",
+          "type": "bigint",
+          "nullable": false,
+          "pk": true,
+          "fk": true
+        },
+        {
+          "name": "points",
+          "type": "integer",
+          "nullable": false,
+          "default": "0"
+        }
+      ]
+    },
+    {
+      "id": "audit.events",
+      "name": "audit.events",
+      "note": "Append-only change log",
+      "fields": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "pk": true
+        },
+        {
+          "name": "order_id",
+          "type": "bigint",
+          "nullable": true,
+          "fk": true
+        },
+        {
+          "name": "payload",
+          "type": "jsonb",
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "orders.customer_id->customers",
+      "from": "orders",
+      "to": "customers",
+      "fromFields": [
+        "customer_id"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    },
+    {
+      "id": "order_lines.order_id->orders",
+      "from": "order_lines",
+      "to": "orders",
+      "fromFields": [
+        "order_id"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    },
+    {
+      "id": "loyalty_accounts.customer_id->customers",
+      "from": "loyalty_accounts",
+      "to": "customers",
+      "fromFields": [
+        "customer_id"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "0..1",
+        "to": "1"
+      }
+    },
+    {
+      "id": "audit.events.order_id->orders",
+      "from": "audit.events",
+      "to": "orders",
+      "fromFields": [
+        "order_id"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "0..1"
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "entity": "customers",
+      "name": "customers_email_live_key",
+      "fields": [
+        "email"
+      ],
+      "unique": true,
+      "where": "deleted_at IS NULL"
+    },
+    {
+      "entity": "orders",
+      "name": "orders_customer_id_placed_at_idx",
+      "fields": [
+        "customer_id",
+        "placed_at"
+      ],
+      "unique": false
+    }
+  ],
+  "enums": [
+    {
+      "name": "customer_status",
+      "values": [
+        "active",
+        "blocked"
+      ]
+    }
+  ]
+}

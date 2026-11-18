@@ -1,0 +1,8 @@
+node_modules/
+dist/
+out/
+# Generated models and layouts usually contain your own schema; only the examples are tracked.
+*.model.json
+*.layout.json
+!examples/**/*.model.json
+!examples/**/*.layout.json

@@ -1,0 +1,119 @@
+{
+  "name": "shopdb",
+  "desc": "",
+  "tables": [
+    {
+      "name": "public.customers",
+      "type": "BASE TABLE",
+      "comment": "People who order",
+      "columns": [
+        { "name": "id", "type": "bigint", "nullable": false, "default": "nextval('customers_id_seq'::regclass)" },
+        { "name": "email", "type": "varchar(255)", "nullable": false },
+        { "name": "status", "type": "customer_status", "nullable": false, "default": "'active'::customer_status" },
+        { "name": "tags", "type": "text[]", "nullable": true },
+        { "name": "deleted_at", "type": "timestamp with time zone", "nullable": true, "comment": "soft delete marker" }
+      ],
+      "indexes": [
+        { "name": "customers_pkey", "def": "CREATE UNIQUE INDEX customers_pkey ON public.customers USING btree (id)", "table": "public.customers", "columns": ["id"] },
+        { "name": "customers_email_key", "def": "CREATE UNIQUE INDEX customers_email_key ON public.customers USING btree (email)", "table": "public.customers", "columns": ["email"] },
+        { "name": "customers_email_live_key", "def": "CREATE UNIQUE INDEX customers_email_live_key ON public.customers USING btree (lower((email)::text)) WHERE (deleted_at IS NULL)", "table": "public.customers", "columns": ["email"] }
+      ],
+      "constraints": [
+        { "name": "customers_pkey", "type": "PRIMARY KEY", "def": "PRIMARY KEY (id)", "table": "public.customers", "referenced_table": "", "columns": ["id"] },
+        { "name": "customers_email_key", "type": "UNIQUE", "def": "UNIQUE (email)", "table": "public.customers", "referenced_table": "", "columns": ["email"] }
+      ]
+    },
+    {
+      "name": "public.orders",
+      "type": "BASE TABLE",
+      "columns": [
+        { "name": "id", "type": "bigint", "nullable": false, "default": "nextval('orders_id_seq'::regclass)" },
+        { "name": "customer_id", "type": "bigint", "nullable": false },
+        { "name": "placed_at", "type": "timestamp with time zone", "nullable": false, "default": "now()" }
+      ],
+      "indexes": [
+        { "name": "orders_pkey", "def": "CREATE UNIQUE INDEX orders_pkey ON public.orders USING btree (id)", "table": "public.orders", "columns": ["id"] },
+        { "name": "orders_customer_id_placed_at_idx", "def": "CREATE INDEX orders_customer_id_placed_at_idx ON public.orders USING btree (customer_id, placed_at)", "table": "public.orders", "columns": ["customer_id", "placed_at"] }
+      ],
+      "constraints": [
+        { "name": "orders_pkey", "type": "PRIMARY KEY", "def": "PRIMARY KEY (id)", "table": "public.orders", "referenced_table": "", "columns": ["id"] },
+        { "name": "orders_customer_id_fkey", "type": "FOREIGN KEY", "def": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE", "table": "public.orders", "referenced_table": "public.customers", "columns": ["customer_id"], "referenced_columns": ["id"] }
+      ],
+      "referenced_tables": ["public.customers"]
+    },
+    {
+      "name": "public.order_lines",
+      "type": "BASE TABLE",
+      "columns": [
+        { "name": "order_id", "type": "bigint", "nullable": false },
+        { "name": "line_no", "type": "integer", "nullable": false },
+        { "name": "sku", "type": "text", "nullable": false },
+        { "name": "quantity", "type": "integer", "nullable": false, "default": "1" }
+      ],
+      "indexes": [
+        { "name": "order_lines_pkey", "def": "CREATE UNIQUE INDEX order_lines_pkey ON public.order_lines USING btree (order_id, line_no)", "table": "public.order_lines", "columns": ["order_id", "line_no"] }
+      ],
+      "constraints": [
+        { "name": "order_lines_pkey", "type": "PRIMARY KEY", "def": "PRIMARY KEY (order_id, line_no)", "table": "public.order_lines", "referenced_table": "", "columns": ["order_id", "line_no"] },
+        { "name": "order_lines_order_id_fkey", "type": "FOREIGN KEY", "def": "FOREIGN KEY (order_id) REFERENCES orders(id)", "table": "public.order_lines", "referenced_table": "public.orders", "columns": ["order_id"], "referenced_columns": ["id"] },
+        { "name": "order_lines_quantity_check", "type": "CHECK", "def": "CHECK ((quantity > 0))", "table": "public.order_lines", "referenced_table": "", "columns": ["quantity"] }
+      ]
+    },
+    {
+      "name": "public.loyalty_accounts",
+      "type": "BASE TABLE",
+      "columns": [
+        { "name": "customer_id", "type": "bigint", "nullable": false },
+        { "name": "points", "type": "integer", "nullable": false, "default": "0" }
+      ],
+      "indexes": [
+        { "name": "loyalty_accounts_pkey", "def": "CREATE UNIQUE INDEX loyalty_accounts_pkey ON public.loyalty_accounts USING btree (customer_id)", "table": "public.loyalty_accounts", "columns": ["customer_id"] }
+      ],
+      "constraints": [
+        { "name": "loyalty_accounts_pkey", "type": "PRIMARY KEY", "def": "PRIMARY KEY (customer_id)", "table": "public.loyalty_accounts", "referenced_table": "", "columns": ["customer_id"] },
+        { "name": "loyalty_accounts_customer_id_fkey", "type": "FOREIGN KEY", "def": "FOREIGN KEY (customer_id) REFERENCES customers(id)", "table": "public.loyalty_accounts", "referenced_table": "public.customers", "columns": ["customer_id"], "referenced_columns": ["id"] }
+      ]
+    },
+    {
+      "name": "audit.events",
+      "type": "BASE TABLE",
+      "comment": "Append-only change log",
+      "columns": [
+        { "name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()" },
+        { "name": "order_id", "type": "bigint", "nullable": true },
+        { "name": "payload", "type": "jsonb", "nullable": false }
+      ],
+      "indexes": [
+        { "name": "events_pkey", "def": "CREATE UNIQUE INDEX events_pkey ON audit.events USING btree (id)", "table": "audit.events", "columns": ["id"] }
+      ],
+      "constraints": [
+        { "name": "events_pkey", "type": "PRIMARY KEY", "def": "PRIMARY KEY (id)", "table": "audit.events", "referenced_table": "", "columns": ["id"] },
+        { "name": "events_order_id_fkey", "type": "FOREIGN KEY", "def": "FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE SET NULL", "table": "audit.events", "referenced_table": "public.orders", "columns": ["order_id"], "referenced_columns": ["id"] }
+      ]
+    },
+    {
+      "name": "public.order_totals",
+      "type": "VIEW",
+      "columns": [
+        { "name": "order_id", "type": "bigint", "nullable": true },
+        { "name": "items", "type": "bigint", "nullable": true }
+      ],
+      "def": "CREATE VIEW order_totals AS (\n SELECT order_lines.order_id, sum(order_lines.quantity) AS items\n   FROM order_lines\n  GROUP BY order_lines.order_id)",
+      "referenced_tables": ["public.order_lines"]
+    }
+  ],
+  "relations": [
+    { "table": "public.orders", "columns": ["customer_id"], "cardinality": "zero_or_more", "parent_table": "public.customers", "parent_columns": ["id"], "parent_cardinality": "exactly_one", "def": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE" },
+    { "table": "public.order_lines", "columns": ["order_id"], "cardinality": "zero_or_more", "parent_table": "public.orders", "parent_columns": ["id"], "parent_cardinality": "exactly_one", "def": "FOREIGN KEY (order_id) REFERENCES orders(id)" },
+    { "table": "public.loyalty_accounts", "columns": ["customer_id"], "cardinality": "zero_or_one", "parent_table": "public.customers", "parent_columns": ["id"], "parent_cardinality": "exactly_one", "def": "FOREIGN KEY (customer_id) REFERENCES customers(id)" },
+    { "table": "audit.events", "columns": ["order_id"], "cardinality": "zero_or_more", "parent_table": "public.orders", "parent_columns": ["id"], "parent_cardinality": "zero_or_one", "def": "FOREIGN KEY (order_id) REFERENCES public.orders(id) ON DELETE SET NULL" }
+  ],
+  "enums": [
+    { "name": "public.customer_status", "values": ["active", "blocked"] }
+  ],
+  "driver": {
+    "name": "postgres",
+    "database_version": "PostgreSQL 16.4 on x86_64-pc-linux-gnu, compiled by gcc, 64-bit",
+    "meta": { "current_schema": "public", "search_paths": ["\"$user\"", "public"] }
+  }
+}

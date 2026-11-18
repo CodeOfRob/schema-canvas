@@ -1,0 +1,42 @@
+{
+  "name": "schema-canvas",
+  "version": "0.1.0",
+  "description": "Turn a database schema into one self-contained, interactive ER-diagram page with current-vs-target diff and an in-browser editor.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "schema-canvas": "bin/schema-canvas.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "schema"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "lint": "eslint .",
+    "example": "node bin/schema-canvas.mjs model --prisma examples/bookshop/schema.prisma -o examples/bookshop/current.model.json && node bin/schema-canvas.mjs build --current examples/bookshop/current.model.json --target examples/bookshop/target.model.json --layout examples/bookshop/layout.json --config examples/bookshop/config.json -o examples/bookshop/out/page.html"
+  },
+  "keywords": [
+    "erd",
+    "er-diagram",
+    "schema",
+    "prisma",
+    "postgres",
+    "tbls",
+    "diff"
+  ],
+  "dependencies": {
+    "@prisma/internals": "^7.10.1",
+    "esbuild": "^0.28.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "ajv": "^8.20.0",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0"
+  }
+}

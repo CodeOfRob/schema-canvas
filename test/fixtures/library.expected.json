@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "name": "library",
+  "entities": [
+    {
+      "id": "Member",
+      "name": "Member",
+      "note": "A person who may borrow items.",
+      "fields": [
+        {
+          "name": "id",
+          "type": "Int",
+          "nullable": false,
+          "default": "autoincrement()",
+          "pk": true
+        },
+        {
+          "name": "email",
+          "type": "String",
+          "nullable": false,
+          "uk": true
+        },
+        {
+          "name": "tier",
+          "type": "MemberTier",
+          "nullable": false,
+          "default": "BASIC"
+        },
+        {
+          "name": "nicknames",
+          "type": "String",
+          "nullable": false,
+          "list": true
+        },
+        {
+          "name": "sponsorId",
+          "type": "Int",
+          "nullable": true,
+          "fk": true,
+          "note": "Who recommended this member."
+        },
+        {
+          "name": "joinedAt",
+          "type": "DateTime",
+          "nullable": false,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "id": "LibraryCard",
+      "name": "LibraryCard",
+      "fields": [
+        {
+          "name": "id",
+          "type": "String",
+          "nullable": false,
+          "default": "uuid(4)",
+          "pk": true
+        },
+        {
+          "name": "memberId",
+          "type": "Int",
+          "nullable": false,
+          "uk": true,
+          "fk": true
+        },
+        {
+          "name": "barcode",
+          "type": "String",
+          "nullable": false,
+          "default": "\"pending\""
+        }
+      ]
+    },
+    {
+      "id": "Item",
+      "name": "Item",
+      "fields": [
+        {
+          "name": "id",
+          "type": "Int",
+          "nullable": false,
+          "default": "autoincrement()",
+          "pk": true
+        },
+        {
+          "name": "title",
+          "type": "String",
+          "nullable": false
+        },
+        {
+          "name": "shelf",
+          "type": "String",
+          "nullable": true
+        },
+        {
+          "name": "loanable",
+          "type": "Boolean",
+          "nullable": false,
+          "default": "true"
+        }
+      ]
+    },
+    {
+      "id": "Topic",
+      "name": "Topic",
+      "fields": [
+        {
+          "name": "id",
+          "type": "Int",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "name": "label",
+          "type": "String",
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "id": "Loan",
+      "name": "Loan",
+      "fields": [
+        {
+          "name": "memberId",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "fk": true
+        },
+        {
+          "name": "itemId",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "fk": true
+        },
+        {
+          "name": "copyNo",
+          "type": "Int",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "name": "dueOn",
+          "type": "DateTime",
+          "nullable": false
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "Member.sponsor",
+      "from": "Member",
+      "to": "Member",
+      "fromFields": [
+        "sponsorId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "0..1"
+      }
+    },
+    {
+      "id": "LibraryCard.member",
+      "from": "LibraryCard",
+      "to": "Member",
+      "fromFields": [
+        "memberId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "0..1",
+        "to": "1"
+      }
+    },
+    {
+      "id": "m2m:ItemToTopic",
+      "from": "Item",
+      "to": "Topic",
+      "fromFields": [],
+      "toFields": [],
+      "cardinality": {
+        "from": "n",
+        "to": "n"
+      },
+      "label": "ItemToTopic"
+    },
+    {
+      "id": "Loan.member",
+      "from": "Loan",
+      "to": "Member",
+      "fromFields": [
+        "memberId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    },
+    {
+      "id": "Loan.item",
+      "from": "Loan",
+      "to": "Item",
+      "fromFields": [
+        "itemId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "entity": "Item",
+      "fields": [
+        "title"
+      ],
+      "unique": false
+    },
+    {
+      "entity": "Loan",
+      "fields": [
+        "itemId",
+        "copyNo"
+      ],
+      "unique": true,
+      "name": "loan_item_copy_key"
+    }
+  ],
+  "enums": [
+    {
+      "name": "MemberTier",
+      "values": [
+        "BASIC",
+        "PREMIUM"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+// Fixture for the Prisma adapter golden test: covers composite keys, unique sets, indexes, enums,
+// optional / one-to-one / self / implicit many-to-many relations, defaults and doc comments.
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum MemberTier {
+  BASIC
+  PREMIUM
+}
+
+/// A person who may borrow items.
+model Member {
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  tier      MemberTier @default(BASIC)
+  nicknames String[]
+  /// Who recommended this member.
+  sponsorId Int?
+  sponsor   Member?    @relation("Sponsorship", fields: [sponsorId], references: [id])
+  sponsored Member[]   @relation("Sponsorship")
+  card      LibraryCard?
+  loans     Loan[]
+  joinedAt  DateTime   @default(now())
+}
+
+model LibraryCard {
+  id       String @id @default(uuid())
+  memberId Int    @unique
+  member   Member @relation(fields: [memberId], references: [id])
+  barcode  String @default("pending")
+}
+
+model Item {
+  id       Int     @id @default(autoincrement())
+  title    String
+  shelf    String?
+  loanable Boolean @default(true)
+  loans    Loan[]
+  topics   Topic[]
+
+  @@index([title])
+}
+
+model Topic {
+  id    Int    @id
+  label String
+  items Item[]
+}
+
+model Loan {
+  memberId Int
+  itemId   Int
+  copyNo   Int
+  member   Member   @relation(fields: [memberId], references: [id])
+  item     Item     @relation(fields: [itemId], references: [id])
+  dueOn    DateTime @db.Date
+
+  @@id([memberId, itemId, copyNo])
+  @@unique([itemId, copyNo], map: "loan_item_copy_key")
+}
