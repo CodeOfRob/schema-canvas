@@ -164,6 +164,17 @@ svg.links g.utile text { fill: var(--accent); font-weight: 600; font-family: var
 .linkbtn { border: 0; background: transparent; color: var(--accent); font: 500 12.5px var(--font-body); padding: 0; cursor: pointer; justify-self: start; }
 .note { background: var(--bg); border-radius: 6px; padding: 8px 10px; font-size: 13px; white-space: pre-wrap; }
 
+.sub { color: var(--muted); font-size: 12.5px; max-width: 110ch; }
+.sub p { margin: 2px 0 0; }
+.sections { display: grid; gap: 16px; }
+.md { font-size: 13.5px; max-width: 120ch; }
+.md p, .md ul { margin: 0 0 8px; }
+.md ul { padding-left: 20px; display: grid; gap: 6px; }
+.md h3, .md h4, .md h5 { margin: 12px 0 6px; font-family: var(--font-display); }
+.md code { font-family: var(--font-mono); font-size: 12px; background: var(--bg); padding: 0 3px; border-radius: 3px; }
+.md table { border-collapse: collapse; font-size: 12.5px; margin: 0 0 12px; }
+.md td, .md th { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.md th { color: var(--muted); font-size: 11px; font-weight: 600; }
 .lower { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 10px; min-width: 0; }
 .tablewrap { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }

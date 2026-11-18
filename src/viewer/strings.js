@@ -175,3 +175,40 @@ export const S = {
   resetDone: "Reset to the page data",
   dataError: "This page could not load its schema data",
 };
+
+// ---------- overrides from config.strings (translations, own wording) ----------
+// Keys are the names above; "status.<status>" and "fieldFlags.<flag>" reach the nested tables. Texts that take
+// values use numbered placeholders in argument order, e.g. counts: "{0}: {1} Tische · {2} Linien · {3} Indizes".
+
+function overrideTarget(key) {
+  const [head, tail, ...rest] = key.split(".");
+  if (rest.length) return null;
+  if (tail === undefined) return Object.hasOwn(S, head) && typeof S[head] !== "object" ? { table: S, key: head } : null;
+  const table = head === "status" ? STATUS_LABEL : head === "fieldFlags" ? S.fieldFlags : null;
+  return table && Object.hasOwn(table, tail) ? { table, key: tail } : null;
+}
+
+/** Problems of a config.strings map (unknown keys, placeholders beyond the arguments); empty when usable. */
+export function checkStringOverrides(overrides) {
+  const issues = [];
+  for (const [key, text] of Object.entries(overrides)) {
+    const target = overrideTarget(key);
+    if (!target) { issues.push("strings: unknown key \"" + key + "\""); continue; }
+    const current = target.table[target.key];
+    const arity = typeof current === "function" ? current.length : 0;
+    for (const [, n] of String(text).matchAll(/\{(\d+)\}/g)) {
+      if (Number(n) >= arity) issues.push("strings." + key + ": placeholder {" + n + "} but the text gets " + arity + " value(s)");
+    }
+  }
+  return issues;
+}
+
+/** Replaces texts before anything renders; throws on overrides checkStringOverrides rejects. */
+export function applyStringOverrides(overrides) {
+  const issues = checkStringOverrides(overrides);
+  if (issues.length) throw new Error(issues.join("; "));
+  for (const [key, text] of Object.entries(overrides)) {
+    const { table, key: name } = overrideTarget(key);
+    table[name] = typeof table[name] === "function" ? (...values) => text.replace(/\{(\d+)\}/g, (_, n) => String(values[Number(n)])) : text;
+  }
+}

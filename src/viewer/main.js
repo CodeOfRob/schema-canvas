@@ -1,9 +1,10 @@
 // Entry point of the bundled page script.
 import { PAGE_DATA_GLOBAL, loadPageData, storageKeyFor } from "./model.js";
-import { S } from "./strings.js";
+import { S, applyStringOverrides } from "./strings.js";
 import { placeMissing, refresh } from "./ui/actions.js";
 import { boxOf, centerOn, fitAll, initCanvas, renderCanvas, viewportSize, worldPointAt } from "./ui/canvas.js";
 import { initInspector, renderPanel } from "./ui/inspector.js";
+import { renderPageText } from "./ui/sections.js";
 import { applyLocalSnapshot, initPersistence } from "./ui/persistence.js";
 import { flash, initToolbar, renderChrome } from "./ui/toolbar.js";
 import { state, loadPrefs } from "./ui/state.js";
@@ -34,7 +35,11 @@ function showFatal(error) {
 
 async function main() {
   let page;
-  try { page = loadPageData(window[PAGE_DATA_GLOBAL]); } catch (error) { showFatal(error); return; }
+  try {
+    page = loadPageData(window[PAGE_DATA_GLOBAL]);
+    applyStringOverrides(page.config.strings);
+  } catch (error) { showFatal(error); return; }
+  if (page.config.language) document.documentElement.lang = page.config.language;
   bindView({ renderCanvas, renderPanel, renderChrome, flash, boxOf, fitAll, centerOn, viewportSize, worldPointAt });
   state.page = page;
   state.current = page.current;
@@ -49,6 +54,7 @@ async function main() {
   initCanvas();
   initInspector();
   initToolbar();
+  renderPageText(page.config);
   refresh();
   fitAll();
   await initPersistence(localSavedAt);

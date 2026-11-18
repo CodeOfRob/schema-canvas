@@ -9,6 +9,7 @@ import { buildPage } from "../src/build/page.js";
 import { normalizeModel, toDocument } from "../src/model/normalize.js";
 import { normalizeConfig, normalizeLayout } from "../src/model/page-data.js";
 import { computeDiff } from "../src/viewer/diff.js";
+import { checkStringOverrides } from "../src/viewer/strings.js";
 
 const USAGE = `schema-canvas - interactive ER diagrams with a current-vs-target diff
 
@@ -69,6 +70,8 @@ async function runBuild(values) {
   const target = values.target ? normalizeModel(await readJson(values.target), values.target) : null;
   const layout = values.layout ? normalizeLayout(await readJson(values.layout), values.layout) : undefined;
   const config = normalizeConfig(values.config ? await readJson(values.config) : {}, values.config || "config");
+  const stringIssues = checkStringOverrides(config.strings);
+  if (stringIssues.length) throw new Error((values.config || "config") + " is not a valid config:\n  - " + stringIssues.join("\n  - "));
   if (target) {
     for (const u of computeDiff(current, target).unresolvedOrigins) console.warn("warning: origin \"" + u.ref + "\" of " + u.where + " is not in the current model");
   }

@@ -5,6 +5,7 @@
   "entities": [
     {
       "name": "Author",
+      "reviewed": true,
       "note": "bio is dropped; a website link replaces it.",
       "fields": [
         { "name": "id", "type": "Int", "nullable": false, "default": "autoincrement()", "pk": true },
@@ -48,7 +49,7 @@
       "fields": [
         { "name": "id", "type": "Int", "nullable": false, "default": "autoincrement()", "pk": true },
         { "name": "accountId", "type": "Int", "nullable": false, "fk": true, "origin": ["Order.customerId"] },
-        { "name": "status", "type": "OrderStatus", "nullable": false, "default": "OPEN" },
+        { "name": "status", "type": "OrderStatus", "nullable": false, "default": "OPEN", "changed": true, "note": "New value REFUNDED; the type stays OrderStatus." },
         { "name": "placedAt", "type": "DateTime", "nullable": false, "default": "now()" }
       ]
     },
@@ -106,12 +107,13 @@
   ],
   "indexes": [
     { "entity": "Book", "fields": ["authorId"], "unique": false },
-    { "entity": "Order", "fields": ["accountId", "placedAt"], "unique": false },
+    { "entity": "Order", "fields": ["accountId", "placedAt"], "unique": false, "note": "Order history of an account, newest first" },
+    { "entity": "Account", "fields": ["lower(email)"], "unique": true, "note": "Sign-in name, case-insensitive" },
     { "entity": "Review", "fields": ["bookId", "accountId"], "unique": true },
     { "entity": "Inventory", "fields": ["warehouseName", "editionId"], "unique": true }
   ],
   "enums": [
     { "name": "BookFormat", "values": ["HARDCOVER", "PAPERBACK", "EBOOK"] },
-    { "name": "OrderStatus", "values": ["OPEN", "PAID", "SHIPPED", "CANCELLED"] }
+    { "name": "OrderStatus", "values": ["OPEN", "PAID", "SHIPPED", "CANCELLED", "REFUNDED"] }
   ]
 }

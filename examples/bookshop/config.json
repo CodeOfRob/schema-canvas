@@ -1,10 +1,11 @@
 {
   "title": "Bookshop schema",
+  "description": "Current shop database and the agreed target after the **account** rework. Edit the target directly; colours show the difference to the current state.",
   "storageKey": "schema-canvas-example:bookshop",
   "tileTables": ["Edition"],
   "dataKinds": {
-    "catalog": { "label": "Catalog", "color": "#0060a3" },
-    "sales": { "label": "Sales", "color": "#a86400" }
+    "catalog": { "label": "Catalog", "color": "#0060a3", "description": "What the shop sells: long-lived, referenced by many orders" },
+    "sales": { "label": "Sales", "color": "#a86400", "description": "Created by customers buying: time-bound" }
   },
   "entityKinds": {
     "Author": "catalog",
@@ -20,5 +21,11 @@
   },
   "notes": {
     "Inventory": "One row per warehouse and edition; the warehouse is inlined because the shop only ever has a handful of them."
-  }
+  },
+  "sections": [
+    {
+      "title": "Open questions",
+      "markdown": "- Should a wishlist be shareable?\n- Keep `Inventory.city` or derive it from the warehouse?\n\n| Status (current) | Status (target) |\n|---|---|\n| OPEN | OPEN |\n| PAID | PAID |\n| — | REFUNDED |"
+    }
+  ]
 }

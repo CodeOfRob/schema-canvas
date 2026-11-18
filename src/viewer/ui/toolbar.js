@@ -78,8 +78,9 @@ function buildKindFilter() {
   $("arrange").hidden = !kinds.length;
   $("zone-gap-ctl").hidden = !kinds.length;
   if (!kinds.length) return;
-  host.innerHTML = [...kinds.map(k => ({ key: k, cls: kindClass(k), label: kindLabel(k) })), { key: "none", cls: "k-none", label: S.kindNone }]
-    .map(k => '<button type="button" class="kind ' + k.cls + '" data-kind="' + esc(k.key) + '" title="' + esc(S.kindFilterTitle(k.label)) + '" aria-pressed="' + !state.hiddenKinds.has(k.key) + '">' + esc(k.label) + "</button>").join("");
+  const description = k => (state.page.config.dataKinds[k] || {}).description;
+  host.innerHTML = [...kinds.map(k => ({ key: k, cls: kindClass(k), label: kindLabel(k), description: description(k) })), { key: "none", cls: "k-none", label: S.kindNone }]
+    .map(k => '<button type="button" class="kind ' + k.cls + '" data-kind="' + esc(k.key) + '" title="' + esc((k.description ? k.description + ". " : "") + S.kindFilterTitle(k.label)) + '" aria-pressed="' + !state.hiddenKinds.has(k.key) + '">' + esc(k.label) + "</button>").join("");
   host.addEventListener("click", ev => {
     const b = ev.target.closest("button[data-kind]");
     if (!b) return;
