@@ -10,6 +10,8 @@ export const state = {
   page: null,          // validated injected data: { current, target, layout, config }
   current: null,       // current model (read only)
   target: null,        // editable working copy of the target model, or null in pure viewer mode
+  builtInBase: null,   // fingerprint of the page's built-in target (snapshot-base.js), null without a target
+  base: null,          // fingerprint of the built-in target the held state is based on; written with every save
   layout: null,        // { current: {id: [x, y]}, target: {...}, groups: [] }
   view: "current",     // "target" | "current"
   zoom: 0.8,

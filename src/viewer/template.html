@@ -92,11 +92,18 @@
     <div class="sections" id="sections"></div>
   </div>
 </div>
-<div id="conflict" role="alertdialog" aria-live="assertive" hidden>
+<div id="conflict" class="choice-dialog" role="alertdialog" aria-live="assertive" hidden>
   <p><span data-s="conflictText"></span> (<span class="c-time"></span>).</p>
   <div class="row">
     <button class="btn" type="button" data-choice="theirs" data-s="conflictTheirs"></button>
     <button class="btn" type="button" data-choice="mine" data-s="conflictMine"></button>
+  </div>
+</div>
+<div id="stale-state" class="choice-dialog" role="alertdialog" aria-live="assertive" hidden>
+  <p><span data-s="staleText"></span> (<span class="c-time"></span>).</p>
+  <div class="row">
+    <button class="btn" type="button" data-choice="page" data-s="staleUsePage"></button>
+    <button class="btn" type="button" data-choice="saved" data-s="staleKeepSaved"></button>
   </div>
 </div>
 <script>/*__SCHEMA_CANVAS_DATA__*/</script>

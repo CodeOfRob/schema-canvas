@@ -9,6 +9,7 @@ import { applyLocalSnapshot, initPersistence } from "./ui/persistence.js";
 import { flash, initToolbar, renderChrome } from "./ui/toolbar.js";
 import { state, loadPrefs } from "./ui/state.js";
 import { bindView } from "./ui/view.js";
+import { fingerprintModel } from "./snapshot-base.js";
 
 const PALETTE = ["#0060a3", "#a86400", "#54606d", "#7a3e9d", "#00796b", "#b0306a"];
 
@@ -44,11 +45,13 @@ async function main() {
   state.page = page;
   state.current = page.current;
   state.target = page.target ? structuredClone(page.target) : null;
+  state.builtInBase = fingerprintModel(page.target);
+  state.base = state.builtInBase;
   state.layout = structuredClone(page.layout);
   state.view = page.target ? "target" : "current";
   loadPrefs(storageKeyFor(page.config, page.current), page.config);
   injectKindStyles(page.config.dataKinds);
-  const localSavedAt = applyLocalSnapshot();
+  const localSnapshot = applyLocalSnapshot();
   placeMissing("current");
   placeMissing("target");
   initCanvas();
@@ -57,7 +60,7 @@ async function main() {
   renderPageText(page.config);
   refresh();
   fitAll();
-  await initPersistence(localSavedAt);
+  await initPersistence(localSnapshot);
 }
 
 main().catch(showFatal);
