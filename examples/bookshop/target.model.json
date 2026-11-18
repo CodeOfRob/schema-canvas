@@ -1,0 +1,117 @@
+{
+  "$schema": "../../schema/model.schema.json",
+  "version": 1,
+  "name": "bookshop (target)",
+  "entities": [
+    {
+      "name": "Author",
+      "note": "bio is dropped; a website link replaces it.",
+      "fields": [
+        { "name": "id", "type": "Int", "nullable": false, "default": "autoincrement()", "pk": true },
+        { "name": "name", "type": "String", "nullable": false },
+        { "name": "website", "type": "String", "nullable": true }
+      ]
+    },
+    {
+      "name": "Book",
+      "fields": [
+        { "name": "id", "type": "Int", "nullable": false, "default": "autoincrement()", "pk": true },
+        { "name": "title", "type": "String", "nullable": false },
+        { "name": "authorId", "type": "Int", "nullable": false, "fk": true },
+        { "name": "firstPublished", "type": "Int", "nullable": true, "origin": ["Book.publishedYear"] }
+      ]
+    },
+    {
+      "name": "Edition",
+      "fields": [
+        { "name": "id", "type": "Int", "nullable": false, "default": "autoincrement()", "pk": true },
+        { "name": "bookId", "type": "Int", "nullable": false, "fk": true },
+        { "name": "isbn", "type": "String", "nullable": false, "uk": true },
+        { "name": "format", "type": "BookFormat", "nullable": false },
+        { "name": "price", "type": "Decimal", "nullable": false, "origin": ["Edition.priceCents"], "note": "Decimal instead of cents." }
+      ]
+    },
+    {
+      "name": "Account",
+      "origin": ["Customer"],
+      "note": "Renamed: guests and staff will have accounts too.",
+      "fields": [
+        { "name": "id", "type": "Int", "nullable": false, "default": "autoincrement()", "pk": true },
+        { "name": "email", "type": "String", "nullable": false, "uk": true },
+        { "name": "displayName", "type": "String", "nullable": false, "origin": ["Customer.fullName"] },
+        { "name": "shippingAddress", "type": "String", "nullable": true, "origin": ["Order.shippingAddress"], "note": "Moved from Order: one address per account." },
+        { "name": "createdAt", "type": "DateTime", "nullable": false, "default": "now()" }
+      ]
+    },
+    {
+      "name": "Order",
+      "fields": [
+        { "name": "id", "type": "Int", "nullable": false, "default": "autoincrement()", "pk": true },
+        { "name": "accountId", "type": "Int", "nullable": false, "fk": true, "origin": ["Order.customerId"] },
+        { "name": "status", "type": "OrderStatus", "nullable": false, "default": "OPEN" },
+        { "name": "placedAt", "type": "DateTime", "nullable": false, "default": "now()" }
+      ]
+    },
+    {
+      "name": "OrderLine",
+      "fields": [
+        { "name": "orderId", "type": "Int", "nullable": false, "pk": true, "fk": true },
+        { "name": "lineNo", "type": "Int", "nullable": false, "pk": true },
+        { "name": "editionId", "type": "Int", "nullable": false, "fk": true },
+        { "name": "quantity", "type": "Int", "nullable": false, "default": "1" },
+        { "name": "priceCents", "type": "Int", "nullable": false }
+      ]
+    },
+    {
+      "name": "Review",
+      "fields": [
+        { "name": "id", "type": "Int", "nullable": false, "default": "autoincrement()", "pk": true },
+        { "name": "bookId", "type": "Int", "nullable": false, "fk": true },
+        { "name": "accountId", "type": "Int", "nullable": false, "fk": true, "origin": ["Review.customerId"] },
+        { "name": "rating", "type": "Int", "nullable": false },
+        { "name": "body", "type": "String", "nullable": true }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "origin": ["Warehouse", "Stock"],
+      "fields": [
+        { "name": "id", "type": "Int", "nullable": false, "default": "autoincrement()", "pk": true, "origin": [] },
+        { "name": "warehouseName", "type": "String", "nullable": false, "origin": ["Warehouse.name"] },
+        { "name": "city", "type": "String", "nullable": false },
+        { "name": "editionId", "type": "Int", "nullable": false, "fk": true },
+        { "name": "onHand", "type": "Int", "nullable": false, "default": "0" }
+      ]
+    },
+    {
+      "name": "Wishlist",
+      "fields": [
+        { "name": "accountId", "type": "Int", "nullable": false, "pk": true, "fk": true },
+        { "name": "editionId", "type": "Int", "nullable": false, "pk": true, "fk": true },
+        { "name": "addedAt", "type": "DateTime", "nullable": false, "default": "now()" }
+      ]
+    }
+  ],
+  "relations": [
+    { "from": "Book", "to": "Author", "fromFields": ["authorId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
+    { "from": "Edition", "to": "Book", "fromFields": ["bookId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
+    { "from": "Order", "to": "Account", "fromFields": ["accountId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
+    { "from": "OrderLine", "to": "Order", "fromFields": ["orderId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
+    { "from": "OrderLine", "to": "Edition", "fromFields": ["editionId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
+    { "from": "Review", "to": "Book", "fromFields": ["bookId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
+    { "from": "Review", "to": "Account", "fromFields": ["accountId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
+    { "from": "Inventory", "to": "Edition", "fromFields": ["editionId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
+    { "from": "Wishlist", "to": "Account", "fromFields": ["accountId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
+    { "from": "Wishlist", "to": "Edition", "fromFields": ["editionId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } }
+  ],
+  "indexes": [
+    { "entity": "Book", "fields": ["authorId"], "unique": false },
+    { "entity": "Order", "fields": ["accountId", "placedAt"], "unique": false },
+    { "entity": "Review", "fields": ["bookId", "accountId"], "unique": true },
+    { "entity": "Inventory", "fields": ["warehouseName", "editionId"], "unique": true }
+  ],
+  "enums": [
+    { "name": "BookFormat", "values": ["HARDCOVER", "PAPERBACK", "EBOOK"] },
+    { "name": "OrderStatus", "values": ["OPEN", "PAID", "SHIPPED", "CANCELLED"] }
+  ]
+}

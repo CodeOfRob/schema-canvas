@@ -1,0 +1,24 @@
+{
+  "title": "Bookshop schema",
+  "storageKey": "schema-canvas-example:bookshop",
+  "tileTables": ["Edition"],
+  "dataKinds": {
+    "catalog": { "label": "Catalog", "color": "#0060a3" },
+    "sales": { "label": "Sales", "color": "#a86400" }
+  },
+  "entityKinds": {
+    "Author": "catalog",
+    "Book": "catalog",
+    "Edition": "catalog",
+    "Warehouse": "catalog",
+    "Stock": "catalog",
+    "Customer": "sales",
+    "Order": "sales",
+    "OrderLine": "sales",
+    "Review": "sales",
+    "Wishlist": "sales"
+  },
+  "notes": {
+    "Inventory": "One row per warehouse and edition; the warehouse is inlined because the shop only ever has a handful of them."
+  }
+}

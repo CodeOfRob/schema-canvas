@@ -1,0 +1,499 @@
+{
+  "version": 1,
+  "name": "bookshop",
+  "entities": [
+    {
+      "id": "Author",
+      "name": "Author",
+      "note": "A person who writes books.",
+      "fields": [
+        {
+          "id": "Author.id",
+          "name": "id",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "default": "autoincrement()"
+        },
+        {
+          "id": "Author.name",
+          "name": "name",
+          "type": "String",
+          "nullable": false
+        },
+        {
+          "id": "Author.bio",
+          "name": "bio",
+          "type": "String",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "id": "Book",
+      "name": "Book",
+      "fields": [
+        {
+          "id": "Book.id",
+          "name": "id",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "default": "autoincrement()"
+        },
+        {
+          "id": "Book.title",
+          "name": "title",
+          "type": "String",
+          "nullable": false
+        },
+        {
+          "id": "Book.authorId",
+          "name": "authorId",
+          "type": "Int",
+          "nullable": false,
+          "fk": true
+        },
+        {
+          "id": "Book.publishedYear",
+          "name": "publishedYear",
+          "type": "Int",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "id": "Edition",
+      "name": "Edition",
+      "note": "A sellable version of a book (format, ISBN, price).",
+      "fields": [
+        {
+          "id": "Edition.id",
+          "name": "id",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "default": "autoincrement()"
+        },
+        {
+          "id": "Edition.bookId",
+          "name": "bookId",
+          "type": "Int",
+          "nullable": false,
+          "fk": true
+        },
+        {
+          "id": "Edition.isbn",
+          "name": "isbn",
+          "type": "String",
+          "nullable": false,
+          "uk": true
+        },
+        {
+          "id": "Edition.format",
+          "name": "format",
+          "type": "BookFormat",
+          "nullable": false
+        },
+        {
+          "id": "Edition.priceCents",
+          "name": "priceCents",
+          "type": "Int",
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "id": "Customer",
+      "name": "Customer",
+      "fields": [
+        {
+          "id": "Customer.id",
+          "name": "id",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "default": "autoincrement()"
+        },
+        {
+          "id": "Customer.email",
+          "name": "email",
+          "type": "String",
+          "nullable": false,
+          "uk": true
+        },
+        {
+          "id": "Customer.fullName",
+          "name": "fullName",
+          "type": "String",
+          "nullable": false
+        },
+        {
+          "id": "Customer.createdAt",
+          "name": "createdAt",
+          "type": "DateTime",
+          "nullable": false,
+          "default": "now()"
+        }
+      ]
+    },
+    {
+      "id": "Order",
+      "name": "Order",
+      "fields": [
+        {
+          "id": "Order.id",
+          "name": "id",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "default": "autoincrement()"
+        },
+        {
+          "id": "Order.customerId",
+          "name": "customerId",
+          "type": "Int",
+          "nullable": false,
+          "fk": true
+        },
+        {
+          "id": "Order.status",
+          "name": "status",
+          "type": "OrderStatus",
+          "nullable": false,
+          "default": "OPEN"
+        },
+        {
+          "id": "Order.placedAt",
+          "name": "placedAt",
+          "type": "DateTime",
+          "nullable": false,
+          "default": "now()"
+        },
+        {
+          "id": "Order.shippingAddress",
+          "name": "shippingAddress",
+          "type": "String",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "id": "OrderLine",
+      "name": "OrderLine",
+      "fields": [
+        {
+          "id": "OrderLine.orderId",
+          "name": "orderId",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "fk": true
+        },
+        {
+          "id": "OrderLine.lineNo",
+          "name": "lineNo",
+          "type": "Int",
+          "nullable": false,
+          "pk": true
+        },
+        {
+          "id": "OrderLine.editionId",
+          "name": "editionId",
+          "type": "Int",
+          "nullable": false,
+          "fk": true
+        },
+        {
+          "id": "OrderLine.quantity",
+          "name": "quantity",
+          "type": "Int",
+          "nullable": false,
+          "default": "1"
+        },
+        {
+          "id": "OrderLine.priceCents",
+          "name": "priceCents",
+          "type": "Int",
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "id": "Review",
+      "name": "Review",
+      "fields": [
+        {
+          "id": "Review.id",
+          "name": "id",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "default": "autoincrement()"
+        },
+        {
+          "id": "Review.bookId",
+          "name": "bookId",
+          "type": "Int",
+          "nullable": false,
+          "fk": true
+        },
+        {
+          "id": "Review.customerId",
+          "name": "customerId",
+          "type": "Int",
+          "nullable": false,
+          "fk": true
+        },
+        {
+          "id": "Review.rating",
+          "name": "rating",
+          "type": "Int",
+          "nullable": false
+        },
+        {
+          "id": "Review.body",
+          "name": "body",
+          "type": "String",
+          "nullable": true
+        }
+      ]
+    },
+    {
+      "id": "Warehouse",
+      "name": "Warehouse",
+      "fields": [
+        {
+          "id": "Warehouse.id",
+          "name": "id",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "default": "autoincrement()"
+        },
+        {
+          "id": "Warehouse.name",
+          "name": "name",
+          "type": "String",
+          "nullable": false
+        },
+        {
+          "id": "Warehouse.city",
+          "name": "city",
+          "type": "String",
+          "nullable": false
+        }
+      ]
+    },
+    {
+      "id": "Stock",
+      "name": "Stock",
+      "fields": [
+        {
+          "id": "Stock.warehouseId",
+          "name": "warehouseId",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "fk": true
+        },
+        {
+          "id": "Stock.editionId",
+          "name": "editionId",
+          "type": "Int",
+          "nullable": false,
+          "pk": true,
+          "fk": true
+        },
+        {
+          "id": "Stock.onHand",
+          "name": "onHand",
+          "type": "Int",
+          "nullable": false,
+          "default": "0"
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "id": "Book.author",
+      "from": "Book",
+      "to": "Author",
+      "fromFields": [
+        "authorId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    },
+    {
+      "id": "Edition.book",
+      "from": "Edition",
+      "to": "Book",
+      "fromFields": [
+        "bookId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    },
+    {
+      "id": "Order.customer",
+      "from": "Order",
+      "to": "Customer",
+      "fromFields": [
+        "customerId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    },
+    {
+      "id": "OrderLine.order",
+      "from": "OrderLine",
+      "to": "Order",
+      "fromFields": [
+        "orderId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    },
+    {
+      "id": "OrderLine.edition",
+      "from": "OrderLine",
+      "to": "Edition",
+      "fromFields": [
+        "editionId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    },
+    {
+      "id": "Review.book",
+      "from": "Review",
+      "to": "Book",
+      "fromFields": [
+        "bookId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    },
+    {
+      "id": "Review.customer",
+      "from": "Review",
+      "to": "Customer",
+      "fromFields": [
+        "customerId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    },
+    {
+      "id": "Stock.warehouse",
+      "from": "Stock",
+      "to": "Warehouse",
+      "fromFields": [
+        "warehouseId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    },
+    {
+      "id": "Stock.edition",
+      "from": "Stock",
+      "to": "Edition",
+      "fromFields": [
+        "editionId"
+      ],
+      "toFields": [
+        "id"
+      ],
+      "cardinality": {
+        "from": "n",
+        "to": "1"
+      }
+    }
+  ],
+  "indexes": [
+    {
+      "entity": "Book",
+      "fields": [
+        "authorId"
+      ],
+      "unique": false
+    },
+    {
+      "entity": "Order",
+      "fields": [
+        "customerId",
+        "placedAt"
+      ],
+      "unique": false
+    },
+    {
+      "entity": "Review",
+      "fields": [
+        "bookId",
+        "customerId"
+      ],
+      "unique": true
+    }
+  ],
+  "enums": [
+    {
+      "name": "BookFormat",
+      "values": [
+        "HARDCOVER",
+        "PAPERBACK",
+        "EBOOK"
+      ]
+    },
+    {
+      "name": "OrderStatus",
+      "values": [
+        "OPEN",
+        "PAID",
+        "SHIPPED",
+        "CANCELLED"
+      ]
+    }
+  ]
+}

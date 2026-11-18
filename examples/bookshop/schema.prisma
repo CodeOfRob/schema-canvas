@@ -1,0 +1,111 @@
+// Example schema of a small online bookshop (the "current" state).
+datasource db {
+  provider = "postgresql"
+}
+
+enum BookFormat {
+  HARDCOVER
+  PAPERBACK
+  EBOOK
+}
+
+enum OrderStatus {
+  OPEN
+  PAID
+  SHIPPED
+  CANCELLED
+}
+
+/// A person who writes books.
+model Author {
+  id    Int     @id @default(autoincrement())
+  name  String
+  bio   String?
+  books Book[]
+}
+
+model Book {
+  id            Int       @id @default(autoincrement())
+  title         String
+  authorId      Int
+  publishedYear Int?
+  author        Author    @relation(fields: [authorId], references: [id])
+  editions      Edition[]
+  reviews       Review[]
+
+  @@index([authorId])
+}
+
+/// A sellable version of a book (format, ISBN, price).
+model Edition {
+  id         Int         @id @default(autoincrement())
+  bookId     Int
+  isbn       String      @unique
+  format     BookFormat
+  priceCents Int
+  book       Book        @relation(fields: [bookId], references: [id])
+  orderLines OrderLine[]
+  stock      Stock[]
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  fullName  String
+  createdAt DateTime @default(now())
+  orders    Order[]
+  reviews   Review[]
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  customerId      Int
+  status          OrderStatus @default(OPEN)
+  placedAt        DateTime    @default(now())
+  shippingAddress String?
+  customer        Customer    @relation(fields: [customerId], references: [id])
+  lines           OrderLine[]
+
+  @@index([customerId, placedAt])
+}
+
+model OrderLine {
+  orderId    Int
+  lineNo     Int
+  editionId  Int
+  quantity   Int     @default(1)
+  priceCents Int
+  order      Order   @relation(fields: [orderId], references: [id])
+  edition    Edition @relation(fields: [editionId], references: [id])
+
+  @@id([orderId, lineNo])
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  bookId     Int
+  customerId Int
+  rating     Int
+  body       String?
+  book       Book     @relation(fields: [bookId], references: [id])
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  @@unique([bookId, customerId])
+}
+
+model Warehouse {
+  id    Int     @id @default(autoincrement())
+  name  String
+  city  String
+  stock Stock[]
+}
+
+model Stock {
+  warehouseId Int
+  editionId   Int
+  onHand      Int       @default(0)
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  edition     Edition   @relation(fields: [editionId], references: [id])
+
+  @@id([warehouseId, editionId])
+}

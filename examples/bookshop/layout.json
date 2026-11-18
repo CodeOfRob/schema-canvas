@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "current": {
+    "Author": [
+      1185,
+      459
+    ],
+    "Book": [
+      1147,
+      658
+    ],
+    "Edition": [
+      1122,
+      860
+    ],
+    "Customer": [
+      734,
+      319
+    ],
+    "Order": [
+      428,
+      326
+    ],
+    "OrderLine": [
+      420,
+      80
+    ],
+    "Review": [
+      860,
+      515
+    ],
+    "Warehouse": [
+      64,
+      1627
+    ],
+    "Stock": [
+      60,
+      1435
+    ]
+  },
+  "target": {
+    "Author": [
+      1368,
+      1285
+    ],
+    "Book": [
+      1342,
+      1057
+    ],
+    "Edition": [
+      1036,
+      1020
+    ],
+    "Account": [
+      1401,
+      537
+    ],
+    "Order": [
+      1212,
+      301
+    ],
+    "OrderLine": [
+      1240,
+      80
+    ],
+    "Review": [
+      1367,
+      831
+    ],
+    "Inventory": [
+      60,
+      909
+    ],
+    "Wishlist": [
+      1542,
+      345
+    ]
+  },
+  "groups": [
+    {
+      "id": "g-orders",
+      "name": "Ordering",
+      "members": [
+        "Order",
+        "OrderLine"
+      ]
+    }
+  ]
+}

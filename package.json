@@ -18,7 +18,7 @@
   "scripts": {
     "test": "node --test \"test/**/*.test.js\"",
     "lint": "eslint .",
-    "example": "node bin/schema-canvas.mjs model --prisma examples/bookshop/schema.prisma -o examples/bookshop/current.model.json && node bin/schema-canvas.mjs build --current examples/bookshop/current.model.json --target examples/bookshop/target.model.json --layout examples/bookshop/layout.json --config examples/bookshop/config.json -o examples/bookshop/out/page.html"
+    "example": "node bin/schema-canvas.mjs model --prisma examples/bookshop/schema.prisma --name bookshop -o examples/bookshop/current.model.json && node bin/schema-canvas.mjs build --current examples/bookshop/current.model.json --target examples/bookshop/target.model.json --layout examples/bookshop/layout.json --config examples/bookshop/config.json -o examples/bookshop/out/page.html"
   },
   "keywords": [
     "erd",
