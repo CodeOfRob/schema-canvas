@@ -81,3 +81,11 @@ test("countStatuses sums entity statuses per side", () => {
   assert.deepEqual(counts.target, { renamed: 1, merged: 1, changed: 1, added: 1 });
   assert.deepEqual(counts.current, { renamed: 1, merged: 2, changed: 1, removed: 1 });
 });
+
+test("changed: true marks a field as changed although its compared properties are equal", () => {
+  const flagged = normalizeModel({ ...target, entities: target.entities.map(e => (e.name === "Title" ? { ...e, fields: e.fields.map(f => (f.name === "writerId" ? { ...f, changed: true } : f)) } : e)) });
+  const d = computeDiff(current, flagged);
+  assert.equal(d.target.fields["Title.writerId"], "changed");
+  assert.equal(d.current.fields["Title.writerId"].status, "changed");
+  assert.equal(computeDiff(current, target).target.fields["Title.writerId"], "same");
+});

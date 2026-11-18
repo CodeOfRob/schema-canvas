@@ -22,6 +22,12 @@ const isStringArray = value => Array.isArray(value) && value.every(item => typeo
 export function fieldRef(entityName, fieldName) {
   return entityName + "." + fieldName;
 }
+// Index entries are field names; anything that is not a plain name (lower(email), (data->>'key')) is an
+// expression, shown as written and not checked against the fields.
+const PLAIN_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+export function isIndexExpression(entry) {
+  return !PLAIN_NAME.test(entry);
+}
 export function splitFieldRef(ref) {
   const cut = ref.lastIndexOf(".");
   return cut < 0 ? { entity: ref, field: "" } : { entity: ref.slice(0, cut), field: ref.slice(cut + 1) };
@@ -31,7 +37,7 @@ function normalizeField(raw, entity, path, issues) {
   if (!isPlainObject(raw)) { issues.push(path + " must be an object"); return null; }
   if (!isNonEmptyString(raw.name)) issues.push(path + ".name must be a non-empty string");
   if (!isNonEmptyString(raw.type)) issues.push(path + ".type must be a non-empty string");
-  for (const flag of ["list", "nullable", "pk", "uk", "fk"]) {
+  for (const flag of ["list", "nullable", "pk", "uk", "fk", "changed"]) {
     if (raw[flag] !== undefined && typeof raw[flag] !== "boolean") issues.push(path + "." + flag + " must be a boolean");
   }
   for (const text of ["default", "note"]) {
@@ -51,6 +57,7 @@ function normalizeField(raw, entity, path, issues) {
   if (raw.default !== undefined) field.default = raw.default;
   if (raw.note) field.note = raw.note;
   if (raw.origin) field.origin = [...raw.origin];
+  if (raw.changed === true) field.changed = true;
   return field;
 }
 
@@ -62,10 +69,12 @@ function normalizeEntity(raw, path, issues) {
     if (raw[text] !== undefined && typeof raw[text] !== "string") issues.push(path + "." + text + " must be a string");
   }
   if (raw.origin !== undefined && !isStringArray(raw.origin)) issues.push(path + ".origin must be an array of entity names");
+  if (raw.reviewed !== undefined && typeof raw.reviewed !== "boolean") issues.push(path + ".reviewed must be a boolean");
   const entity = { id: isNonEmptyString(raw.id) ? raw.id : raw.name, name: raw.name };
   if (raw.kind) entity.kind = raw.kind;
   if (raw.note) entity.note = raw.note;
   if (raw.origin) entity.origin = [...raw.origin];
+  if (raw.reviewed === true) entity.reviewed = true;
   entity.fields = raw.fields.map((f, i) => normalizeField(f, entity, path + ".fields[" + i + "]", issues)).filter(Boolean);
   return entity;
 }
@@ -100,12 +109,13 @@ function normalizeIndex(raw, path, issues) {
   if (!isNonEmptyString(raw.entity)) issues.push(path + ".entity must be an entity id");
   if (!isStringArray(raw.fields) || !raw.fields.length) issues.push(path + ".fields must be a non-empty array of field names");
   if (raw.unique !== undefined && typeof raw.unique !== "boolean") issues.push(path + ".unique must be a boolean");
-  for (const text of ["name", "where"]) {
+  for (const text of ["name", "where", "note"]) {
     if (raw[text] !== undefined && typeof raw[text] !== "string") issues.push(path + "." + text + " must be a string");
   }
   const index = { entity: raw.entity, fields: isStringArray(raw.fields) ? [...raw.fields] : [], unique: raw.unique === true };
   if (raw.name) index.name = raw.name;
   if (raw.where) index.where = raw.where;
+  if (raw.note) index.note = raw.note;
   return index;
 }
 
@@ -138,7 +148,7 @@ function checkReferences(model, issues) {
   model.indexes.forEach((index, i) => {
     const entity = byId.get(index.entity);
     if (!entity) { issues.push("indexes[" + i + "].entity \"" + index.entity + "\" is not an entity id"); return; }
-    for (const name of index.fields) if (!hasField(entity, name)) issues.push("indexes[" + i + "].fields: \"" + name + "\" is not a field of " + entity.name);
+    for (const name of index.fields) if (!isIndexExpression(name) && !hasField(entity, name)) issues.push("indexes[" + i + "].fields: \"" + name + "\" is not a field of " + entity.name);
   });
 }
 

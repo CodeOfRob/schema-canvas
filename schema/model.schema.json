@@ -31,6 +31,7 @@
           "items": { "type": "string" },
           "description": "Target model only: names of the entities in the current model this entity continues. Two or more = merged."
         },
+        "reviewed": { "type": "boolean", "description": "Review marker: the table has been worked through. The page can dim reviewed tables." },
         "fields": { "type": "array", "items": { "$ref": "#/$defs/field" } }
       }
     },
@@ -53,7 +54,8 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Target model only: \"Entity.field\" references into the current model this field comes from."
-        }
+        },
+        "changed": { "type": "boolean", "description": "Target model only: counts the field as changed even when type, keys and default are equal (new enum values, a new meaning)." }
       }
     },
     "relation": {
@@ -84,9 +86,10 @@
       "properties": {
         "entity": { "type": "string" },
         "name": { "type": "string" },
-        "fields": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "fields": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "Field names; an entry that is not a plain name (lower(email)) is an expression." },
         "unique": { "type": "boolean" },
-        "where": { "type": "string", "description": "Predicate of a partial index." }
+        "where": { "type": "string", "description": "Predicate of a partial index." },
+        "note": { "type": "string", "description": "Why the index exists." }
       }
     },
     "enum": {

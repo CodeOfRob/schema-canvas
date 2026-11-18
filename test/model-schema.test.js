@@ -40,3 +40,20 @@ test("the runtime validator also checks references the JSON schema cannot expres
   assert.equal(validateWithSchema(dangling), true);
   assert.throws(() => normalizeModel(dangling), /Missing.*is not an entity id/s);
 });
+
+test("review marker, change flag, index note and index expressions are kept", () => {
+  const doc = {
+    version: 1,
+    entities: [{ name: "A", reviewed: true, fields: [{ name: "id", type: "Int", pk: true }, { name: "email", type: "String", changed: true }] }],
+    indexes: [{ entity: "A", fields: ["lower(email)", "id"], unique: true, note: "case-insensitive login" }],
+  };
+  assert.ok(validateWithSchema(doc), JSON.stringify(validateWithSchema.errors));
+  const model = normalizeModel(doc);
+  assert.equal(model.entities[0].reviewed, true);
+  assert.equal(model.entities[0].fields[1].changed, true);
+  assert.equal(model.entities[0].fields[0].changed, undefined);
+  assert.deepEqual(model.indexes[0], { entity: "A", fields: ["lower(email)", "id"], unique: true, note: "case-insensitive login" });
+  assert.ok(validateWithSchema(toDocument(model)));
+  assert.throws(() => normalizeModel({ ...doc, indexes: [{ entity: "A", fields: ["missing"] }] }), /"missing" is not a field of A/);
+  assert.throws(() => normalizeModel({ ...doc, entities: [{ ...doc.entities[0], reviewed: "yes" }] }), /reviewed must be a boolean/);
+});

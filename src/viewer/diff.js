@@ -8,8 +8,9 @@ import { fieldRef, splitFieldRef } from "../model/normalize.js";
 
 const COMPARED_FIELD_PROPERTIES = ["type", "list", "nullable", "pk", "uk", "default"];
 
+// changed: true on a target field records a change the compared properties cannot show (new enum values, a new meaning).
 function fieldChanged(before, after) {
-  return COMPARED_FIELD_PROPERTIES.some(key => before[key] !== after[key]);
+  return after.changed === true || COMPARED_FIELD_PROPERTIES.some(key => before[key] !== after[key]);
 }
 
 function sortedJoin(values) {
