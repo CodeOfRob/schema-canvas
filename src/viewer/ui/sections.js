@@ -6,6 +6,7 @@ export function renderPageText(config) {
   const description = document.getElementById("description");
   description.hidden = !config.description;
   description.innerHTML = config.description ? renderMarkdown(config.description) : "";
+  description.title = description.textContent;
   const host = document.getElementById("sections");
   host.innerHTML = config.sections.map(s => '<div class="card text"><h2>' + esc(s.title) + '</h2><div class="md">' + renderMarkdown(s.markdown) + "</div></div>").join("");
 }
