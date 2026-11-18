@@ -43,9 +43,9 @@ async function readJson(path) {
   }
 }
 
-async function modelFromSource(values) {
-  const sources = ["prisma", "tbls", "current"].filter(k => values[k]);
-  if (sources.length !== 1) throw new Error("give exactly one of --prisma, --tbls" + (values.current !== undefined || sources.includes("current") ? ", --current" : ""));
+async function modelFromSource(values, allowed) {
+  const sources = allowed.filter(k => values[k]);
+  if (sources.length !== 1) throw new Error("give exactly one of " + allowed.map(k => "--" + k).join(", "));
   if (values.prisma) return prismaSourceToModel(await readPrismaSource(values.prisma), values.name || "");
   if (values.tbls) return tblsToModel(await readJson(values.tbls), values.name || "");
   return readJson(values.current);
@@ -57,16 +57,15 @@ async function writeOutput(path, content) {
 }
 
 async function runModel(values) {
-  if (values.current) throw new Error("`model` reads a schema: use --prisma or --tbls");
   if (!values.out) throw new Error("missing -o <model.json>");
-  const model = normalizeModel(await modelFromSource(values), "generated model");
+  const model = normalizeModel(await modelFromSource(values, ["prisma", "tbls"]), "generated model");
   await writeOutput(values.out, JSON.stringify(toDocument(model), null, 2) + "\n");
   console.log("wrote " + values.out + " (" + model.entities.length + " tables, " + model.relations.length + " relations)");
 }
 
 async function runBuild(values) {
   if (!values.out) throw new Error("missing -o <page.html>");
-  const current = normalizeModel(await modelFromSource(values), values.current || "current model");
+  const current = normalizeModel(await modelFromSource(values, ["current", "prisma", "tbls"]), values.current || "current model");
   const target = values.target ? normalizeModel(await readJson(values.target), values.target) : null;
   const layout = values.layout ? normalizeLayout(await readJson(values.layout), values.layout) : undefined;
   const config = normalizeConfig(values.config ? await readJson(values.config) : {}, values.config || "config");
