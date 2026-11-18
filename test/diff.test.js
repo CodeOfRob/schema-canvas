@@ -89,3 +89,29 @@ test("changed: true marks a field as changed although its compared properties ar
   assert.equal(d.current.fields["Title.writerId"].status, "changed");
   assert.equal(computeDiff(current, target).target.fields["Title.writerId"], "same");
 });
+
+test("every relation gets a status when two merged tables referenced the same table", () => {
+  const before = normalizeModel({
+    version: 1,
+    entities: [
+      { name: "Writer", fields: [field("id", { pk: true })] },
+      { name: "Shelf", fields: [field("id", { pk: true }), field("writerId", { fk: true })] },
+      { name: "Rack", fields: [field("id", { pk: true }), field("writerId", { fk: true })] },
+    ],
+    relations: [
+      { from: "Shelf", to: "Writer", fromFields: ["writerId"] },
+      { from: "Rack", to: "Writer", fromFields: ["writerId"], cardinality: { from: "0..1", to: "1" } },
+    ],
+  });
+  const after = normalizeModel({
+    version: 1,
+    entities: [
+      { name: "Writer", fields: [field("id", { pk: true })] },
+      { name: "Location", origin: ["Shelf", "Rack"], fields: [field("id", { pk: true, origin: ["Shelf.id", "Rack.id"] }), field("writerId", { fk: true, origin: ["Shelf.writerId", "Rack.writerId"] })] },
+    ],
+    relations: [{ from: "Location", to: "Writer", fromFields: ["writerId"] }],
+  });
+  const d = computeDiff(before, after);
+  assert.deepEqual(d.current.relations, { "Shelf.writerId->Writer": "same", "Rack.writerId->Writer": "changed" });
+  assert.deepEqual(d.target.relations, { "Location.writerId->Writer": "same" });
+});

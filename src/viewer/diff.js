@@ -127,17 +127,22 @@ export function computeDiff(current, target) {
   };
   const targetKey = r => targetNameById.get(r.from) + "|" + targetNameById.get(r.to) + "|" + (r.fromFields.length ? sortedJoin(r.fromFields) : "~" + (r.label || ""));
   const sameCardinality = (a, b) => a.cardinality.from === b.cardinality.from && a.cardinality.to === b.cardinality.to;
-  const currentByKey = new Map(current.relations.map(r => [currentKey(r), r]));
-  const targetByKey = new Map(target.relations.map(r => [targetKey(r), r]));
+  // Several relations can share a key (two merged tables both referenced the same table), so keys map to lists.
+  const groupByKey = (relations, keyOf) => {
+    const groups = new Map();
+    for (const r of relations) {
+      const key = keyOf(r);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(r);
+    }
+    return groups;
+  };
+  const currentByKey = groupByKey(current.relations, currentKey);
+  const targetByKey = groupByKey(target.relations, targetKey);
+  const statusAgainst = (r, counterparts, missing) => (!counterparts ? missing : counterparts.some(c => sameCardinality(c, r)) ? "same" : "changed");
   const targetRelations = {}, currentRelations = {};
-  for (const [key, r] of targetByKey) {
-    const before = currentByKey.get(key);
-    targetRelations[r.id] = !before ? "added" : sameCardinality(before, r) ? "same" : "changed";
-  }
-  for (const [key, r] of currentByKey) {
-    const after = targetByKey.get(key);
-    currentRelations[r.id] = !after ? "removed" : sameCardinality(after, r) ? "same" : "changed";
-  }
+  for (const [key, list] of targetByKey) for (const r of list) targetRelations[r.id] = statusAgainst(r, currentByKey.get(key), "added");
+  for (const [key, list] of currentByKey) for (const r of list) currentRelations[r.id] = statusAgainst(r, targetByKey.get(key), "removed");
 
   return {
     target: { entities: targetEntities, fields: targetFields, relations: targetRelations },
