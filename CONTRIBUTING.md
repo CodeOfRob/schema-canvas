@@ -7,7 +7,7 @@ The notes below describe how to work on the code, for example in your fork.
 
 ## Setup
 
-Requires Node.js 20 or newer (CI runs 22 and 24).
+Requires Node.js 20 or newer.
 
 ```sh
 git clone https://github.com/CodeOfRob/schema-canvas.git
@@ -18,7 +18,7 @@ npm run example     # builds examples/bookshop/out/page.html
 
 ## Checks
 
-Run these after a change; CI runs the same:
+Run these after a change:
 
 ```sh
 npm run lint        # eslint

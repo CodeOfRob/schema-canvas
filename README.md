@@ -2,7 +2,6 @@
 
 **Turn a database schema into one self-contained, interactive ER diagram, and review the current schema against a target schema together with people who do not read SQL.**
 
-[![CI](https://github.com/CodeOfRob/schema-canvas/actions/workflows/ci.yml/badge.svg)](https://github.com/CodeOfRob/schema-canvas/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 
