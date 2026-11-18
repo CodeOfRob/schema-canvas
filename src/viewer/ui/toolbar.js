@@ -49,6 +49,12 @@ export function renderChrome() {
   $("counts").textContent = countsText(activeModel(), hasTarget() ? viewName : S.summaryTables) + (other ? " (" + countsText(other, state.view === "target" ? S.viewCurrent : S.viewTarget) + ")" : "");
   renderTileList();
   renderEnums();
+  if (hasTarget()) {
+    const reviewed = state.target.entities.filter(e => e.reviewed).length;
+    $("reviewed-count").textContent = reviewed + "/" + state.target.entities.length;
+    $("dim-reviewed").setAttribute("aria-pressed", String(state.dimReviewed));
+    $("dim-reviewed").disabled = !editing;
+  }
 }
 
 function setFullscreen(on, fromBrowser) {
@@ -225,6 +231,12 @@ export function initToolbar() {
   $("arrange-rel").addEventListener("click", () => arrange("relations"));
   $("layout-restore").addEventListener("click", restoreArrangement);
   $("full").addEventListener("click", () => setFullscreen(!$("stage").classList.contains("full")));
+  $("dim-reviewed").addEventListener("click", () => {
+    state.dimReviewed = !state.dimReviewed;
+    savePref("dim-reviewed", state.dimReviewed);
+    renderChrome();
+    renderCanvas();
+  });
   document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && $("stage").classList.contains("full")) setFullscreen(false, true); });
   const indexButton = $("idx");
   indexButton.setAttribute("aria-pressed", String(state.showIndexes));

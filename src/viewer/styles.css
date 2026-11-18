@@ -109,7 +109,11 @@ svg.links g.utile text { fill: var(--accent); font-weight: 600; font-family: var
 .ent.st-removed { border-color: var(--del); border-style: dashed; }
 .ent.st-renamed, .ent.st-merged { border-color: var(--ren); }
 .ent .eh { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--line); border-radius: 5px 5px 0 0; cursor: move; user-select: none; }
-.ent .en { font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ent .eh input.rv { margin: 0; flex: none; cursor: pointer; accent-color: var(--add); }
+.ent.done .eh { background: color-mix(in srgb, var(--add-bg) 70%, transparent); }
+.dim-reviewed .ent.done { opacity: .35; }
+.dim-reviewed .ent.done:hover, .dim-reviewed .ent.done.sel { opacity: 1; }
+.ent .en { flex: 1; font-weight: 600; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ent .fr { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 2px 8px; height: 24px; cursor: pointer; }
 .ent .fr:hover { background: var(--bg); }
 .ent .fr.sel { background: var(--ren-bg); }

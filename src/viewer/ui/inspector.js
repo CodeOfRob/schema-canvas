@@ -3,7 +3,7 @@ import { CARDINALITIES, fieldRef } from "../../model/normalize.js";
 import { NO_KIND } from "../../model/page-data.js";
 import { countStatuses } from "../diff.js";
 import { S } from "../strings.js";
-import { chip, centerOn, drawLinks, fieldKeysText, fieldTypeText, indexText, relationLabel } from "./canvas.js";
+import { chip, centerOn, drawLinks, fieldKeysText, fieldTypeText, indexDescription, indexText, relationLabel } from "./canvas.js";
 import { addField, commit, moveField, renameEntity, renameField, select, setView, startGrouping } from "./actions.js";
 import { view } from "./view.js";
 import { esc, on, option } from "./html.js";
@@ -134,7 +134,7 @@ function renderEntity(id) {
   html += "</div>" + (edit ? '<button class="btn" id="p-addf" type="button">' + S.addField + "</button>" : "") + "</section>";
   const indexes = indexesOf(e, model);
   html += "<section><h3>" + S.indexes + "</h3>" + (indexes.length
-    ? '<div class="items">' + indexes.map(i => '<div class="item"><span class="nm mono">' + (i.unique ? S.indexUnique : S.indexPlain) + " " + esc(indexText(i)) + '</span><span class="meta">' + esc(i.name || "") + "</span></div>").join("") + "</div>"
+    ? '<div class="items">' + indexes.map(i => '<div class="item"><span class="nm mono">' + (i.unique ? S.indexUnique : S.indexPlain) + " " + esc(indexText(i)) + '</span><span class="meta">' + esc(indexDescription(i)) + "</span></div>").join("") + "</div>"
     : '<p class="muted">' + S.indexesEmpty + "</p>") + "</section>";
 
   if (edit) {
@@ -212,6 +212,7 @@ function renderField(eid, fid) {
   html += "<label>" + S.fieldName + '<input type="text" class="mono" id="p-name" value="' + esc(f.name) + '"></label>';
   html += "<label>" + S.fieldType + '<input type="text" class="mono" id="p-type" value="' + esc(f.type) + '" list="typelist"></label>';
   html += '<div class="checks">' + FLAGS.map(k => '<label><input type="checkbox" data-flag="' + k + '"' + (f[k] ? " checked" : "") + "> " + S.fieldFlags[k] + "</label>").join("") + "</div>";
+  html += '<div class="checks"><label title="' + esc(S.fieldChangedTitle) + '"><input type="checkbox" id="p-changed"' + (f.changed ? " checked" : "") + "> " + S.fieldChanged + "</label></div>";
   html += "<label>" + S.fieldDefault + '<input type="text" class="mono" id="p-default" value="' + esc(f.default === undefined ? "" : f.default) + '"></label>';
   html += "<label>" + S.note + '<input type="text" id="p-note" value="' + esc(f.note || "") + '"></label>';
   html += "</section>";
@@ -229,6 +230,7 @@ function renderField(eid, fid) {
   on("p-type", "change", v => update(x => { x.type = v.trim() || f.type; }));
   on("p-default", "change", v => update(x => { if (v.trim()) x.default = v.trim(); else delete x.default; }));
   on("p-note", "change", v => update(x => { if (v) x.note = v; else delete x.note; }));
+  on("p-changed", "change", (_, el) => update(x => { if (el.checked) x.changed = true; else delete x.changed; }));
   panel.querySelectorAll("input[data-flag]").forEach(cb => cb.addEventListener("change", () => update(x => { x[cb.dataset.flag] = cb.checked; })));
   // The first explicit origin edit turns an implicit (same-name) origin into an explicit list.
   panel.querySelectorAll("button[data-rm]").forEach(b => b.addEventListener("click", () => update(x => { x.origin = (x.origin || []).filter(o => o !== b.dataset.rm); })));

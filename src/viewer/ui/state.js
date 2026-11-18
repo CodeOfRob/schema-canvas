@@ -27,6 +27,7 @@ export const state = {
   tileTables: new Set(),
   hiddenKinds: new Set(),
   showIndexes: false,
+  dimReviewed: false,
   zoneGap: 320,
   groupJoin: 100,
   dragging: false,
@@ -102,6 +103,7 @@ export function loadPrefs(prefsKey, config) {
   const hidden = readLocalJson(prefsKey + ":hidden-kinds", []);
   state.hiddenKinds = new Set(Array.isArray(hidden) ? hidden : []);
   state.showIndexes = readLocalJson(prefsKey + ":show-indexes", false) === true;
+  state.dimReviewed = readLocalJson(prefsKey + ":dim-reviewed", false) === true;
   const zoneGap = readLocalJson(prefsKey + ":zone-gap", null), groupJoin = readLocalJson(prefsKey + ":group-join", null);
   if (Number.isFinite(zoneGap)) state.zoneGap = zoneGap;
   if (Number.isFinite(groupJoin)) state.groupJoin = groupJoin;

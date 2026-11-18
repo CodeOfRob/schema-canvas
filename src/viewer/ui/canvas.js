@@ -3,7 +3,7 @@ import { STATUS_LABEL, S } from "../strings.js";
 import {
   state, activeModel, activePositions, entityById, entityStatus, fieldStatus, indexesOf, isEditing, kindClass, kindKeys, kindLabel, kindOf, relationStatus, tileOf,
 } from "./state.js";
-import { addField, commit, pickForLink, renameEntity, renameField, select, toggleGroupMember } from "./actions.js";
+import { addField, commit, pickForLink, renameEntity, renameField, select, setReviewed, toggleGroupMember } from "./actions.js";
 import { esc } from "./html.js";
 
 const SNAP = 10;
@@ -22,6 +22,10 @@ export function fieldKeysText(f) {
 }
 export function indexText(i) {
   return i.fields.join(", ") + (i.where ? " WHERE " + i.where : "");
+}
+/** Index name and note for tooltips and the inspector. */
+export function indexDescription(i) {
+  return [i.name, i.note].filter(Boolean).join(" · ");
 }
 export function relationLabel(r) {
   return r.label || r.fromFields.join(", ");
@@ -43,7 +47,8 @@ function groupOfSelection() {
 
 function entityHtml(e, model) {
   const st = entityStatus(e);
-  let html = '<div class="eh"><span class="en">' + esc(e.name) + "</span>" + (st && st.status !== "same" ? chip(st.status) : "") + "</div>";
+  const review = isEditing() ? '<input type="checkbox" class="rv" title="' + esc(S.reviewedCheckboxTitle) + '" aria-label="' + esc(S.reviewedCheckboxLabel(e.name)) + '"' + (e.reviewed ? " checked" : "") + ">" : "";
+  let html = '<div class="eh">' + review + '<span class="en">' + esc(e.name) + "</span>" + (st && st.status !== "same" ? chip(st.status) : "") + "</div>";
   for (const f of e.fields) {
     const selected = state.sel && state.sel.kind === "field" && state.sel.fid === f.id;
     html += '<div class="fr st-' + fieldStatus(f) + (selected ? " sel" : "") + '" data-fid="' + esc(f.id) + '" title="' + esc(f.note || "") + '"><span class="fk">' + fieldKeysText(f) +
@@ -51,7 +56,7 @@ function entityHtml(e, model) {
   }
   if (state.showIndexes) {
     const list = indexesOf(e, model);
-    if (list.length) html += '<div class="ixs">' + list.map(i => '<div class="ir" title="' + esc(i.name || "") + '"><span class="fk">' + (i.unique ? S.indexUnique : S.indexPlain) + '</span><span class="fn">' + esc(indexText(i)) + "</span></div>").join("") + "</div>";
+    if (list.length) html += '<div class="ixs">' + list.map(i => '<div class="ir" title="' + esc(indexDescription(i)) + '"><span class="fk">' + (i.unique ? S.indexUnique : S.indexPlain) + '</span><span class="fn">' + esc(indexText(i)) + "</span></div>").join("") + "</div>";
   }
   if (isEditing()) html += '<button class="addf" type="button">' + S.addField + "</button>";
   return html;
@@ -67,7 +72,7 @@ export function renderCanvas() {
     const st = entityStatus(e);
     const el = document.createElement("div");
     const selected = state.sel && (state.sel.id === e.id || state.sel.eid === e.id) && state.sel.kind !== "rel" && state.sel.kind !== "group";
-    el.className = "ent st-" + (st ? st.status : "same") + (kind ? " " + kindClass(kind) : "") + (selected ? " sel" : "") + (state.multiSel.has(e.id) ? " msel" : "") + (picking && picking.members.includes(e.id) ? " gpick" : "");
+    el.className = "ent st-" + (st ? st.status : "same") + (kind ? " " + kindClass(kind) : "") + (selected ? " sel" : "") + (state.multiSel.has(e.id) ? " msel" : "") + (picking && picking.members.includes(e.id) ? " gpick" : "") + (isEditing() && e.reviewed ? " done" : "");
     const [x, y] = positions[e.id];
     el.style.left = x + "px"; el.style.top = y + "px";
     el.dataset.id = e.id;
@@ -76,6 +81,7 @@ export function renderCanvas() {
     frag.appendChild(el);
   }
   world.appendChild(frag);
+  world.classList.toggle("dim-reviewed", state.dimReviewed && isEditing());
   drawLinks();
   applyTransform();
 }
@@ -401,6 +407,10 @@ export function initCanvas() {
     if (add && isEditing()) addField(add.closest(".ent").dataset.id);
   });
   viewport.addEventListener("dblclick", onDoubleClick);
+  viewport.addEventListener("change", ev => {
+    const box = ev.target.closest("input.rv");
+    if (box && isEditing()) setReviewed(box.closest(".ent").dataset.id, box.checked);
+  });
   viewport.addEventListener("keydown", ev => {
     const ent = ev.target.closest && ev.target.closest(".ent");
     if (ent && ev.key === "Enter" && ev.target === ent) select({ kind: "entity", id: ent.dataset.id });

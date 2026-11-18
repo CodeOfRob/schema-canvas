@@ -1,4 +1,5 @@
 // State changes: every edit of the target model or the layout goes through commit() (undo + save).
+import { isIndexExpression } from "../../model/normalize.js";
 import { computeDiff } from "../diff.js";
 import { arrangeByKind, arrangeByRelations } from "../layout.js";
 import { S } from "../strings.js";
@@ -30,7 +31,7 @@ function repairReferences(model, layout) {
     r.fromFields = r.fromFields.filter(n => fromNames.has(n));
     r.toFields = r.toFields.filter(n => toNames.has(n));
   }
-  model.indexes = model.indexes.filter(i => byId.has(i.entity)).map(i => ({ ...i, fields: i.fields.filter(n => names(i.entity).has(n)) })).filter(i => i.fields.length);
+  model.indexes = model.indexes.filter(i => byId.has(i.entity)).map(i => ({ ...i, fields: i.fields.filter(n => isIndexExpression(n) || names(i.entity).has(n)) })).filter(i => i.fields.length);
   for (const g of layout.groups) g.members = g.members.filter(id => byId.has(id));
   for (const id of Object.keys(layout.target)) if (!byId.has(id)) delete layout.target[id];
 }
@@ -202,6 +203,13 @@ export function renameField(entityId, fieldId, value) {
       if (r.to === entityId) r.toFields = swap(r.toFields);
     }
     for (const i of s.target.indexes) if (i.entity === entityId) i.fields = swap(i.fields);
+  });
+}
+
+export function setReviewed(entityId, reviewed) {
+  commit(s => {
+    const e = entityById(entityId, s.target);
+    if (reviewed) e.reviewed = true; else delete e.reviewed;
   });
 }
 
