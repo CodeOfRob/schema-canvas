@@ -2,12 +2,10 @@
 import { computeDiff } from "../diff.js";
 import { arrangeByKind, arrangeByRelations } from "../layout.js";
 import { S } from "../strings.js";
-import { renderCanvas, boxOf, fitAll, centerOn, viewportSize, worldPointAt } from "./canvas.js";
-import { renderPanel } from "./inspector.js";
-import { renderChrome, flash } from "./toolbar.js";
 import {
   state, activeModel, activePositions, entityById, estimatedBox, isEditing, kindKeys, kindOf, pushUndo, popUndo, tileOf, BOX_WIDTH,
 } from "./state.js";
+import { view } from "./view.js";
 
 const hooks = { afterCommit: () => {} };
 /** main.js wires saving in here so this module does not depend on the persistence setup. */
@@ -39,9 +37,9 @@ function repairReferences(model, layout) {
 
 export function refresh() {
   state.diff = state.target ? computeDiff(state.current, state.target) : null;
-  renderCanvas();
-  renderPanel();
-  renderChrome();
+  view.renderCanvas();
+  view.renderPanel();
+  view.renderChrome();
 }
 
 /** Applies fn(state) as one undoable step and schedules saving. */
@@ -63,8 +61,8 @@ export function undo() {
 export function select(sel, focusId) {
   state.sel = sel;
   state.confirm = null;
-  renderCanvas();
-  renderPanel();
+  view.renderCanvas();
+  view.renderPanel();
   if (sel && (sel.kind === "entity" || sel.kind === "field")) centerOnIfHidden(sel.eid || sel.id);
   if (focusId) {
     const el = document.getElementById(focusId);
@@ -73,21 +71,21 @@ export function select(sel, focusId) {
 }
 
 function centerOnIfHidden(id) {
-  const b = boxOf(id);
+  const b = view.boxOf(id);
   if (!b) return;
-  const { width, height } = viewportSize();
+  const { width, height } = view.viewportSize();
   const left = b.x * state.zoom + state.pan.x, top = b.y * state.zoom + state.pan.y;
-  if (left < 0 || top < 0 || left + 60 > width || top + 40 > height) centerOn(id);
+  if (left < 0 || top < 0 || left + 60 > width || top + 40 > height) view.centerOn(id);
 }
 
-export function setView(view) {
+export function setView(viewName) {
   state.multiSel.clear();
-  if (state.view === view) return;
-  state.view = view;
+  if (state.view === viewName) return;
+  state.view = viewName;
   state.sel = null;
   state.linking = false; state.linkFrom = null; state.grouping = null;
   refresh();
-  fitAll();
+  view.fitAll();
 }
 
 // ---------- positions ----------
@@ -112,13 +110,13 @@ export function placeMissing(viewName) {
 function measuredBoxes(model) {
   const positions = activePositions();
   return model.entities.map(e => {
-    const b = boxOf(e.id), est = estimatedBox(e, model);
+    const b = view.boxOf(e.id), est = estimatedBox(e, model);
     return { id: e.id, x: positions[e.id][0], y: positions[e.id][1], w: b ? b.w : est.w, h: b ? b.h : est.h };
   });
 }
 
 export function arrange(how) {
-  flash(S.arranging);
+  view.flash(S.arranging);
   // Let the status text paint before the (synchronous) layout run.
   setTimeout(() => {
     const model = activeModel();
@@ -136,8 +134,8 @@ export function arrange(how) {
       if (!s.arrangedFrom[s.view]) s.arrangedFrom[s.view] = JSON.parse(JSON.stringify(s.layout[s.view]));
       Object.assign(s.layout[s.view], pos);
     });
-    flash("");
-    fitAll();
+    view.flash("");
+    view.fitAll();
   }, 30);
 }
 
@@ -145,7 +143,7 @@ export function restoreArrangement() {
   const saved = state.arrangedFrom[state.view];
   if (!saved) return;
   commit(s => { s.layout[s.view] = saved; s.arrangedFrom[s.view] = null; });
-  fitAll();
+  view.fitAll();
 }
 
 // ---------- target edits ----------
@@ -159,8 +157,8 @@ function uniqueEntityName(base) {
 export function addTable() {
   if (!isEditing()) return;
   const id = newId("e");
-  const { width, height } = viewportSize();
-  const [x, y] = worldPointAt(width / 2, height / 3);
+  const { width, height } = view.viewportSize();
+  const [x, y] = view.worldPointAt(width / 2, height / 3);
   commit(s => {
     s.target.entities.push({ id, name: uniqueEntityName("NewTable"), origin: [], fields: [{ id: newId("f"), name: "id", type: "String", list: false, nullable: false, pk: true, uk: false, fk: false, origin: [] }] });
     s.layout.target[id] = [Math.round(x - BOX_WIDTH / 2), Math.round(y)];
@@ -185,7 +183,7 @@ export function renameEntity(entityId, value) {
   const e = entityById(entityId, state.target);
   const name = identifier(value, e.name);
   if (name === e.name) return refresh();
-  if (state.target.entities.some(x => x.name === name)) { flash(S.nameTaken(name)); return refresh(); }
+  if (state.target.entities.some(x => x.name === name)) { view.flash(S.nameTaken(name)); return refresh(); }
   commit(s => { entityById(entityId, s.target).name = name; });
 }
 
@@ -194,7 +192,7 @@ export function renameField(entityId, fieldId, value) {
   const e = entityById(entityId, state.target), f = e.fields.find(x => x.id === fieldId);
   const name = identifier(value, f.name);
   if (name === f.name) return refresh();
-  if (e.fields.some(x => x.name === name)) { flash(S.nameTaken(e.name + "." + name)); return refresh(); }
+  if (e.fields.some(x => x.name === name)) { view.flash(S.nameTaken(e.name + "." + name)); return refresh(); }
   commit(s => {
     const old = f.name;
     entityById(entityId, s.target).fields.find(x => x.id === fieldId).name = name;
@@ -210,7 +208,7 @@ export function renameField(entityId, fieldId, value) {
 export function moveField(entityId, fieldId, toEntityId) {
   const source = entityById(entityId, state.target), dest = entityById(toEntityId, state.target);
   const f = source.fields.find(x => x.id === fieldId);
-  if (dest.fields.some(x => x.name === f.name)) { flash(S.nameTaken(dest.name + "." + f.name)); return refresh(); }
+  if (dest.fields.some(x => x.name === f.name)) { view.flash(S.nameTaken(dest.name + "." + f.name)); return refresh(); }
   commit(s => {
     const from = entityById(entityId, s.target), to = entityById(toEntityId, s.target);
     to.fields.push(from.fields.splice(from.fields.findIndex(x => x.id === fieldId), 1)[0]);
@@ -221,11 +219,11 @@ export function moveField(entityId, fieldId, toEntityId) {
 export function startLinking(on) {
   state.linking = on == null ? !state.linking : on;
   state.linkFrom = null;
-  renderChrome();
+  view.renderChrome();
 }
 
 export function pickForLink(entityId) {
-  if (!state.linkFrom) { state.linkFrom = entityId; renderChrome(); return; }
+  if (!state.linkFrom) { state.linkFrom = entityId; view.renderChrome(); return; }
   const from = state.linkFrom, rid = newId("r");
   startLinking(false);
   commit(s => s.target.relations.push({ id: rid, from, to: entityId, fromFields: [], toFields: [], cardinality: { from: "n", to: "1" } }));
@@ -234,9 +232,9 @@ export function pickForLink(entityId) {
 
 export function startGrouping(groupId) {
   state.grouping = groupId || null;
-  renderChrome();
-  renderCanvas();
-  renderPanel();
+  view.renderChrome();
+  view.renderCanvas();
+  view.renderPanel();
 }
 
 export function toggleGroupMember(entityId) {

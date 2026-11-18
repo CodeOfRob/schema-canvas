@@ -2,11 +2,12 @@
 import { PAGE_DATA_GLOBAL, loadPageData, storageKeyFor } from "./model.js";
 import { S } from "./strings.js";
 import { placeMissing, refresh } from "./ui/actions.js";
-import { fitAll, initCanvas } from "./ui/canvas.js";
-import { initInspector } from "./ui/inspector.js";
+import { boxOf, centerOn, fitAll, initCanvas, renderCanvas, viewportSize, worldPointAt } from "./ui/canvas.js";
+import { initInspector, renderPanel } from "./ui/inspector.js";
 import { applyLocalSnapshot, initPersistence } from "./ui/persistence.js";
-import { initToolbar } from "./ui/toolbar.js";
+import { flash, initToolbar, renderChrome } from "./ui/toolbar.js";
 import { state, loadPrefs } from "./ui/state.js";
+import { bindView } from "./ui/view.js";
 
 const PALETTE = ["#0060a3", "#a86400", "#54606d", "#7a3e9d", "#00796b", "#b0306a"];
 
@@ -34,6 +35,7 @@ function showFatal(error) {
 async function main() {
   let page;
   try { page = loadPageData(window[PAGE_DATA_GLOBAL]); } catch (error) { showFatal(error); return; }
+  bindView({ renderCanvas, renderPanel, renderChrome, flash, boxOf, fitAll, centerOn, viewportSize, worldPointAt });
   state.page = page;
   state.current = page.current;
   state.target = page.target ? structuredClone(page.target) : null;

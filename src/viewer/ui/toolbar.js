@@ -5,8 +5,8 @@ import { downloadJson, pickJsonFile } from "../storage.js";
 import { S, STATUS_LABEL } from "../strings.js";
 import { applyTransform, clearMultiSelection, drawLinks, fitAll, renderCanvas, setZoom } from "./canvas.js";
 import { addGroup, addTable, arrange, commit, placeMissing, restoreArrangement, select, setView, startGrouping, startLinking, undo } from "./actions.js";
-import { renderPanel } from "./inspector.js";
 import { esc } from "./html.js";
+import { view } from "./view.js";
 import { state, activeModel, hasTarget, isEditing, kindClass, kindKeys, kindLabel, otherModel, savePref } from "./state.js";
 
 const $ = id => document.getElementById(id);
@@ -241,7 +241,7 @@ export function initToolbar() {
     savePref("tile-tables", state.tileTables);
     renderTileList();
     drawLinks();
-    if (state.sel) renderPanel();
+    if (state.sel) view.renderPanel();
   });
   bindSlider("zone-gap", "zone-gap-val", "zoneGap", "zone-gap", drawLinks);
   bindSlider("group-join", "group-join-val", "groupJoin", "group-join");

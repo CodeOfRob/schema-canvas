@@ -5,7 +5,7 @@ import { countStatuses } from "../diff.js";
 import { S } from "../strings.js";
 import { chip, centerOn, drawLinks, fieldKeysText, fieldTypeText, indexText, relationLabel } from "./canvas.js";
 import { addField, commit, moveField, renameEntity, renameField, select, setView, startGrouping } from "./actions.js";
-import { renderChrome } from "./toolbar.js";
+import { view } from "./view.js";
 import { esc, on, option } from "./html.js";
 import {
   state, activeModel, entityById, entityStatus, fieldStatus, hasTarget, indexesOf, isEditing, kindKeys, kindLabel, kindOf, relationStatus, savePref,
@@ -157,7 +157,7 @@ function renderEntity(id) {
   on("p-tile", "change", (_, el) => {
     if (el.checked) state.tileTables.add(e.name); else state.tileTables.delete(e.name);
     savePref("tile-tables", state.tileTables);
-    renderChrome();
+    view.renderChrome();
     drawLinks();
   });
   panel.querySelectorAll(".item[data-fid]").forEach(el => {

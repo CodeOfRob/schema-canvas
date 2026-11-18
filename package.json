@@ -1,8 +1,27 @@
 {
   "name": "schema-canvas",
   "version": "0.1.0",
-  "description": "Turn a database schema into one self-contained, interactive ER-diagram page with current-vs-target diff and an in-browser editor.",
+  "description": "Turn a database schema (Prisma or Postgres) into one self-contained, interactive ER-diagram page with current-vs-target diff and an in-browser editor.",
+  "keywords": [
+    "erd",
+    "er-diagram",
+    "prisma",
+    "postgres",
+    "schema",
+    "database",
+    "diagram",
+    "tbls"
+  ],
+  "author": "CodeOfRob",
   "license": "MIT",
+  "homepage": "https://github.com/CodeOfRob/schema-canvas#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CodeOfRob/schema-canvas.git"
+  },
+  "bugs": {
+    "url": "https://github.com/CodeOfRob/schema-canvas/issues"
+  },
   "type": "module",
   "bin": {
     "schema-canvas": "bin/schema-canvas.mjs"
@@ -18,17 +37,9 @@
   "scripts": {
     "test": "node --test \"test/**/*.test.js\"",
     "lint": "eslint .",
-    "example": "node bin/schema-canvas.mjs model --prisma examples/bookshop/schema.prisma --name bookshop -o examples/bookshop/current.model.json && node bin/schema-canvas.mjs build --current examples/bookshop/current.model.json --target examples/bookshop/target.model.json --layout examples/bookshop/layout.json --config examples/bookshop/config.json -o examples/bookshop/out/page.html"
+    "example": "node bin/schema-canvas.mjs model --prisma examples/bookshop/schema.prisma --name bookshop -o examples/bookshop/current.model.json && node bin/schema-canvas.mjs build --current examples/bookshop/current.model.json --target examples/bookshop/target.model.json --layout examples/bookshop/layout.json --config examples/bookshop/config.json -o examples/bookshop/out/page.html",
+    "lint:arch": "depcruise src bin --config .dependency-cruiser.cjs"
   },
-  "keywords": [
-    "erd",
-    "er-diagram",
-    "schema",
-    "prisma",
-    "postgres",
-    "tbls",
-    "diff"
-  ],
   "dependencies": {
     "@prisma/internals": "^7.10.1",
     "esbuild": "^0.28.2"
@@ -36,6 +47,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "ajv": "^8.20.0",
+    "dependency-cruiser": "^18.8.0",
     "eslint": "^10.15.0",
     "globals": "^17.14.0"
   }
