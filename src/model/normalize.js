@@ -174,3 +174,16 @@ export function normalizeModel(raw, label = "model") {
   if (issues.length) throw new ModelError(label, issues);
   return model;
 }
+
+/** Compact file form of a normalized model: drops false flags so exported files stay readable. */
+export function toDocument(model) {
+  const compactField = f => Object.fromEntries(Object.entries(f).filter(([key, value]) => key === "nullable" || value !== false));
+  return {
+    version: MODEL_FORMAT_VERSION,
+    name: model.name,
+    entities: model.entities.map(e => ({ ...e, fields: e.fields.map(compactField) })),
+    relations: model.relations,
+    indexes: model.indexes,
+    enums: model.enums,
+  };
+}
