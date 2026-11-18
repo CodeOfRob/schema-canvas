@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="schema-canvas">
+<title></title>
+<style>/*__SCHEMA_CANVAS_STYLE__*/</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="title"></h1>
+    </div>
+    <div class="hright">
+      <span class="savestate" id="counts" data-s-title="countsTitle"></span>
+      <div class="legend" id="legend" data-s-label="legendLabel" hidden>
+        <span class="chip s-added" data-s="status.added"></span>
+        <span class="chip s-renamed" data-s="legendRenamed"></span>
+        <span class="chip s-changed" data-s="status.changed"></span>
+        <span class="chip s-removed" data-s="status.removed"></span>
+        <span class="chip s-same" data-s="status.same"></span>
+      </div>
+    </div>
+  </header>
+  <p class="fatal" id="fatal" role="alert" hidden></p>
+
+  <div class="stage" id="stage">
+  <div class="toolbar">
+    <div class="tabs" id="tabs" role="tablist" hidden>
+      <button role="tab" aria-selected="true" data-view="target" data-s="viewTarget"></button>
+      <button role="tab" aria-selected="false" data-view="current" data-s="viewCurrent"></button>
+    </div>
+    <div class="bgrp edit-only" role="group" data-s-label="editGroup" hidden>
+      <button class="btn" id="add-table" type="button" data-s="addTable"></button>
+      <button class="btn" id="add-rel" type="button" aria-pressed="false" data-s="addRelation"></button>
+      <button class="btn" id="add-group" type="button" aria-pressed="false" data-s="addGroup"></button>
+      <button class="btn" id="undo" type="button" disabled data-s-title="undoTitle" data-s="undo"></button>
+    </div>
+    <div class="bgrp" role="group" data-s-label="zoomGroup">
+      <button class="btn" id="zoom-out" type="button" data-s-label="zoomOut">−</button>
+      <span class="zv" id="zoomval">80 %</span>
+      <button class="btn" id="zoom-in" type="button" data-s-label="zoomIn">+</button>
+    </div>
+    <button class="btn" id="fit" type="button" data-s="fit"></button>
+    <details class="menu">
+      <summary class="btn" data-s="viewMenu"></summary>
+      <div class="pop">
+        <button class="btn" id="idx" type="button" aria-pressed="false" data-s-title="showIndexesTitle" data-s="showIndexes"></button>
+        <div class="tilectl" id="tile-list" data-s-title="tileListTitle"></div>
+        <button class="btn" id="arrange-rel" type="button" data-s-title="arrangeByRelationsTitle" data-s="arrangeByRelations"></button>
+        <button class="btn" id="arrange" type="button" data-s="arrangeByKind"></button>
+        <label class="gapctl" id="zone-gap-ctl" data-s-title="zoneGapTitle"><span data-s="zoneGap"></span> <input type="range" id="zone-gap" min="0" max="1500" step="20" value="320"> <output id="zone-gap-val">320 px</output></label>
+        <label class="gapctl edit-only" data-s-title="groupJoinTitle" hidden><span data-s="groupJoin"></span> <input type="range" id="group-join" min="0" max="800" step="20" value="100"> <output id="group-join-val">100 px</output></label>
+      </div>
+    </details>
+    <button class="btn" id="layout-restore" type="button" hidden data-s-title="restoreLayoutTitle" data-s="restoreLayout"></button>
+    <button class="btn" id="full" type="button" aria-pressed="false" data-s="fullscreen"></button>
+    <div class="bgrp" id="kind-filter" role="group" data-s-label="kindFilterGroup" hidden></div>
+    <span class="hint" id="hint"></span>
+    <span class="grow"></span>
+    <span class="savestate" id="savestate" data-s="loading"></span>
+    <details class="menu right">
+      <summary class="btn" data-s-label="moreMenuLabel" data-s="moreMenu"></summary>
+      <div class="pop">
+        <button class="btn target-only" id="export-target" type="button" data-s="exportTarget"></button>
+        <button class="btn" id="export-layout" type="button" data-s="exportLayout"></button>
+        <button class="btn target-only" id="import-target" type="button" data-s="importTarget"></button>
+        <button class="btn" id="import-layout" type="button" data-s="importLayout"></button>
+        <button class="btn danger" id="reset" type="button"></button>
+      </div>
+    </details>
+  </div>
+
+  <div class="main">
+    <div class="viewport" id="viewport">
+      <div class="world" id="world"><svg class="links" id="links" width="1" height="1"></svg></div>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+  </div>
+
+  <div class="lower">
+    <div class="card">
+      <h2 data-s="enumsTitle"></h2>
+      <div class="tablewrap" id="enums"></div>
+    </div>
+  </div>
+</div>
+<div id="conflict" role="alertdialog" aria-live="assertive" hidden>
+  <p><span data-s="conflictText"></span> (<span class="c-time"></span>).</p>
+  <div class="row">
+    <button class="btn" type="button" data-choice="theirs" data-s="conflictTheirs"></button>
+    <button class="btn" type="button" data-choice="mine" data-s="conflictMine"></button>
+  </div>
+</div>
+<script>/*__SCHEMA_CANVAS_DATA__*/</script>
+<script>/*__SCHEMA_CANVAS_SCRIPT__*/</script>
+</body>
+</html>

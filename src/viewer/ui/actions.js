@@ -1,0 +1,261 @@
+// State changes: every edit of the target model or the layout goes through commit() (undo + save).
+import { computeDiff } from "../diff.js";
+import { arrangeByKind, arrangeByRelations } from "../layout.js";
+import { S } from "../strings.js";
+import { renderCanvas, boxOf, fitAll, centerOn, viewportSize, worldPointAt } from "./canvas.js";
+import { renderPanel } from "./inspector.js";
+import { renderChrome, flash } from "./toolbar.js";
+import {
+  state, activeModel, activePositions, entityById, estimatedBox, isEditing, kindKeys, kindOf, pushUndo, popUndo, tileOf, BOX_WIDTH,
+} from "./state.js";
+
+const hooks = { afterCommit: () => {} };
+/** main.js wires saving in here so this module does not depend on the persistence setup. */
+export function onCommit(fn) { hooks.afterCommit = fn; }
+
+let sequence = 0;
+export function newId(prefix) { sequence += 1; return prefix + Date.now().toString(36) + sequence.toString(36); }
+
+/** Identifier-safe name: letters, digits, underscore and dots (schema-qualified names). */
+export function identifier(value, fallback) {
+  const cleaned = String(value || "").replace(/[^A-Za-z0-9_.]/g, "");
+  return cleaned || fallback;
+}
+
+// Keeps the target model loadable after any edit: drops references to fields or tables that no longer exist.
+function repairReferences(model, layout) {
+  const byId = new Map(model.entities.map(e => [e.id, e]));
+  const names = id => new Set((byId.get(id) || { fields: [] }).fields.map(f => f.name));
+  model.relations = model.relations.filter(r => byId.has(r.from) && byId.has(r.to));
+  for (const r of model.relations) {
+    const fromNames = names(r.from), toNames = names(r.to);
+    r.fromFields = r.fromFields.filter(n => fromNames.has(n));
+    r.toFields = r.toFields.filter(n => toNames.has(n));
+  }
+  model.indexes = model.indexes.filter(i => byId.has(i.entity)).map(i => ({ ...i, fields: i.fields.filter(n => names(i.entity).has(n)) })).filter(i => i.fields.length);
+  for (const g of layout.groups) g.members = g.members.filter(id => byId.has(id));
+  for (const id of Object.keys(layout.target)) if (!byId.has(id)) delete layout.target[id];
+}
+
+export function refresh() {
+  state.diff = state.target ? computeDiff(state.current, state.target) : null;
+  renderCanvas();
+  renderPanel();
+  renderChrome();
+}
+
+/** Applies fn(state) as one undoable step and schedules saving. */
+export function commit(fn) {
+  pushUndo();
+  fn(state);
+  if (state.target) repairReferences(state.target, state.layout);
+  refresh();
+  hooks.afterCommit();
+}
+
+export function undo() {
+  if (!popUndo()) return;
+  if (state.sel && state.sel.kind !== "rel" && !entityById(state.sel.eid || state.sel.id)) state.sel = null;
+  refresh();
+  hooks.afterCommit();
+}
+
+export function select(sel, focusId) {
+  state.sel = sel;
+  state.confirm = null;
+  renderCanvas();
+  renderPanel();
+  if (sel && (sel.kind === "entity" || sel.kind === "field")) centerOnIfHidden(sel.eid || sel.id);
+  if (focusId) {
+    const el = document.getElementById(focusId);
+    if (el) { el.focus(); if (el.select) el.select(); }
+  }
+}
+
+function centerOnIfHidden(id) {
+  const b = boxOf(id);
+  if (!b) return;
+  const { width, height } = viewportSize();
+  const left = b.x * state.zoom + state.pan.x, top = b.y * state.zoom + state.pan.y;
+  if (left < 0 || top < 0 || left + 60 > width || top + 40 > height) centerOn(id);
+}
+
+export function setView(view) {
+  state.multiSel.clear();
+  if (state.view === view) return;
+  state.view = view;
+  state.sel = null;
+  state.linking = false; state.linkFrom = null; state.grouping = null;
+  refresh();
+  fitAll();
+}
+
+// ---------- positions ----------
+/** Gives every entity without a stored position one: all by data kind when none is placed, else a row below. */
+export function placeMissing(viewName) {
+  const model = viewName === "target" ? state.target : state.current;
+  if (!model) return;
+  const positions = state.layout[viewName];
+  const missing = model.entities.filter(e => !positions[e.id]);
+  if (!missing.length) return;
+  const boxes = model.entities.map(e => ({ id: e.id, x: 0, y: 0, ...estimatedBox(e, model) }));
+  if (missing.length === model.entities.length) {
+    Object.assign(positions, arrangeByKind(boxes, kindKeys(), id => kindOf(entityById(id, model))));
+    return;
+  }
+  const placed = model.entities.filter(e => positions[e.id]);
+  let x = Math.min(...placed.map(e => positions[e.id][0]));
+  const y = Math.max(...placed.map(e => positions[e.id][1] + estimatedBox(e, model).h)) + 120;
+  for (const e of missing) { positions[e.id] = [x, y]; x += BOX_WIDTH + 54; }
+}
+
+function measuredBoxes(model) {
+  const positions = activePositions();
+  return model.entities.map(e => {
+    const b = boxOf(e.id), est = estimatedBox(e, model);
+    return { id: e.id, x: positions[e.id][0], y: positions[e.id][1], w: b ? b.w : est.w, h: b ? b.h : est.h };
+  });
+}
+
+export function arrange(how) {
+  flash(S.arranging);
+  // Let the status text paint before the (synchronous) layout run.
+  setTimeout(() => {
+    const model = activeModel();
+    const boxes = measuredBoxes(model);
+    let pos;
+    if (how === "relations") {
+      // Relations drawn as tiles do not pull tables together; group members do, without a line.
+      const lines = model.relations.filter(r => !tileOf(model, r));
+      const extra = isEditing() ? state.layout.groups.flatMap(g => g.members.slice(1).map(id => [g.members[0], id, 2])) : [];
+      pos = arrangeByRelations(boxes, lines, { extra }).pos;
+    } else {
+      pos = arrangeByKind(boxes, kindKeys(), id => kindOf(entityById(id, model)));
+    }
+    commit(s => {
+      if (!s.arrangedFrom[s.view]) s.arrangedFrom[s.view] = JSON.parse(JSON.stringify(s.layout[s.view]));
+      Object.assign(s.layout[s.view], pos);
+    });
+    flash("");
+    fitAll();
+  }, 30);
+}
+
+export function restoreArrangement() {
+  const saved = state.arrangedFrom[state.view];
+  if (!saved) return;
+  commit(s => { s.layout[s.view] = saved; s.arrangedFrom[s.view] = null; });
+  fitAll();
+}
+
+// ---------- target edits ----------
+function uniqueEntityName(base) {
+  const names = new Set(state.target.entities.map(e => e.name));
+  let name = base, i = 2;
+  while (names.has(name)) name = base + i++;
+  return name;
+}
+
+export function addTable() {
+  if (!isEditing()) return;
+  const id = newId("e");
+  const { width, height } = viewportSize();
+  const [x, y] = worldPointAt(width / 2, height / 3);
+  commit(s => {
+    s.target.entities.push({ id, name: uniqueEntityName("NewTable"), origin: [], fields: [{ id: newId("f"), name: "id", type: "String", list: false, nullable: false, pk: true, uk: false, fk: false, origin: [] }] });
+    s.layout.target[id] = [Math.round(x - BOX_WIDTH / 2), Math.round(y)];
+  });
+  select({ kind: "entity", id }, "p-name");
+}
+
+export function addField(entityId) {
+  const fid = newId("f");
+  commit(s => {
+    const e = entityById(entityId, s.target);
+    const names = new Set(e.fields.map(f => f.name));
+    let name = "newField", i = 2;
+    while (names.has(name)) name = "newField" + i++;
+    e.fields.push({ id: fid, name, type: "String", list: false, nullable: false, pk: false, uk: false, fk: false, origin: [] });
+  });
+  select({ kind: "field", eid: entityId, fid }, "p-name");
+}
+
+/** Renames an entity; refuses a name that already exists. */
+export function renameEntity(entityId, value) {
+  const e = entityById(entityId, state.target);
+  const name = identifier(value, e.name);
+  if (name === e.name) return refresh();
+  if (state.target.entities.some(x => x.name === name)) { flash(S.nameTaken(name)); return refresh(); }
+  commit(s => { entityById(entityId, s.target).name = name; });
+}
+
+/** Renames a field and every relation / index reference to it; refuses a duplicate within the table. */
+export function renameField(entityId, fieldId, value) {
+  const e = entityById(entityId, state.target), f = e.fields.find(x => x.id === fieldId);
+  const name = identifier(value, f.name);
+  if (name === f.name) return refresh();
+  if (e.fields.some(x => x.name === name)) { flash(S.nameTaken(e.name + "." + name)); return refresh(); }
+  commit(s => {
+    const old = f.name;
+    entityById(entityId, s.target).fields.find(x => x.id === fieldId).name = name;
+    const swap = list => list.map(n => (n === old ? name : n));
+    for (const r of s.target.relations) {
+      if (r.from === entityId) r.fromFields = swap(r.fromFields);
+      if (r.to === entityId) r.toFields = swap(r.toFields);
+    }
+    for (const i of s.target.indexes) if (i.entity === entityId) i.fields = swap(i.fields);
+  });
+}
+
+export function moveField(entityId, fieldId, toEntityId) {
+  const source = entityById(entityId, state.target), dest = entityById(toEntityId, state.target);
+  const f = source.fields.find(x => x.id === fieldId);
+  if (dest.fields.some(x => x.name === f.name)) { flash(S.nameTaken(dest.name + "." + f.name)); return refresh(); }
+  commit(s => {
+    const from = entityById(entityId, s.target), to = entityById(toEntityId, s.target);
+    to.fields.push(from.fields.splice(from.fields.findIndex(x => x.id === fieldId), 1)[0]);
+  });
+  select({ kind: "field", eid: toEntityId, fid: fieldId });
+}
+
+export function startLinking(on) {
+  state.linking = on == null ? !state.linking : on;
+  state.linkFrom = null;
+  renderChrome();
+}
+
+export function pickForLink(entityId) {
+  if (!state.linkFrom) { state.linkFrom = entityId; renderChrome(); return; }
+  const from = state.linkFrom, rid = newId("r");
+  startLinking(false);
+  commit(s => s.target.relations.push({ id: rid, from, to: entityId, fromFields: [], toFields: [], cardinality: { from: "n", to: "1" } }));
+  select({ kind: "rel", id: rid }, "p-label");
+}
+
+export function startGrouping(groupId) {
+  state.grouping = groupId || null;
+  renderChrome();
+  renderCanvas();
+  renderPanel();
+}
+
+export function toggleGroupMember(entityId) {
+  const gid = state.grouping;
+  commit(s => {
+    const g = s.layout.groups.find(x => x.id === gid);
+    if (!g) return;
+    const i = g.members.indexOf(entityId);
+    if (i >= 0) g.members.splice(i, 1); else g.members.push(entityId);
+  });
+}
+
+export function addGroup() {
+  if (state.grouping) { startGrouping(null); return; }
+  const gid = newId("g");
+  const first = state.sel && state.sel.kind === "entity" ? [state.sel.id] : [];
+  commit(s => { s.layout.groups.push({ id: gid, name: S.groupDefaultName, members: first }); });
+  state.sel = { kind: "group", id: gid };
+  startGrouping(gid);
+  const el = document.getElementById("p-gname");
+  if (el) { el.focus(); el.select(); }
+}

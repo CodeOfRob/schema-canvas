@@ -5,6 +5,8 @@ export const LAYOUT_FORMAT_VERSION = 1;
 export const NO_KIND = "none";
 
 const isPlainObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
+// Colors end up in a generated stylesheet, so only plain color syntax is accepted.
+const CSS_COLOR = /^(#[0-9a-fA-F]{3,8}|[a-zA-Z]+|(rgb|hsl)a?\([\d\s.,%/]+\))$/;
 const isPosition = value => Array.isArray(value) && value.length === 2 && value.every(Number.isFinite);
 
 function stringMap(raw, path, issues) {
@@ -25,7 +27,7 @@ export function normalizeConfig(raw = {}, label = "config") {
     if (!isPlainObject(raw.dataKinds)) issues.push("dataKinds must be an object { kind: { label, color? } }");
     else for (const [kind, spec] of Object.entries(raw.dataKinds)) {
       if (kind === NO_KIND) { issues.push("dataKinds: \"" + NO_KIND + "\" is reserved"); continue; }
-      if (!isPlainObject(spec) || typeof spec.label !== "string" || (spec.color !== undefined && typeof spec.color !== "string")) { issues.push("dataKinds." + kind + " must be { label: string, color?: string }"); continue; }
+      if (!isPlainObject(spec) || typeof spec.label !== "string" || (spec.color !== undefined && !(typeof spec.color === "string" && CSS_COLOR.test(spec.color)))) { issues.push("dataKinds." + kind + " must be { label: string, color?: CSS color like \"#0060a3\" }"); continue; }
       dataKinds[kind] = { label: spec.label, ...(spec.color ? { color: spec.color } : {}) };
     }
   }
