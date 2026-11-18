@@ -81,7 +81,7 @@ The target model states where its parts come from. Nothing is guessed from names
 
 Further rules:
 
-- A changed type, list flag, nullability, primary or unique key flag or default marks a field as *changed*.
+- A changed type, list flag, nullability, primary, unique or foreign key flag (`fk`) or default marks a field as *changed*.
 - `changed: true` on a target field marks it as *changed* even when all of these are equal, for a change they
   cannot show (new enum values, a new meaning). The inspector has a checkbox for it.
 - Current parts that no target part claims are *removed*.

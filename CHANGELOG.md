@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Diff: the `fk` flag is compared too; a field whose only difference is the foreign-key flag counts as changed.
+- File export inside a claude.ai artifact: when the host offers the `downloads` capability, exports are saved
+  through it; otherwise the usual browser download is used. A host that declines shows a short message.
+
 - Review marker: `reviewed` on target tables, a checkbox in each table header and a toolbar button that dims
   the reviewed tables and counts them.
 - `changed: true` on a target field counts it as changed when type, keys and default stay equal (new values,

@@ -6,7 +6,7 @@
 // origin (even []) always wins; [] marks a part as new despite a name match.
 import { fieldRef, splitFieldRef } from "../model/normalize.js";
 
-const COMPARED_FIELD_PROPERTIES = ["type", "list", "nullable", "pk", "uk", "default"];
+const COMPARED_FIELD_PROPERTIES = ["type", "list", "nullable", "pk", "uk", "fk", "default"];
 
 // changed: true on a target field records a change the compared properties cannot show (new enum values, a new meaning).
 function fieldChanged(before, after) {

@@ -115,3 +115,12 @@ test("every relation gets a status when two merged tables referenced the same ta
   assert.deepEqual(d.current.relations, { "Shelf.writerId->Writer": "same", "Rack.writerId->Writer": "changed" });
   assert.deepEqual(d.target.relations, { "Location.writerId->Writer": "same" });
 });
+
+test("a field whose only difference is the fk flag counts as changed", () => {
+  const withoutFk = normalizeModel({ version: 1, entities: [{ name: "Title", fields: [field("id", { pk: true }), field("writerId", { fk: true })] }], relations: [] });
+  const dropped = normalizeModel({ version: 1, entities: [{ name: "Title", fields: [field("id", { pk: true }), field("writerId")] }], relations: [] });
+  const d = computeDiff(withoutFk, dropped);
+  assert.equal(d.target.fields["Title.writerId"], "changed");
+  assert.equal(d.current.fields["Title.writerId"].status, "changed");
+  assert.equal(d.target.fields["Title.id"], "same");
+});
