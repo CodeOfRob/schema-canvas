@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fix: a state saved against an older built-in target model (in this browser or in the shared store) no longer
+  silently replaces the newer target of a rebuilt page. Snapshots record the fingerprint of the built-in target
+  they were based on (`base`); on a mismatch the page asks whether to use the page's version or keep the saved
+  state. Snapshots without `base` count as based on an older version.
 - Diff: the `fk` flag is compared too; a field whose only difference is the foreign-key flag counts as changed.
 - File export inside a claude.ai artifact: when the host offers the `downloads` capability, exports are saved
   through it; otherwise the usual browser download is used. A host that declines shows a short message.

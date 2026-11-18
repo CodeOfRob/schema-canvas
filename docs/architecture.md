@@ -34,6 +34,7 @@ target.model.json, layout.json, config.json ┘   (validate, warn)      (esbuild
 | `src/viewer/layout-radial.js` | Star layout around one table |
 | `src/viewer/markdown.js` | Safe markdown subset for the config texts |
 | `src/viewer/storage.js` | Stores and the sync / conflict rule (`createSync`) |
+| `src/viewer/snapshot-base.js` | Fingerprint of the built-in target and the load decision for saved snapshots |
 | `src/viewer/strings.js` | All UI texts; the template carries only `data-s` keys; overrides from `config.strings` |
 | `src/viewer/ui/state.js` | The single mutable UI state and preferences |
 | `src/viewer/ui/actions.js` | All edits; every change goes through `commit()` (undo + save) |
@@ -41,7 +42,7 @@ target.model.json, layout.json, config.json ┘   (validate, warn)      (esbuild
 | `src/viewer/ui/inspector.js` | Detail panel |
 | `src/viewer/ui/toolbar.js` | Toolbar, menus, import / export |
 | `src/viewer/ui/sections.js` | Description and text sections from the config |
-| `src/viewer/ui/persistence.js` | Connects state to storage and the conflict dialog |
+| `src/viewer/ui/persistence.js` | Connects state to storage, the conflict dialog and the saved-state question |
 | `src/viewer/ui/view.js` | Late-bound render functions that keep the UI import graph acyclic |
 | `schema/model.schema.json` | JSON Schema of `model.json` for editors |
 
