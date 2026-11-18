@@ -123,7 +123,8 @@ How edits are saved in each case: [docs/storage.md](docs/storage.md).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+This is a personal project: issues and pull requests are not accepted here, but you are welcome to fork it.
+How to build and test the code is described in [CONTRIBUTING.md](CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

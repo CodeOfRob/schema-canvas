@@ -1,6 +1,9 @@
 # Contributing
 
-Thanks for helping. Bug reports and pull requests are welcome.
+schema-canvas is maintained as a personal project. **Issues and pull requests are not accepted** in this
+repository. You are welcome to **fork it** and adapt it to your needs under the MIT license.
+
+The notes below describe how to work on the code, for example in your fork.
 
 ## Setup
 
@@ -15,7 +18,7 @@ npm run example     # builds examples/bookshop/out/page.html
 
 ## Checks
 
-Run these before opening a pull request; CI runs the same:
+Run these after a change; CI runs the same:
 
 ```sh
 npm run lint        # eslint
