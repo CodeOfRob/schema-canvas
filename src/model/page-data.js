@@ -1,6 +1,6 @@
 // Validation of the two side files next to model.json: config.json and layout.json. Shared by CLI and viewer.
 
-export const LAYOUT_FORMAT_VERSION = 1;
+const LAYOUT_FORMAT_VERSION = 1;
 // Reserved data-kind value: an entity explicitly marked as "no kind" (overrides config.entityKinds).
 export const NO_KIND = "none";
 

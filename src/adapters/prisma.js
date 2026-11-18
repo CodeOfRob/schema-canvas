@@ -76,7 +76,7 @@ function mapEntity(model, foreignKeyColumns) {
 }
 
 /** Maps a DMMF document (from getDMMF) onto model.json. */
-export function dmmfToModel(dmmf, name = "") {
+function dmmfToModel(dmmf, name = "") {
   const models = dmmf.datamodel.models;
   const byName = new Map(models.map(m => [m.name, m]));
   const relations = [];

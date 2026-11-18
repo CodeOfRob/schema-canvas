@@ -37,7 +37,7 @@ export function arrangeByKind(boxes, kindOrder, kindOf, { columnWidth = 290, zon
 }
 
 // Score of a layout: line crossings plus lines running under other tables, total line length as tie-breaker.
-export function layoutScore(nodes, edges) {
+function layoutScore(nodes, edges) {
   const segments = edges.map(([a, b]) => [nodes[a].x, nodes[a].y, nodes[b].x, nodes[b].y]);
   let crossings = 0, under = 0, length = 0;
   const ccw = (ax, ay, bx, by, cx, cy) => (cy - ay) * (bx - ax) - (by - ay) * (cx - ax);

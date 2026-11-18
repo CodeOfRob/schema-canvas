@@ -14,10 +14,10 @@ const hooks = { afterCommit: () => {} };
 export function onCommit(fn) { hooks.afterCommit = fn; }
 
 let sequence = 0;
-export function newId(prefix) { sequence += 1; return prefix + Date.now().toString(36) + sequence.toString(36); }
+function newId(prefix) { sequence += 1; return prefix + Date.now().toString(36) + sequence.toString(36); }
 
 /** Identifier-safe name: letters, digits, underscore and dots (schema-qualified names). */
-export function identifier(value, fallback) {
+function identifier(value, fallback) {
   const cleaned = String(value || "").replace(/[^A-Za-z0-9_.]/g, "");
   return cleaned || fallback;
 }

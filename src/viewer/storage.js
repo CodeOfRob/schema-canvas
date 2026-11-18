@@ -6,7 +6,7 @@
 
 const LOAD_TIMEOUT_MS = 10000;
 
-export function readLocal(key) {
+function readLocal(key) {
   try { return localStorage.getItem(key); } catch { return null; }
 }
 export function writeLocal(key, value) {
@@ -41,10 +41,11 @@ export function createLocalStore(key) {
 }
 
 /** Returns null when the page does not run inside an artifact host that offers a db. */
-export async function createArtifactDbStore(docPath) {
+async function createArtifactDbStore(docPath) {
   if (typeof window === "undefined" || !window.claude || typeof window.claude.use !== "function") return null;
-  let db = null;
-  try { db = await window.claude.use("db"); } catch { db = null; }
+  let db;
+  // A host that refuses the db (no permission, not offered) means "no shared storage", not an error.
+  try { db = await window.claude.use("db"); } catch (error) { console.warn("schema-canvas: shared storage refused, using this browser only", error); db = null; }
   if (!db) return null;
   const doc = db.doc(docPath);
   return {
@@ -63,7 +64,7 @@ export async function createArtifactDbStore(docPath) {
   };
 }
 
-export function createFileStore() {
+function createFileStore() {
   return {
     kind: "file",
     async load() { return null; },
