@@ -32,7 +32,10 @@ mail, host anywhere or open from disk.
   groups, edit types, keys, defaults, notes, data kinds and origins, move fields between tables, undo.
 - **Data kinds**: colour tables by kind (for example "catalog" vs. "sales"), draw background zones per kind,
   hide kinds with filter buttons.
-- **Two automatic layouts**: by relations (stress layout, few crossings) and by data kind.
+- **Three automatic layouts**: by relations (stress layout, few crossings), as a star around one table, and by data kind.
+- **Review support**: tick tables as reviewed and dim them; mark fields whose content changes although their type does not.
+- **Text sections and translations**: a description and markdown sections (decisions, open questions) from
+  `config.json`; every interface text can be replaced, for example to translate the page.
 - **Tile mode** per table: relations to a busy hub table are drawn as small name tiles instead of long lines.
 - **Storage**: browser localStorage, JSON file export / import, or a shared claude.ai artifact database, with a
   keep-mine / take-theirs conflict dialog.

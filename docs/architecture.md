@@ -31,13 +31,16 @@ target.model.json, layout.json, config.json ┘   (validate, warn)      (esbuild
 | `src/viewer/model.js` | Loads and validates page data and saved snapshots |
 | `src/viewer/diff.js` | Current vs. target diff from `origin` references |
 | `src/viewer/layout.js` | Automatic layouts (stress layout by relations, by data kind) |
+| `src/viewer/layout-radial.js` | Star layout around one table |
+| `src/viewer/markdown.js` | Safe markdown subset for the config texts |
 | `src/viewer/storage.js` | Stores and the sync / conflict rule (`createSync`) |
-| `src/viewer/strings.js` | All UI texts; the template carries only `data-s` keys |
+| `src/viewer/strings.js` | All UI texts; the template carries only `data-s` keys; overrides from `config.strings` |
 | `src/viewer/ui/state.js` | The single mutable UI state and preferences |
 | `src/viewer/ui/actions.js` | All edits; every change goes through `commit()` (undo + save) |
 | `src/viewer/ui/canvas.js` | Tables, links, zones, pan / zoom |
 | `src/viewer/ui/inspector.js` | Detail panel |
 | `src/viewer/ui/toolbar.js` | Toolbar, menus, import / export |
+| `src/viewer/ui/sections.js` | Description and text sections from the config |
 | `src/viewer/ui/persistence.js` | Connects state to storage and the conflict dialog |
 | `src/viewer/ui/view.js` | Late-bound render functions that keep the UI import graph acyclic |
 | `schema/model.schema.json` | JSON Schema of `model.json` for editors |

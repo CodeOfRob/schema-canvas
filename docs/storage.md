@@ -13,8 +13,8 @@ Export and import of the target model and the layout as JSON files (**More** men
 A host that refuses the shared store is treated as "not available", not as an error.
 
 Keys: the localStorage key and the artifact document path come from `storageKey` and `dbDocPath` in
-[config.md](config.md). Viewer preferences (tile tables, hidden kinds, index display, zone distance) always
-stay in this browser.
+[config.md](config.md). Viewer preferences (tile tables, hidden kinds, index display, dimming of reviewed tables, zone distance)
+always stay in this browser.
 
 ## Snapshot format
 

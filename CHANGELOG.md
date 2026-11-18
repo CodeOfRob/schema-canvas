@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- Review marker: `reviewed` on target tables, a checkbox in each table header and a toolbar button that dims
+  the reviewed tables and counts them.
+- `changed: true` on a target field counts it as changed when type, keys and default stay equal (new values,
+  new meaning); checkbox in the field inspector.
+- Indexes: optional `note` (why the index exists) and expression entries such as `lower(email)`.
+- config.json: `description` under the title, text `sections` below the canvas (small markdown subset),
+  `description` per data kind, `strings` to replace or translate every interface text, `language`.
+- Third automatic layout: a star around the selected (or most central) table.
+- Fix: relations of merged tables that share a key all get a diff status; before, all but one silently
+  counted as unchanged.
+
 ## 0.1.0
 
 Initial public release.
