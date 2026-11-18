@@ -1,8 +1,12 @@
 # schema-canvas
 
-Turn a database schema into **one self-contained, interactive HTML page**: an ER diagram you can pan,
-zoom and rearrange, with an optional **current vs. target** comparison and an in-browser editor for the
-target model.
+**Turn a database schema into one self-contained, interactive ER diagram, and review the current schema against a target schema together with people who do not read SQL.**
+
+[![CI](https://github.com/CodeOfRob/schema-canvas/actions/workflows/ci.yml/badge.svg)](https://github.com/CodeOfRob/schema-canvas/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js >= 20](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
+
+![Target view of the bookshop example with diff colours](docs/images/overview.png)
 
 ```
 Prisma schema ─┐
@@ -10,17 +14,29 @@ Prisma schema ─┐
 tbls JSON ─────┘    (+ target.model.json, layout.json, config.json)
 ```
 
-What you get in the page:
+## Why
 
-- **Diff colouring** between the current and a target model: new, removed, renamed, merged, moved and
-  changed tables and fields; added, removed and changed relations.
+Schema changes are usually reviewed as migration files, which only developers can read. Product owners,
+analysts and domain experts need to see *what the data model will look like afterwards* and *what changes*.
+
+schema-canvas renders the current schema and a proposed target schema as the same diagram and colours the
+difference: new, removed, renamed, merged, moved and changed tables, fields and relations. The target model
+is editable in the browser, so a review meeting can change it live. The output is a single HTML file you can
+mail, host anywhere or open from disk.
+
+![Inspector showing a merged table with its origins](docs/images/inspector.png)
+
+## Features
+
+- **Diff colouring** between current and target model, based on explicit `origin` references (no guessing from names).
 - **Editing the target model**: rename tables and fields (double-click), add tables, fields, relations and
   groups, edit types, keys, defaults, notes, data kinds and origins, move fields between tables, undo.
-- **Data kinds**: colour tables by kind (e.g. "catalog" vs. "sales"), draw background zones per kind,
-  hide kinds via filter buttons.
-- **Two automatic layouts**: by relations (stress layout, few crossings, few lines under tables) and by data kind.
-- **Tile mode** per table: relations to a busy table (users, accounts, ...) are drawn as small name tiles
-  above the referencing tables instead of long lines.
+- **Data kinds**: colour tables by kind (for example "catalog" vs. "sales"), draw background zones per kind,
+  hide kinds with filter buttons.
+- **Two automatic layouts**: by relations (stress layout, few crossings) and by data kind.
+- **Tile mode** per table: relations to a busy hub table are drawn as small name tiles instead of long lines.
+- **Storage**: browser localStorage, JSON file export / import, or a shared claude.ai artifact database, with a
+  keep-mine / take-theirs conflict dialog.
 - Index display, enum list, inspector for tables, fields and relations, lasso multi-select, full screen,
   keyboard panning, light and dark theme.
 
@@ -31,175 +47,61 @@ Without a target model the page is a pure viewer (no diff, no editing).
 Requires Node.js 20 or newer.
 
 ```sh
+git clone https://github.com/CodeOfRob/schema-canvas.git
+cd schema-canvas
 npm install
 npm run example        # builds examples/bookshop/out/page.html
 open examples/bookshop/out/page.html
 ```
 
+Without cloning (the first run installs the dependencies, the Prisma parser is the largest):
+
+```sh
+npx github:CodeOfRob/schema-canvas build --prisma prisma/schema.prisma -o schema.html
+```
+
+From a clone, `node bin/schema-canvas.mjs <command>` works the same way; `npm link` provides the
+`schema-canvas` command.
+
 Your own schema:
 
 ```sh
 # 1. schema -> model.json
-npx schema-canvas model --prisma prisma/schema.prisma -o current.model.json
+schema-canvas model --prisma prisma/schema.prisma -o current.model.json
 # or, for any database tbls supports (PostgreSQL, MySQL, SQLite, ...):
 tbls out -t json -o schema.json postgres://...
-npx schema-canvas model --tbls schema.json -o current.model.json
+schema-canvas model --tbls schema.json -o current.model.json
 
 # 2. model.json -> page.html (viewer only)
-npx schema-canvas build --current current.model.json -o page.html
+schema-canvas build --current current.model.json -o page.html
 
 # 3. with a target model, saved layout and configuration
-npx schema-canvas build --current current.model.json --target target.model.json \
+schema-canvas build --current current.model.json --target target.model.json \
   --layout my.layout.json --config config.json -o page.html
 ```
 
-`build` also accepts `--prisma` or `--tbls` directly instead of `--current`.
+`build` also accepts `--prisma` or `--tbls` directly instead of `--current`. Full reference: [docs/cli.md](docs/cli.md).
 
-## CLI
+## Concepts
 
-```
-schema-canvas model (--prisma <file|dir> | --tbls <schema.json>) [--name <name>] -o <model.json>
-schema-canvas build (--current <model.json> | --prisma <file|dir> | --tbls <schema.json>)
-                    [--target <target.model.json>] [--layout <layout.json>] [--config <config.json>]
-                    -o <page.html>
-```
+- **Current and target model.** Both use the same `model.json` format. The target describes the schema you
+  want; the page diffs it against the current one.
+- **Origin.** Every target table or field can name the current parts it continues: absent = the same-named
+  counterpart, `[]` = new, another name = renamed (or moved), several = merged. See [docs/model-format.md](docs/model-format.md).
+- **Data kinds.** Labels such as "catalog" or "sales" that colour tables and form zones. Configured in `config.json`.
+- **Tile tables.** Hub tables whose relations are drawn as tiles. Configured in `config.json`, switchable per viewer.
+- **Layout file.** Table positions and groups live in `layout.json`, apart from the model, so regenerating a
+  model never wipes them. **More -> Export layout** in the page writes it. See [docs/config.md](docs/config.md).
 
-| Option | Meaning |
-|---|---|
-| `--prisma` | Prisma schema file, or a directory of `.prisma` files (multi-file schema) |
-| `--tbls` | JSON written by `tbls out -t json` |
-| `--current` | model.json of the current state |
-| `--target` | model.json of the target state; enables the diff view and the editor |
-| `--layout` | layout.json with table positions |
-| `--config` | config.json (see below) |
-| `--name` | model name stored in model.json |
+## Hosting
 
-Every input is validated; an invalid file stops the CLI with a list of all problems. Origins in the
-target model that point to nothing in the current model are reported as warnings.
+The page is one HTML file with no external requests:
 
-## Adapters
+- open it from disk,
+- put it on any static host (GitHub Pages, S3, an intranet server, a mail attachment),
+- or use it as a claude.ai artifact, where edits are shared live between everyone with the page.
 
-- **Prisma** uses the official parser (`getDMMF` from `@prisma/internals`) and only maps its output.
-  Connection settings (`url`, `directUrl`, `shadowDatabaseUrl`) are removed before parsing, so schemas
-  written for older Prisma versions work too. Mapped: scalar and enum fields, lists, nullability,
-  defaults, `@id` / `@@id`, `@unique`, `@@unique`, `@@index`, relations (including self relations and
-  implicit many-to-many), enums, and `///` doc comments as notes.
-- **tbls** maps the JSON document of [tbls](https://github.com/k1LoW/tbls) (`tbls out -t json`). tbls
-  does the database introspection, so every database it supports works. Mapped: base tables (views are
-  skipped), columns, primary keys, unique constraints, indexes (including partial ones with `WHERE`),
-  foreign-key relations with cardinality, enums, comments. Tables of the current schema lose their
-  schema prefix (`public.books` → `books`); other schemas keep it (`audit.events`).
-
-## model.json
-
-Described by [`schema/model.schema.json`](schema/model.schema.json) (JSON Schema 2020-12; add
-`"$schema"` to get editor completion).
-
-```jsonc
-{
-  "version": 1,
-  "name": "bookshop",
-  "entities": [
-    {
-      "id": "Account",              // optional, defaults to name; relations and indexes refer to it
-      "name": "Account",
-      "kind": "sales",              // optional data kind (a key of config.dataKinds)
-      "note": "free text",
-      "origin": ["Customer"],       // target only: current entities this one continues (2+ = merged)
-      "fields": [
-        {
-          "name": "displayName",
-          "type": "String",
-          "nullable": false,
-          "list": false, "pk": false, "uk": false, "fk": false,   // optional flags
-          "default": "now()",                                      // optional, source text
-          "note": "free text",
-          "origin": ["Customer.fullName"]                          // target only: "Entity.field" refs
-        }
-      ]
-    }
-  ],
-  "relations": [
-    {
-      "from": "Order", "to": "Account",            // from = the referencing side
-      "fromFields": ["accountId"], "toFields": ["id"],
-      "cardinality": { "from": "n", "to": "1" },   // "1" | "0..1" | "n"
-      "label": "optional"                          // defaults to the from fields
-    }
-  ],
-  "indexes": [{ "entity": "Order", "name": "optional", "fields": ["accountId", "placedAt"], "unique": false, "where": "optional predicate" }],
-  "enums": [{ "name": "OrderStatus", "values": ["OPEN", "PAID"] }]
-}
-```
-
-### How the diff works
-
-The target model states where its parts come from; nothing is guessed from names or comments.
-
-- `entity.origin`: names of current entities this target entity continues. One different name =
-  renamed, two or more = merged, `[]` = new.
-- `field.origin`: `"Entity.field"` references into the current model. Another name = renamed, a field
-  of an entity outside `entity.origin` = moved, `[]` = new. A changed type, list, nullability, key flag
-  or default marks the field as changed.
-- **Implicit origin**: when `origin` is absent, a same-named entity (or field of an origin entity)
-  counts as the origin, so unchanged parts need no bookkeeping.
-- Current parts no target part claims are removed. Relations are compared by their endpoints and
-  foreign-key fields after mapping current names to their successors; a different cardinality marks a
-  relation as changed.
-
-Entity names may contain dots (`audit.events`); field references split at the last dot.
-
-## layout.json
-
-Positions are kept apart from the model, so regenerating a model never wipes them:
-
-```json
-{ "version": 1, "current": { "Order": [60, 80] }, "target": { "Order": [60, 80] }, "groups": [{ "id": "g1", "name": "Ordering", "members": ["Order", "OrderLine"] }] }
-```
-
-Keys are entity ids. Tables without a position are placed automatically. In the page,
-**More → Export layout** downloads the current arrangement as a file you can pass to `--layout`.
-
-## config.json
-
-All keys are optional.
-
-```json
-{
-  "title": "Bookshop schema",
-  "storageKey": "bookshop-schema",
-  "dbDocPath": "schema-canvas/state",
-  "tileTables": ["Edition"],
-  "dataKinds": { "catalog": { "label": "Catalog", "color": "#0060a3" }, "sales": { "label": "Sales" } },
-  "entityKinds": { "Book": "catalog", "Order": "sales" },
-  "notes": { "Inventory": "Shown in the table's details." }
-}
-```
-
-| Key | Meaning |
-|---|---|
-| `title` | Page title (default: the model name) |
-| `storageKey` | Prefix for browser storage (default: derived from the title or model name) |
-| `dbDocPath` | Document path in the shared artifact store (see storage) |
-| `tileTables` | Tables drawn as tiles by default; each viewer can change this for themselves |
-| `dataKinds` | Data kinds with label and optional CSS colour; their order is the zone order |
-| `entityKinds` | Kind per table name; target tables inherit the kind of their origin. `"none"` is reserved for "no kind" |
-| `notes` | Extra note per table name, shown in the inspector |
-
-## Storage modes
-
-Edits of the target model and the layout are saved automatically through one of three stores:
-
-1. **Shared artifact store**, when the page runs inside a host that offers `window.claude.use("db")`
-   (e.g. a Claude artifact). Everyone with the page sees the same state, live.
-2. **localStorage** of this browser, otherwise. Other tabs of the same page stay in sync.
-3. **File** only, when the browser blocks storage. Use **More → Export / Import**.
-
-Export and import of the target model and the layout as JSON files work in every mode.
-
-If a newer state arrives from elsewhere while you have unsaved edits, the page asks **keep mine / take
-theirs** instead of dropping either. Saved states that do not validate are ignored with a message.
-Viewer preferences (tile tables, hidden kinds, index display, zone distance) stay in this browser.
+How edits are saved in each case: [docs/storage.md](docs/storage.md).
 
 ## Limitations
 
@@ -210,17 +112,18 @@ Viewer preferences (tile tables, hidden kinds, index display, zone distance) sta
 - The page renders all tables as DOM elements; very large schemas (1000+ tables) will feel heavy.
 - No collaborative merging: the conflict dialog picks one whole state.
 
-## Development
+## Documentation
 
-```sh
-npm test              # node:test - adapter golden tests, diff, layout, storage sync, schema agreement
-npm run lint          # eslint
-UPDATE_GOLDEN=1 npm test   # rewrite the adapter golden files after an intended change (review the diff!)
-```
+- [docs/cli.md](docs/cli.md) - commands and options
+- [docs/model-format.md](docs/model-format.md) - `model.json`, origins, relations
+- [docs/config.md](docs/config.md) - `config.json`, `layout.json`, data kinds, tile tables
+- [docs/storage.md](docs/storage.md) - storage modes, snapshot format, conflict rule
+- [docs/adapters.md](docs/adapters.md) - Prisma, tbls, writing a new adapter
+- [docs/architecture.md](docs/architecture.md) - module map and data flow
 
-Code map: `src/adapters/` (Prisma, tbls), `src/model/` (validation of model, config and layout),
-`src/viewer/` (diff, layout, storage, strings, UI modules, template and styles), `src/build/` (bundles the
-viewer with esbuild into one HTML page), `bin/` (CLI).
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
