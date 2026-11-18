@@ -230,6 +230,7 @@ export function initToolbar() {
   $("fit").addEventListener("click", fitAll);
   $("arrange").addEventListener("click", () => arrange("kind"));
   $("arrange-rel").addEventListener("click", () => arrange("relations"));
+  $("arrange-radial").addEventListener("click", () => arrange("radial"));
   $("layout-restore").addEventListener("click", restoreArrangement);
   $("full").addEventListener("click", () => setFullscreen(!$("stage").classList.contains("full")));
   $("dim-reviewed").addEventListener("click", () => {

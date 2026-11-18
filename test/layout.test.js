@@ -51,3 +51,21 @@ test("arrangeByKind gives every kind its own zone, in the configured order", () 
   assert.ok(Math.max(...xs("a")) < Math.min(...xs("b")), "kind a left of kind b");
   assert.ok(Math.max(...xs("b")) < Math.min(...xs(null)), "unclassified last");
 });
+
+test("arrangeRadial: chosen centre in the middle, neighbours on the first ring, overlap-free, deterministic", async () => {
+  const { arrangeRadial } = await import("../src/viewer/layout-radial.js");
+  const boxes = sampleBoxes(16, 13);
+  // hub t0 with a branch t1 -> t2 -> t3, a small separate group t10-t11-t12, and unrelated tables
+  const relations = ["t1", "t4", "t5", "t6", "t7"].map(id => ({ from: id, to: "t0" })).concat(
+    [{ from: "t2", to: "t1" }, { from: "t3", to: "t2" }, { from: "t11", to: "t10" }, { from: "t12", to: "t11" }]);
+  const first = arrangeRadial(boxes, relations, { centre: "t0" });
+  assert.deepEqual(arrangeRadial(boxes, relations, { centre: "t0" }).pos, first.pos);
+  assert.equal(first.centre, "t0");
+  assert.equal(Object.keys(first.pos).length, boxes.length);
+  assert.equal(overlapCount(boxes, first.pos), 0);
+  const centreOf = id => { const b = boxes.find(x => x.id === id); return [first.pos[id][0] + b.w / 2, first.pos[id][1] + b.h / 2]; };
+  const dist = (a, b) => Math.hypot(centreOf(a)[0] - centreOf(b)[0], centreOf(a)[1] - centreOf(b)[1]);
+  assert.ok(dist("t0", "t1") < dist("t0", "t3"), "deeper relation steps lie further out");
+  assert.ok(centreOf("t10")[0] < Math.min(...["t0", "t1", "t4", "t5", "t6", "t7"].map(id => centreOf(id)[0])), "separate groups sit left of the star");
+  assert.equal(arrangeRadial(boxes, relations).centre, "t0", "without a choice the most central table is the centre");
+});

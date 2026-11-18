@@ -2,6 +2,7 @@
 import { isIndexExpression } from "../../model/normalize.js";
 import { computeDiff } from "../diff.js";
 import { arrangeByKind, arrangeByRelations } from "../layout.js";
+import { arrangeRadial } from "../layout-radial.js";
 import { S } from "../strings.js";
 import {
   state, activeModel, activePositions, entityById, estimatedBox, isEditing, kindKeys, kindOf, pushUndo, popUndo, tileOf, BOX_WIDTH,
@@ -123,11 +124,17 @@ export function arrange(how) {
     const model = activeModel();
     const boxes = measuredBoxes(model);
     let pos;
+    // Relations drawn as tiles do not pull tables together.
+    const lines = () => model.relations.filter(r => !tileOf(model, r));
     if (how === "relations") {
-      // Relations drawn as tiles do not pull tables together; group members do, without a line.
-      const lines = model.relations.filter(r => !tileOf(model, r));
+      // Group members pull together without a line.
       const extra = isEditing() ? state.layout.groups.flatMap(g => g.members.slice(1).map(id => [g.members[0], id, 2])) : [];
-      pos = arrangeByRelations(boxes, lines, { extra }).pos;
+      pos = arrangeByRelations(boxes, lines(), { extra }).pos;
+    } else if (how === "radial") {
+      const selected = state.sel && state.sel.kind !== "rel" && state.sel.kind !== "group" ? state.sel.eid || state.sel.id : null;
+      const kinds = kindKeys();
+      const rank = id => { const i = kinds.indexOf(kindOf(entityById(id, model))); return i < 0 ? kinds.length : i; };
+      pos = arrangeRadial(boxes, lines(), { centre: selected, rank }).pos;
     } else {
       pos = arrangeByKind(boxes, kindKeys(), id => kindOf(entityById(id, model)));
     }
