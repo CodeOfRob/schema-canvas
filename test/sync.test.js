@@ -78,3 +78,31 @@ test("a failing save is reported and the edits stay unsaved", async () => {
   assert.ok(h.events.statuses.some(([s]) => s === "save-failed"));
   assert.equal(h.sync.dirty, true);
 });
+
+test("while paused nothing is saved, not even the cache; after resume the edits are saved", async () => {
+  const cached = [];
+  const saved = [];
+  let local = { value: 1 };
+  const sync = createSync({
+    store: { kind: "fake", async save(payload) { saved.push(payload); }, subscribe: null },
+    cache: { async save(payload) { cached.push(payload); } },
+    snapshot: () => ({ format: "t", ...local }),
+    validate: raw => raw,
+    adopt: () => {},
+    onConflict: () => {},
+    onStatus: () => {},
+    delayMs: 5,
+  });
+  sync.pause();
+  local = { value: 2 };
+  sync.schedule();
+  await wait(20);
+  await sync.saveNow();
+  assert.equal(saved.length + cached.length, 0, "a paused sync must not write anywhere");
+  assert.equal(sync.dirty, true);
+  sync.resume();
+  await sync.saveNow();
+  assert.equal(saved.at(-1).value, 2);
+  assert.equal(cached.at(-1).value, 2);
+  assert.equal(sync.dirty, false);
+});

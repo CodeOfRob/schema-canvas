@@ -17,14 +17,17 @@ export function loadPageData(raw) {
 }
 
 /**
- * Validates a saved state snapshot ({ format, target, layout, savedAt }) from storage or another tab.
+ * Validates a saved state snapshot ({ format, base, target, layout, savedAt }) from storage or another tab.
+ * `base` is the fingerprint of the built-in target the state was based on; snapshots written before it
+ * existed have none and come back with base null ("an unknown older version").
  * Returns the normalized snapshot or throws; never returns a half-valid one.
  */
 export function parseSnapshot(raw, expectTarget) {
   if (!raw || raw.format !== STATE_FORMAT) throw new Error("not a " + STATE_FORMAT + " snapshot");
   if (typeof raw.savedAt !== "string") throw new Error("snapshot without savedAt");
+  if (raw.base != null && typeof raw.base !== "string") throw new Error("snapshot base must be a string");
   const target = expectTarget ? normalizeModel(raw.target, "saved target model") : null;
-  return { format: STATE_FORMAT, target, layout: normalizeLayout(raw.layout, "saved layout"), savedAt: raw.savedAt };
+  return { format: STATE_FORMAT, base: raw.base ?? null, target, layout: normalizeLayout(raw.layout, "saved layout"), savedAt: raw.savedAt };
 }
 
 /** Storage key prefix for this page: config.storageKey, else derived from the title or model name. */

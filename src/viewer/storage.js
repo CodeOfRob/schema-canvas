@@ -145,11 +145,12 @@ export function pickJsonFile() {
  * @param o.isBusy     () => boolean, true while the user drags (remote snapshots wait)
  */
 export function createSync({ store, cache = null, snapshot, validate, adopt, onConflict, onStatus, isBusy = () => false, delayMs = 900 }) {
-  let editGen = 0, savedGen = 0, lastSavedAt = null, saving = false, pending = false, timer = null, deferred = null;
+  let editGen = 0, savedGen = 0, lastSavedAt = null, saving = false, pending = false, timer = null, deferred = null, paused = false;
   const ownSaves = new Set();
 
   async function save() {
     clearTimeout(timer);
+    if (paused) return; // edits stay dirty and are saved after resume()
     let payload;
     try {
       payload = validate({ ...snapshot(), savedAt: new Date().toISOString() });
@@ -217,6 +218,9 @@ export function createSync({ store, cache = null, snapshot, validate, adopt, onC
       if (!store.subscribe) return null;
       return store.subscribe(receive, error => onStatus("subscription-error", { error }));
     },
+    /** Stops writing to the store and the cache (while the viewer decides about a saved state); edits keep counting. */
+    pause() { paused = true; clearTimeout(timer); },
+    resume() { paused = false; },
     /** Marks a loaded snapshot as the saved baseline (it came from storage, so nothing is unsaved). */
     markLoaded(savedAt) { lastSavedAt = savedAt; savedGen = editGen; },
   };
