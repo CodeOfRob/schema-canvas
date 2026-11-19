@@ -4,10 +4,11 @@ import { normalizeLayout } from "../../model/page-data.js";
 import { saveJsonFile, pickJsonFile } from "../storage.js";
 import { S, STATUS_LABEL } from "../strings.js";
 import { applyTransform, clearMultiSelection, drawLinks, fitAll, renderCanvas, setZoom } from "./canvas.js";
-import { addGroup, addTable, arrange, commit, placeMissing, restoreArrangement, select, setView, startGrouping, startLinking, undo } from "./actions.js";
+import { addGroup, addTable, arrange, commit, placeMissing, restoreArrangement, select, setModuleView, setView, startGrouping, startLinking, undo } from "./actions.js";
 import { esc } from "./html.js";
 import { view } from "./view.js";
-import { state, activeModel, hasTarget, isEditing, kindClass, kindKeys, kindLabel, otherModel, savePref } from "./state.js";
+import { UNASSIGNED } from "../../model/page-data.js";
+import { state, activeModel, axisClass, axisKeys, axisSpec, hasTarget, isEditing, otherModel, savePref, saveTileDisplays } from "./state.js";
 
 const $ = id => document.getElementById(id);
 
@@ -20,9 +21,10 @@ function countsText(model, viewName) {
 }
 
 function renderTileList() {
-  const names = [...state.tileTables].sort();
+  const names = [...state.tileDisplays.keys()].sort();
+  const text = name => (state.tileDisplays.get(name) === "badge" ? S.tileListBadge(name) : name);
   $("tile-list").innerHTML = '<span class="muted">' + S.tileListLabel + "</span> " + (names.length
-    ? names.map(n => '<button class="chipbtn" type="button" data-untile="' + esc(n) + '" title="' + esc(S.untile(n)) + '">' + esc(n) + " ×</button>").join(" ")
+    ? names.map(n => '<button class="chipbtn" type="button" data-untile="' + esc(n) + '" title="' + esc(S.untile(n)) + '">' + esc(text(n)) + " ×</button>").join(" ")
     : '<span class="muted">' + S.tileListEmpty + "</span>");
 }
 
@@ -35,15 +37,20 @@ function renderEnums() {
 
 /** Brings every toolbar control in line with the state (cheap; called after each refresh). */
 export function renderChrome() {
-  const editing = isEditing();
+  const editing = isEditing(), modules = state.moduleView;
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === state.view)));
-  document.querySelectorAll(".edit-only").forEach(el => { el.hidden = !editing; });
+  // The module view is derived and read only: table edits and table arrangements pause while it is shown.
+  document.querySelectorAll(".edit-only").forEach(el => { el.hidden = !editing || modules; });
+  document.querySelectorAll(".table-view-only").forEach(el => { el.disabled = modules; });
+  $("module-view").setAttribute("aria-pressed", String(modules));
+  // The data-kind filter acts on tables only; the module view has its own module filter.
+  $("kind-filter").hidden = !axisKeys("kind").length || modules;
   $("undo").disabled = !state.undo.length;
   $("add-rel").setAttribute("aria-pressed", String(state.linking));
   $("add-group").setAttribute("aria-pressed", String(!!state.grouping));
   $("viewport").classList.toggle("linking", state.linking);
   $("hint").textContent = state.linking ? (state.linkFrom ? S.hintLinkSecond : S.hintLinkFirst) : state.grouping ? S.hintGrouping : "";
-  $("layout-restore").hidden = !state.arrangedFrom[state.view];
+  $("layout-restore").hidden = !state.arrangedFrom[state.view] || modules;
   const other = otherModel();
   const viewName = state.view === "target" ? S.viewTarget : S.viewCurrent;
   $("counts").textContent = countsText(activeModel(), hasTarget() ? viewName : S.summaryTables) + (other ? " (" + countsText(other, state.view === "target" ? S.viewCurrent : S.viewTarget) + ")" : "");
@@ -53,7 +60,7 @@ export function renderChrome() {
     const reviewed = state.target.entities.filter(e => e.reviewed).length;
     $("reviewed-count").textContent = reviewed + "/" + state.target.entities.length;
     $("dim-reviewed").setAttribute("aria-pressed", String(state.dimReviewed));
-    $("dim-reviewed").disabled = !editing;
+    $("dim-reviewed").disabled = !editing || modules;
   }
 }
 
@@ -71,25 +78,35 @@ function setFullscreen(on, fromBrowser) {
   requestAnimationFrame(fitAll);
 }
 
-function buildKindFilter() {
-  const host = $("kind-filter");
-  const kinds = kindKeys();
-  host.hidden = !kinds.length;
-  $("arrange").hidden = !kinds.length;
-  $("zone-gap-ctl").hidden = !kinds.length;
-  if (!kinds.length) return;
-  const description = k => (state.page.config.dataKinds[k] || {}).description;
-  host.innerHTML = [...kinds.map(k => ({ key: k, cls: kindClass(k), label: kindLabel(k), description: description(k) })), { key: "none", cls: "k-none", label: S.kindNone }]
-    .map(k => '<button type="button" class="kind ' + k.cls + '" data-kind="' + esc(k.key) + '" title="' + esc((k.description ? k.description + ". " : "") + S.kindFilterTitle(k.label)) + '" aria-pressed="' + !state.hiddenKinds.has(k.key) + '">' + esc(k.label) + "</button>").join("");
+// Filter buttons of one classification axis; UNASSIGNED stands for the tables without a value.
+const FILTERS = {
+  kind: { host: "kind-filter", pref: "hidden-kinds", none: () => S.kindNone, title: label => S.kindFilterTitle(label) },
+  module: { host: "module-filter", pref: "hidden-modules", none: () => S.moduleNone, title: label => S.moduleFilterTitle(label) },
+};
+
+function buildFilter(axisName) {
+  const filter = FILTERS[axisName], host = $(filter.host), keys = axisKeys(axisName), hidden = state.hidden[axisName];
+  host.hidden = !keys.length;
+  if (!keys.length) return;
+  const buttons = [...keys.map(k => ({ key: k, cls: axisClass(axisName, k), ...axisSpec(axisName, k) })), { key: UNASSIGNED, cls: axisName === "kind" ? "k-none" : "m-none", label: filter.none() }];
+  host.innerHTML = buttons.map(b => '<button type="button" class="filterbtn ' + b.cls + '" data-key="' + esc(b.key) + '" title="' + esc((b.description ? b.description + ". " : "") + filter.title(b.label)) + '" aria-pressed="' + !hidden.has(b.key) + '">' + esc(b.label) + "</button>").join("");
   host.addEventListener("click", ev => {
-    const b = ev.target.closest("button[data-kind]");
+    const b = ev.target.closest("button[data-key]");
     if (!b) return;
-    const k = b.dataset.kind;
-    if (state.hiddenKinds.has(k)) state.hiddenKinds.delete(k); else state.hiddenKinds.add(k);
-    b.setAttribute("aria-pressed", String(!state.hiddenKinds.has(k)));
-    savePref("hidden-kinds", state.hiddenKinds);
+    const k = b.dataset.key;
+    if (hidden.has(k)) hidden.delete(k); else hidden.add(k);
+    b.setAttribute("aria-pressed", String(!hidden.has(k)));
+    savePref(filter.pref, hidden);
     renderCanvas();
+    if (state.moduleView) view.renderPanel();
   });
+}
+
+function buildKindControls() {
+  const kinds = axisKeys("kind").length > 0;
+  $("arrange").hidden = !kinds;
+  $("zone-gap-ctl").hidden = !kinds;
+  buildFilter("kind");
 }
 
 function bindSlider(inputId, outputId, stateKey, prefName, after) {
@@ -253,15 +270,18 @@ export function initToolbar() {
   $("tile-list").addEventListener("click", ev => {
     const x = ev.target.closest("[data-untile]");
     if (!x) return;
-    state.tileTables.delete(x.dataset.untile);
-    savePref("tile-tables", state.tileTables);
+    state.tileDisplays.delete(x.dataset.untile);
+    saveTileDisplays();
     renderTileList();
-    drawLinks();
-    if (state.sel) view.renderPanel();
+    renderCanvas();
+    if (state.sel || state.moduleView) view.renderPanel();
   });
+  $("module-view").hidden = !axisKeys("module").length;
+  $("module-view").addEventListener("click", () => setModuleView(!state.moduleView));
   bindSlider("zone-gap", "zone-gap-val", "zoneGap", "zone-gap", drawLinks);
   bindSlider("group-join", "group-join-val", "groupJoin", "group-join");
-  buildKindFilter();
+  buildKindControls();
+  buildFilter("module");
   bindMenus();
   bindFileActions();
   bindKeyboard();

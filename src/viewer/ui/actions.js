@@ -5,7 +5,7 @@ import { arrangeByKind, arrangeByRelations } from "../layout.js";
 import { arrangeRadial } from "../layout-radial.js";
 import { S } from "../strings.js";
 import {
-  state, activeModel, activePositions, entityById, estimatedBox, isEditing, kindKeys, kindOf, pushUndo, popUndo, tileOf, BOX_WIDTH,
+  state, activeModel, activePositions, entityById, estimatedBox, isEditing, axisKeys, kindOf, pushUndo, popUndo, savePref, tileOf, BOX_WIDTH,
 } from "./state.js";
 import { view } from "./view.js";
 
@@ -90,6 +90,18 @@ export function setView(viewName) {
   view.fitAll();
 }
 
+/** Switches between tables and the module view (a per-viewer setting; the model and layout stay untouched). */
+export function setModuleView(on) {
+  state.multiSel.clear();
+  if (state.moduleView === on) return;
+  state.moduleView = on;
+  state.sel = null;
+  state.linking = false; state.linkFrom = null; state.grouping = null;
+  savePref("module-view", on);
+  refresh();
+  view.fitAll();
+}
+
 // ---------- positions ----------
 /** Gives every entity without a stored position one: all by data kind when none is placed, else a row below. */
 export function placeMissing(viewName) {
@@ -100,7 +112,7 @@ export function placeMissing(viewName) {
   if (!missing.length) return;
   const boxes = model.entities.map(e => ({ id: e.id, x: 0, y: 0, ...estimatedBox(e, model) }));
   if (missing.length === model.entities.length) {
-    Object.assign(positions, arrangeByKind(boxes, kindKeys(), id => kindOf(entityById(id, model))));
+    Object.assign(positions, arrangeByKind(boxes, axisKeys("kind"), id => kindOf(entityById(id, model))));
     return;
   }
   const placed = model.entities.filter(e => positions[e.id]);
@@ -132,11 +144,11 @@ export function arrange(how) {
       pos = arrangeByRelations(boxes, lines(), { extra }).pos;
     } else if (how === "radial") {
       const selected = state.sel && state.sel.kind !== "rel" && state.sel.kind !== "group" ? state.sel.eid || state.sel.id : null;
-      const kinds = kindKeys();
+      const kinds = axisKeys("kind");
       const rank = id => { const i = kinds.indexOf(kindOf(entityById(id, model))); return i < 0 ? kinds.length : i; };
       pos = arrangeRadial(boxes, lines(), { centre: selected, rank }).pos;
     } else {
-      pos = arrangeByKind(boxes, kindKeys(), id => kindOf(entityById(id, model)));
+      pos = arrangeByKind(boxes, axisKeys("kind"), id => kindOf(entityById(id, model)));
     }
     commit(s => {
       if (!s.arrangedFrom[s.view]) s.arrangedFrom[s.view] = JSON.parse(JSON.stringify(s.layout[s.view]));

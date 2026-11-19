@@ -1,14 +1,15 @@
 // Inspector panel on the right: summary, table, field, relation and group details (editable in the target view).
 import { CARDINALITIES, fieldRef } from "../../model/normalize.js";
-import { NO_KIND } from "../../model/page-data.js";
+import { TILE_DISPLAYS, UNASSIGNED } from "../../model/page-data.js";
 import { countStatuses } from "../diff.js";
 import { S } from "../strings.js";
-import { chip, centerOn, drawLinks, fieldKeysText, fieldTypeText, indexDescription, indexText, relationLabel } from "./canvas.js";
+import { chip, centerOn, fieldKeysText, fieldTypeText, indexDescription, indexText, relationLabel } from "./canvas.js";
 import { addField, commit, moveField, renameEntity, renameField, select, setView, startGrouping } from "./actions.js";
 import { view } from "./view.js";
 import { esc, on, option } from "./html.js";
+import { renderModulePanel } from "./module-view.js";
 import {
-  state, activeModel, entityById, entityStatus, fieldStatus, hasTarget, indexesOf, isEditing, kindKeys, kindLabel, kindOf, relationStatus, savePref,
+  state, activeModel, axisKeys, axisLabel, axisOf, entityById, entityStatus, fieldStatus, hasTarget, indexesOf, isEditing, moduleOf, relationStatus, saveTileDisplays,
 } from "./state.js";
 
 const FLAGS = ["pk", "uk", "fk", "nullable", "list"];
@@ -17,6 +18,7 @@ let panel;
 export function initInspector() { panel = document.getElementById("panel"); }
 
 export function renderPanel() {
+  if (state.moduleView) return renderModulePanel(panel);
   const s = state.sel;
   if (!s) return renderSummary();
   if (s.kind === "rel") return renderRelation(s.id);
@@ -85,8 +87,12 @@ function renderSummary() {
   bindItemNavigation();
 }
 
-function tileToggleHtml(e) {
-  return '<label class="row" title="' + esc(S.tileToggleTitle) + '"><input type="checkbox" id="p-tile"' + (state.tileTables.has(e.name) ? " checked" : "") + "> " + S.tileToggle + "</label>";
+// "" = drawn as lines; otherwise one of TILE_DISPLAYS. A per-viewer preference, so it is offered in every view.
+function tileDisplayHtml(e) {
+  const current = state.tileDisplays.get(e.name) || "";
+  const labels = { tile: S.tileToggle, badge: S.tileDisplayBadge };
+  return '<label title="' + esc(S.tileToggleTitle) + '">' + S.tileDisplay + '<select id="p-tile">' + option("", S.tileDisplayLine, current === "") +
+    TILE_DISPLAYS.map(d => option(d, labels[d], current === d)).join("") + "</select></label>";
 }
 
 function configNoteHtml(e) {
@@ -94,12 +100,24 @@ function configNoteHtml(e) {
   return note ? '<div class="note" title="' + esc(S.configNote) + '">' + esc(note) + "</div>" : "";
 }
 
-function kindSelectHtml(e) {
-  if (!kindKeys().length) return "";
-  const automatic = kindOf(e, { ignoreOwn: true });
-  const value = e.kind || "";
-  return '<label>' + S.dataKind + '<select id="p-kind">' + option("", S.kindAutomatic(automatic ? kindLabel(automatic) : S.kindExplicitNone), value === "") +
-    kindKeys().map(k => option(k, kindLabel(k), value === k)).join("") + option(NO_KIND, S.kindExplicitNone, value === NO_KIND) + "</select></label>";
+// Texts of the editable classification axes; the property on the entity is the axis name.
+const AXIS_TEXTS = {
+  kind: () => ({ label: S.dataKind, automatic: S.kindAutomatic, none: S.kindExplicitNone }),
+  module: () => ({ label: S.module, automatic: S.moduleAutomatic, none: S.moduleExplicitNone }),
+};
+
+function axisSelectHtml(axisName, e) {
+  if (!axisKeys(axisName).length) return "";
+  const texts = AXIS_TEXTS[axisName](), automatic = axisOf(axisName, e, { ignoreOwn: true });
+  const value = e[axisName] || "";
+  return '<label>' + texts.label + '<select id="p-' + axisName + '">' + option("", texts.automatic(automatic ? axisLabel(axisName, automatic) : texts.none), value === "") +
+    axisKeys(axisName).map(k => option(k, axisLabel(axisName, k), value === k)).join("") + option(UNASSIGNED, texts.none, value === UNASSIGNED) + "</select></label>";
+}
+
+function moduleLineHtml(e) {
+  if (!axisKeys("module").length) return "";
+  const key = moduleOf(e);
+  return '<span class="muted">' + esc(S.moduleOfTable(key ? axisLabel("module", key) : S.moduleNone)) + "</span>";
 }
 
 function renderEntity(id) {
@@ -112,16 +130,17 @@ function renderEntity(id) {
     html += "<label>" + S.tableName + '<input type="text" class="mono" id="p-name" value="' + esc(e.name) + '"></label>';
     const fromOther = st.origin.length && !(st.origin.length === 1 && st.origin[0] === e.name);
     html += '<div class="row">' + chip(st.status) + (fromOther ? '<span class="muted">' + esc(S.fromOrigins(st.origin.join(" + "))) + "</span>" : "") + "</div>";
-    html += kindSelectHtml(e);
+    html += axisSelectHtml("kind", e) + axisSelectHtml("module", e);
     html += "<label>" + S.note + '<textarea id="p-note">' + esc(e.note || "") + "</textarea></label>";
   } else {
     html += '<div class="row"><h2>' + esc(e.name) + "</h2>" + (st ? chip(st.status) : "") + "</div>";
     if (st && st.to && st.to.length && !st.to.includes(e.name)) html += '<span class="muted">' + esc(S.becomes(st.to.join(", "))) + "</span>";
+    html += moduleLineHtml(e);
     if (e.note) html += '<div class="note">' + esc(e.note) + "</div>";
     const successor = st && st.to && state.target.entities.find(t => st.to.includes(t.name) && t.note);
     if (successor) html += '<div class="note">' + esc(successor.name + ": " + successor.note) + "</div>";
   }
-  html += configNoteHtml(e) + tileToggleHtml(e) + "</section>";
+  html += configNoteHtml(e) + tileDisplayHtml(e) + "</section>";
 
   html += "<section><h3>" + S.fields + '</h3><div class="items">';
   for (const f of e.fields) {
@@ -154,11 +173,11 @@ function renderEntity(id) {
   }
   panel.innerHTML = html;
   bindBack();
-  on("p-tile", "change", (_, el) => {
-    if (el.checked) state.tileTables.add(e.name); else state.tileTables.delete(e.name);
-    savePref("tile-tables", state.tileTables);
+  on("p-tile", "change", display => {
+    if (display) state.tileDisplays.set(e.name, display); else state.tileDisplays.delete(e.name);
+    saveTileDisplays();
     view.renderChrome();
-    drawLinks();
+    view.renderCanvas();
   });
   panel.querySelectorAll(".item[data-fid]").forEach(el => {
     const go = () => select({ kind: "field", eid: e.id, fid: el.dataset.fid });
@@ -169,7 +188,7 @@ function renderEntity(id) {
   const update = fn => commit(s => fn(entityById(e.id, s.target)));
   on("p-name", "change", v => renameEntity(e.id, v));
   on("p-note", "change", v => update(t => { if (v) t.note = v; else delete t.note; }));
-  on("p-kind", "change", v => update(t => { if (v) t.kind = v; else delete t.kind; }));
+  for (const axisName of Object.keys(AXIS_TEXTS)) on("p-" + axisName, "change", v => update(t => { if (v) t[axisName] = v; else delete t[axisName]; }));
   on("p-addf", "click", () => addField(e.id));
   panel.querySelectorAll("input[data-origin]").forEach(cb => cb.addEventListener("change", () => update(t => {
     const set = new Set(t.origin === undefined ? st.origin : t.origin);

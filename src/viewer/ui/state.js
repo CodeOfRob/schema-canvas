@@ -1,7 +1,9 @@
 // Shared viewer state plus read helpers. Rendering modules read it; only commit() (actions.js) writes edits.
-import { NO_KIND } from "../../model/page-data.js";
+import { UNASSIGNED } from "../../model/page-data.js";
+import { classificationAxes, classify } from "../classify.js";
 import { estimateHeight } from "../layout.js";
 import { readLocalJson, writeLocal } from "../storage.js";
+import { tileDisplaysFrom, tileOf as tileRule } from "../tiles.js";
 
 export const BOX_WIDTH = 236;
 const UNDO_LIMIT = 60;
@@ -26,8 +28,9 @@ export const state = {
   multiSel: new Set(),
   arrangedFrom: { current: null, target: null }, // positions before the first automatic arrangement (session only)
   prefsKey: "",
-  tileTables: new Set(),
-  hiddenKinds: new Set(),
+  tileDisplays: new Map(), // tile table name -> "tile" | "badge" (per viewer)
+  hidden: { kind: new Set(), module: new Set() }, // filtered-out values per axis, UNASSIGNED for "none"
+  moduleView: false,   // show modules instead of tables (a viewer setting, not part of the model)
   showIndexes: false,
   dimReviewed: false,
   zoneGap: 320,
@@ -56,21 +59,21 @@ export function popUndo() {
   return true;
 }
 
-// ---------- data kinds ----------
-export function kindKeys() { return Object.keys(state.page.config.dataKinds); }
-export function kindLabel(kind) { return kind && state.page.config.dataKinds[kind] ? state.page.config.dataKinds[kind].label : ""; }
-/** CSS class for a kind; kinds are user strings, so classes use their position instead of the raw text. */
-export function kindClass(kind) { const i = kindKeys().indexOf(kind); return i < 0 ? "" : "k-" + i; }
-
-/** Kind of an entity: its own kind, else config.entityKinds by name, else (target) the kind of its first classified origin. */
-export function kindOf(entity, { ignoreOwn = false } = {}) {
-  const { dataKinds, entityKinds } = state.page.config;
-  if (!ignoreOwn && entity.kind === NO_KIND) return null;
-  if (!ignoreOwn && entity.kind && dataKinds[entity.kind]) return entity.kind;
-  const byName = entityKinds[entity.name];
-  if (byName) return byName === NO_KIND ? null : byName;
-  for (const name of entity.origin || []) if (entityKinds[name] && entityKinds[name] !== NO_KIND) return entityKinds[name];
-  return null;
+// ---------- classification axes: data kind ("kind") and module ("module") ----------
+// Category keys are user strings, so CSS classes use their position instead of the raw text.
+const AXIS_CLASS_PREFIX = { kind: "k-", module: "m-" };
+function axis(name) { return classificationAxes(state.page.config)[name]; }
+export function axisKeys(name) { return Object.keys(axis(name).categories); }
+export function axisSpec(name, key) { return (key && axis(name).categories[key]) || null; }
+export function axisLabel(name, key) { const spec = axisSpec(name, key); return spec ? spec.label : ""; }
+export function axisClass(name, key) { const i = axisKeys(name).indexOf(key); return i < 0 ? "" : AXIS_CLASS_PREFIX[name] + i; }
+/** Value of an axis for an entity (see classify.js); null when unassigned. */
+export function axisOf(name, entity, options) { return classify(entity, axis(name), options); }
+export function kindOf(entity) { return axisOf("kind", entity); }
+export function moduleOf(entity) { return axisOf("module", entity); }
+/** True when a filter button hides the entity's data kind or module. */
+export function isFilteredOut(entity) {
+  return state.hidden.kind.has(kindOf(entity) || UNASSIGNED) || state.hidden.module.has(moduleOf(entity) || UNASSIGNED);
 }
 
 // ---------- diff lookups for the shown view ("same" in pure viewer mode) ----------
@@ -88,22 +91,19 @@ export function relationStatus(relation) {
 }
 
 // ---------- tile tables ----------
-/** For a relation touching exactly one tile table: { tile, other }; null when it is drawn as a line. */
-export function tileOf(model, relation) {
-  if (relation.from === relation.to) return null;
-  const a = entityById(relation.from, model), b = entityById(relation.to, model);
-  const ta = !!a && state.tileTables.has(a.name), tb = !!b && state.tileTables.has(b.name);
-  if (ta === tb) return null;
-  return ta ? { tile: a, other: relation.to } : { tile: b, other: relation.from };
-}
+/** For a relation drawn as a tile or badge: { tile, other, display }; null when it is a line (rule: tiles.js). */
+export function tileOf(model, relation) { return tileRule(model, relation, state.tileDisplays); }
+export function saveTileDisplays() { savePref("tile-tables", Object.fromEntries(state.tileDisplays)); }
 
 // ---------- per-viewer preferences (localStorage only) ----------
 export function loadPrefs(prefsKey, config) {
   state.prefsKey = prefsKey;
-  const tiles = readLocalJson(prefsKey + ":tile-tables", null);
-  state.tileTables = new Set(Array.isArray(tiles) ? tiles : config.tileTables);
-  const hidden = readLocalJson(prefsKey + ":hidden-kinds", []);
-  state.hiddenKinds = new Set(Array.isArray(hidden) ? hidden : []);
+  state.tileDisplays = tileDisplaysFrom(readLocalJson(prefsKey + ":tile-tables", null), config.tileTables);
+  for (const [name, pref] of [["kind", "hidden-kinds"], ["module", "hidden-modules"]]) {
+    const hidden = readLocalJson(prefsKey + ":" + pref, []);
+    state.hidden[name] = new Set(Array.isArray(hidden) ? hidden : []);
+  }
+  state.moduleView = readLocalJson(prefsKey + ":module-view", false) === true;
   state.showIndexes = readLocalJson(prefsKey + ":show-indexes", false) === true;
   state.dimReviewed = readLocalJson(prefsKey + ":dim-reviewed", false) === true;
   const zoneGap = readLocalJson(prefsKey + ":zone-gap", null), groupJoin = readLocalJson(prefsKey + ":group-join", null);

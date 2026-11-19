@@ -1,10 +1,12 @@
 // Infinite canvas: tables as absolutely positioned boxes in a translated + scaled "world", relations as SVG.
+import { boxBorderPoint } from "../geometry.js";
 import { STATUS_LABEL, S } from "../strings.js";
 import {
-  state, activeModel, activePositions, entityById, entityStatus, fieldStatus, indexesOf, isEditing, kindClass, kindKeys, kindLabel, kindOf, relationStatus, tileOf,
+  state, activeModel, activePositions, axisClass, axisKeys, axisLabel, entityById, entityStatus, fieldStatus, indexesOf, isEditing, isFilteredOut, kindOf, relationStatus, tileOf,
 } from "./state.js";
 import { addField, commit, pickForLink, renameEntity, renameField, select, setReviewed, toggleGroupMember } from "./actions.js";
 import { esc } from "./html.js";
+import { drawModuleEdges, renderModuleCanvas } from "./module-view.js";
 
 const SNAP = 10;
 let viewport, world, links;
@@ -45,14 +47,38 @@ function groupOfSelection() {
   return state.grouping ? state.layout.groups.find(g => g.id === state.grouping) : null;
 }
 
-function entityHtml(e, model) {
+// Relations of tile tables in badge display: a badge "-> Target" on the referencing foreign-key field instead of a line.
+// Returns entity id -> { fields: field name -> [relation], header: [relation] } (header: relations without fromFields).
+function badgesByEntity(model) {
+  const result = new Map();
+  for (const r of model.relations) {
+    const t = tileOf(model, r);
+    if (!t || t.display !== "badge") continue;
+    if (!result.has(r.from)) result.set(r.from, { fields: new Map(), header: [] });
+    const slot = result.get(r.from), owner = entityById(r.from, model);
+    const names = r.fromFields.filter(name => owner.fields.some(f => f.name === name));
+    if (!names.length) slot.header.push(r);
+    for (const name of names) slot.fields.set(name, [...(slot.fields.get(name) || []), r]);
+  }
+  return result;
+}
+
+function badgeHtml(r, model) {
+  const target = entityById(r.to, model).name;
+  const selected = state.sel && state.sel.kind === "rel" && state.sel.id === r.id;
+  return '<span class="fbadge' + (selected ? " sel" : "") + '" data-rid="' + esc(r.id) + '" title="' + esc(S.tileBadgeTitle(target, relationLabel(r))) + '">→ ' + esc(target) + "</span>";
+}
+
+function entityHtml(e, model, badges) {
   const st = entityStatus(e);
   const review = isEditing() ? '<input type="checkbox" class="rv" title="' + esc(S.reviewedCheckboxTitle) + '" aria-label="' + esc(S.reviewedCheckboxLabel(e.name)) + '"' + (e.reviewed ? " checked" : "") + ">" : "";
-  let html = '<div class="eh">' + review + '<span class="en">' + esc(e.name) + "</span>" + (st && st.status !== "same" ? chip(st.status) : "") + "</div>";
+  const headerBadges = badges ? badges.header.map(r => badgeHtml(r, model)).join("") : "";
+  let html = '<div class="eh">' + review + '<span class="en">' + esc(e.name) + "</span>" + headerBadges + (st && st.status !== "same" ? chip(st.status) : "") + "</div>";
   for (const f of e.fields) {
     const selected = state.sel && state.sel.kind === "field" && state.sel.fid === f.id;
-    html += '<div class="fr st-' + fieldStatus(f) + (selected ? " sel" : "") + '" data-fid="' + esc(f.id) + '" title="' + esc(f.note || "") + '"><span class="fk">' + fieldKeysText(f) +
-      '</span><span class="fn">' + esc(f.name) + '</span><span class="ft">' + esc(fieldTypeText(f)) + "</span></div>";
+    const fieldBadges = badges && badges.fields.get(f.name);
+    html += '<div class="fr st-' + fieldStatus(f) + (selected ? " sel" : "") + (fieldBadges ? " hasbadge" : "") + '" data-fid="' + esc(f.id) + '" title="' + esc(f.note || "") + '"><span class="fk">' + fieldKeysText(f) +
+      '</span><span class="fn">' + esc(f.name) + "</span>" + (fieldBadges ? fieldBadges.map(r => badgeHtml(r, model)).join("") : "") + '<span class="ft">' + esc(fieldTypeText(f)) + "</span></div>";
   }
   if (state.showIndexes) {
     const list = indexesOf(e, model);
@@ -63,21 +89,27 @@ function entityHtml(e, model) {
 }
 
 export function renderCanvas() {
-  const model = activeModel(), positions = activePositions(), picking = groupOfSelection();
-  world.querySelectorAll(".ent").forEach(n => n.remove());
+  world.classList.toggle("modules", state.moduleView);
+  if (state.moduleView) {
+    renderModuleCanvas(world, links);
+    applyTransform();
+    return;
+  }
+  const model = activeModel(), positions = activePositions(), picking = groupOfSelection(), badges = badgesByEntity(model);
+  world.querySelectorAll(".ent, .mod").forEach(n => n.remove());
   const frag = document.createDocumentFragment();
   for (const e of model.entities) {
+    if (isFilteredOut(e)) continue;
     const kind = kindOf(e);
-    if (state.hiddenKinds.has(kind || "none")) continue;
     const st = entityStatus(e);
     const el = document.createElement("div");
     const selected = state.sel && (state.sel.id === e.id || state.sel.eid === e.id) && state.sel.kind !== "rel" && state.sel.kind !== "group";
-    el.className = "ent st-" + (st ? st.status : "same") + (kind ? " " + kindClass(kind) : "") + (selected ? " sel" : "") + (state.multiSel.has(e.id) ? " msel" : "") + (picking && picking.members.includes(e.id) ? " gpick" : "") + (isEditing() && e.reviewed ? " done" : "");
+    el.className = "ent st-" + (st ? st.status : "same") + (kind ? " " + axisClass("kind", kind) : "") + (selected ? " sel" : "") + (state.multiSel.has(e.id) ? " msel" : "") + (picking && picking.members.includes(e.id) ? " gpick" : "") + (isEditing() && e.reviewed ? " done" : "");
     const [x, y] = positions[e.id];
     el.style.left = x + "px"; el.style.top = y + "px";
     el.dataset.id = e.id;
     el.tabIndex = 0;
-    el.innerHTML = entityHtml(e, model);
+    el.innerHTML = entityHtml(e, model, badges.get(e.id));
     frag.appendChild(el);
   }
   world.appendChild(frag);
@@ -86,19 +118,12 @@ export function renderCanvas() {
   applyTransform();
 }
 
-function edgePoint(r, tx, ty) {
-  const cx = r.x + r.w / 2, cy = r.y + r.h / 2, dx = tx - cx, dy = ty - cy;
-  if (!dx && !dy) return { x: cx, y: cy };
-  const s = Math.min(dx ? (r.w / 2) / Math.abs(dx) : Infinity, dy ? (r.h / 2) / Math.abs(dy) : Infinity);
-  return { x: cx + dx * s, y: cy + dy * s };
-}
-
 // One zone per island: tables of the same kind closer than zoneGap (edge to edge) share a background zone.
 function drawZones() {
   world.querySelectorAll(".zone").forEach(n => n.remove());
   const pad = 28;
-  for (const kind of kindKeys()) {
-    const cls = kindClass(kind);
+  for (const kind of axisKeys("kind")) {
+    const cls = axisClass("kind", kind);
     const boxes = [...world.querySelectorAll(".ent." + cls)].map(el => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }));
     if (!boxes.length) continue;
     const parent = boxes.map((_, i) => i);
@@ -111,7 +136,7 @@ function drawZones() {
     }
     const islands = {};
     boxes.forEach((b, i) => (islands[find(i)] = islands[find(i)] || []).push(b));
-    for (const group of Object.values(islands)) world.insertBefore(zoneElement("zone " + cls, group, pad, '<span class="zl">' + esc(kindLabel(kind)) + "</span>"), world.firstChild);
+    for (const group of Object.values(islands)) world.insertBefore(zoneElement("zone " + cls, group, pad, '<span class="zl">' + esc(axisLabel("kind", kind)) + "</span>"), world.firstChild);
   }
   if (!isEditing()) return;
   for (const g of state.layout.groups) {
@@ -141,13 +166,16 @@ function labelSvg(r, x, y, selected) {
 }
 
 export function drawLinks() {
+  if (state.moduleView) { drawModuleEdges(world, links); return; }
   drawZones();
   const model = activeModel();
   let out = "";
-  // References to a tile table are not drawn as long lines: each referencing table gets its own small tile.
+  // References to a tile table are not drawn as long lines: each referencing table gets its own small tile,
+  // or (badge display) its foreign-key field a badge, rendered with the table in entityHtml.
   const tileRefs = {};
   for (const r of model.relations) {
     const t = tileOf(model, r);
+    if (t && t.display === "badge") continue;
     if (t) {
       const perTable = tileRefs[t.other] = tileRefs[t.other] || {};
       (perTable[t.tile.name] = perTable[t.tile.name] || []).push(r);
@@ -164,7 +192,7 @@ export function drawLinks() {
       out += labelSvg(r, x + 34, y + 20, selected);
       continue;
     }
-    const pa = edgePoint(a, b.x + b.w / 2, b.y + b.h / 2), pb = edgePoint(b, a.x + a.w / 2, a.y + a.h / 2);
+    const pa = boxBorderPoint(a, b.x + b.w / 2, b.y + b.h / 2), pb = boxBorderPoint(b, a.x + a.w / 2, a.y + a.h / 2);
     const len = Math.hypot(pb.x - pa.x, pb.y - pa.y) || 1, ux = (pb.x - pa.x) / len, uy = (pb.y - pa.y) / len;
     out += '<line class="' + cls + '" x1="' + pa.x + '" y1="' + pa.y + '" x2="' + pb.x + '" y2="' + pb.y + '" />';
     out += '<text class="card" x="' + (pa.x + ux * 14 - uy * 8) + '" y="' + (pa.y + uy * 14 + ux * 8 + 4) + '" text-anchor="middle">' + esc(r.cardinality.from) + "</text>";
@@ -215,7 +243,7 @@ export function centerOn(id) {
 }
 
 export function fitAll() {
-  const boxes = [...world.querySelectorAll(".ent, .zone")].map(el => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }));
+  const boxes = [...world.querySelectorAll(".ent, .zone, .mod")].map(el => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }));
   if (!boxes.length) return;
   const x0 = Math.min(...boxes.map(b => b.x)), y0 = Math.min(...boxes.map(b => b.y));
   const x1 = Math.max(...boxes.map(b => b.x + b.w)), y1 = Math.max(...boxes.map(b => b.y + b.h));
@@ -248,7 +276,7 @@ function startDrag(ev, value) {
 
 function onPointerDown(ev) {
   if (ev.button !== 0 || ev.target.closest("input, button")) return;
-  if (ev.shiftKey && !state.linking && !state.grouping) {
+  if (ev.shiftKey && !state.linking && !state.grouping && !state.moduleView) {
     ev.preventDefault();
     try { window.getSelection().removeAllRanges(); } catch { /* selection API missing: nothing to clear */ }
     const vr = viewport.getBoundingClientRect(), hit = ev.target.closest(".ent");
@@ -258,7 +286,9 @@ function onPointerDown(ev) {
     startDrag(ev, { kind: "lasso", vx: ev.clientX - vr.left, vy: ev.clientY - vr.top, box, hitId: hit && hit.dataset.id });
     return;
   }
-  const label = ev.target.closest("g.lbl");
+  const moduleEdge = ev.target.closest("g.medge");
+  if (moduleEdge) { select({ kind: "module-edge", id: moduleEdge.dataset.edge }); return; }
+  const label = ev.target.closest("g.lbl, .fbadge");
   if (label) { select({ kind: "rel", id: label.dataset.rid }); return; }
   const groupLabel = ev.target.closest(".zone.grp .zl");
   if (groupLabel && isEditing()) {
@@ -268,6 +298,8 @@ function onPointerDown(ev) {
   }
   const ent = ev.target.closest(".ent");
   const pan = onClick => startDrag(ev, { kind: "pan", px: state.pan.x, py: state.pan.y, onClick });
+  const moduleBox = ev.target.closest(".mod");
+  if (moduleBox) { pan(() => select({ kind: "module", id: moduleBox.dataset.module })); return; }
   if (!ent) { pan(null); return; }
   const id = ent.dataset.id;
   if (state.linking) { pickForLink(id); return; }
@@ -414,5 +446,7 @@ export function initCanvas() {
   viewport.addEventListener("keydown", ev => {
     const ent = ev.target.closest && ev.target.closest(".ent");
     if (ent && ev.key === "Enter" && ev.target === ent) select({ kind: "entity", id: ent.dataset.id });
+    const moduleBox = ev.target.closest && ev.target.closest(".mod");
+    if (moduleBox && ev.key === "Enter" && ev.target === moduleBox) select({ kind: "module", id: moduleBox.dataset.module });
   });
 }

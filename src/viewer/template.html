@@ -48,18 +48,20 @@
     <details class="menu">
       <summary class="btn" data-s="viewMenu"></summary>
       <div class="pop">
-        <button class="btn" id="idx" type="button" aria-pressed="false" data-s-title="showIndexesTitle" data-s="showIndexes"></button>
+        <button class="btn table-view-only" id="idx" type="button" aria-pressed="false" data-s-title="showIndexesTitle" data-s="showIndexes"></button>
         <div class="tilectl" id="tile-list" data-s-title="tileListTitle"></div>
-        <button class="btn" id="arrange-rel" type="button" data-s-title="arrangeByRelationsTitle" data-s="arrangeByRelations"></button>
-        <button class="btn" id="arrange-radial" type="button" data-s-title="arrangeRadialTitle" data-s="arrangeRadial"></button>
-        <button class="btn" id="arrange" type="button" data-s="arrangeByKind"></button>
+        <button class="btn table-view-only" id="arrange-rel" type="button" data-s-title="arrangeByRelationsTitle" data-s="arrangeByRelations"></button>
+        <button class="btn table-view-only" id="arrange-radial" type="button" data-s-title="arrangeRadialTitle" data-s="arrangeRadial"></button>
+        <button class="btn table-view-only" id="arrange" type="button" data-s="arrangeByKind"></button>
         <label class="gapctl" id="zone-gap-ctl" data-s-title="zoneGapTitle"><span data-s="zoneGap"></span> <input type="range" id="zone-gap" min="0" max="1500" step="20" value="320"> <output id="zone-gap-val">320 px</output></label>
         <label class="gapctl edit-only" data-s-title="groupJoinTitle" hidden><span data-s="groupJoin"></span> <input type="range" id="group-join" min="0" max="800" step="20" value="100"> <output id="group-join-val">100 px</output></label>
       </div>
     </details>
     <button class="btn" id="layout-restore" type="button" hidden data-s-title="restoreLayoutTitle" data-s="restoreLayout"></button>
     <button class="btn" id="full" type="button" aria-pressed="false" data-s="fullscreen"></button>
+    <button class="btn" id="module-view" type="button" aria-pressed="false" data-s-title="moduleViewTitle" data-s="moduleView" hidden></button>
     <div class="bgrp" id="kind-filter" role="group" data-s-label="kindFilterGroup" hidden></div>
+    <div class="bgrp" id="module-filter" role="group" data-s-label="moduleFilterGroup" hidden></div>
     <button class="btn target-only" id="dim-reviewed" type="button" aria-pressed="false" data-s-title="dimReviewedTitle" hidden><span data-s="dimReviewed"></span> <span id="reviewed-count"></span></button>
     <span class="hint" id="hint"></span>
     <span class="grow"></span>
