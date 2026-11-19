@@ -22,7 +22,9 @@ function stringMap(raw, path, issues) {
 
 // Shared by the classification axes (data kinds, modules): { key: { label, color?, description?, ...extra } }.
 // extra: { name: shape text } for axis-specific keys, normalized by normalizeExtra (null = invalid).
-function categories(raw, path, issues, { extra = {}, normalizeExtra = () => ({}) } = {}) {
+// strict: reject keys outside label/color/description/extra (catches typos like dependOn). Off for data kinds:
+// their specs always tolerated unknown keys (ignored, not carried over).
+function categories(raw, path, issues, { extra = {}, normalizeExtra = () => ({}), strict = false } = {}) {
   const result = {};
   if (raw === undefined) return result;
   const shape = "{ label: string, color?: CSS color like \"#0060a3\", description?: string" + Object.entries(extra).map(([k, text]) => ", " + k + "?: " + text).join("") + " }";
@@ -30,7 +32,7 @@ function categories(raw, path, issues, { extra = {}, normalizeExtra = () => ({})
   const allowed = new Set(["label", "color", "description", ...Object.keys(extra)]);
   for (const [key, spec] of Object.entries(raw)) {
     if (key === UNASSIGNED) { issues.push(path + ": \"" + UNASSIGNED + "\" is reserved"); continue; }
-    const valid = isPlainObject(spec) && typeof spec.label === "string" && Object.keys(spec).every(k => allowed.has(k)) &&
+    const valid = isPlainObject(spec) && typeof spec.label === "string" && (!strict || Object.keys(spec).every(k => allowed.has(k))) &&
       (spec.color === undefined || (typeof spec.color === "string" && CSS_COLOR.test(spec.color))) && (spec.description === undefined || typeof spec.description === "string");
     const extraValues = valid ? normalizeExtra(spec) : null;
     if (!extraValues) { issues.push(path + "." + key + " must be " + shape); continue; }
@@ -106,7 +108,7 @@ export function normalizeConfig(raw = {}, label = "config") {
     if (raw[key] !== undefined && typeof raw[key] !== "string") issues.push(key + " must be a string");
   }
   const dataKinds = categories(raw.dataKinds, "dataKinds", issues);
-  const modules = categories(raw.modules, "modules", issues, { extra: { dependsOn: "[module key]", transitive: "boolean (default true)" }, normalizeExtra: moduleDependencies });
+  const modules = categories(raw.modules, "modules", issues, { strict: true, extra: { dependsOn: "[module key]", transitive: "boolean (default true)" }, normalizeExtra: moduleDependencies });
   checkModuleDependencies(modules, issues);
   const sections = raw.sections === undefined ? [] : raw.sections;
   const sectionsValid = Array.isArray(sections) && sections.every(s => isPlainObject(s) && typeof s.title === "string" && typeof s.markdown === "string" && Object.keys(s).every(k => k === "title" || k === "markdown"));

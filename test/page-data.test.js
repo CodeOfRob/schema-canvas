@@ -71,9 +71,11 @@ test("modules: reserved key, bad specs, unknown or self dependencies and depende
   assert.throws(() => normalizeConfig({ entityModules: { Book: 1 } }), /entityModules must map names to strings/);
 });
 
-test("data kinds reject unknown keys in their spec (typos must not vanish silently)", () => {
-  assert.throws(() => normalizeConfig({ dataKinds: { a: { label: "A", colour: "#fff" } } }), /dataKinds\.a must be/);
-  assert.throws(() => normalizeConfig({ dataKinds: { a: { label: "A", dependsOn: [] } } }), /dataKinds\.a must be/);
+test("data kind specs ignore unknown keys (not carried over); module specs reject them (typos like dependOn)", () => {
+  const config = normalizeConfig({ dataKinds: { lend: { label: "Lend", order: 2 } }, entityKinds: { Book: "lend" } });
+  assert.deepEqual(config.dataKinds, { lend: { label: "Lend" } });
+  assert.throws(() => normalizeConfig({ modules: { a: { label: "A", dependOn: [] } } }), /modules\.a must be/);
+  assert.throws(() => normalizeConfig({ modules: { a: { label: "A", colour: "#fff" } } }), /modules\.a must be/);
 });
 
 // ---------- layout.modules ----------
