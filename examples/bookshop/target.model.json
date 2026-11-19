@@ -86,6 +86,7 @@
     },
     {
       "name": "Wishlist",
+      "module": "ordering",
       "fields": [
         { "name": "accountId", "type": "Int", "nullable": false, "pk": true, "fk": true },
         { "name": "editionId", "type": "Int", "nullable": false, "pk": true, "fk": true },
