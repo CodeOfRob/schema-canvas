@@ -25,7 +25,7 @@ Options:
   --current  model.json of the current state
   --target   model.json of the target state; enables the diff view and the editor
   --layout   layout.json with table positions (export it from the page via More -> Export layout)
-  --config   config.json (title, data kinds, tile tables, notes, storage)
+  --config   config.json (title, data kinds, modules, tile tables, notes, storage)
   --name     model name stored in model.json
   -o, --out  output file
   -h, --help show this help

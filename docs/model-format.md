@@ -17,6 +17,7 @@ Only the target model uses `origin`.
       "id": "Account",              // optional, defaults to name; relations and indexes refer to it
       "name": "Account",
       "kind": "sales",              // optional data kind (a key of config.dataKinds)
+      "module": "ordering",         // optional module (a key of config.modules)
       "note": "free text",
       "origin": ["Customer"],       // target only
       "reviewed": true,             // optional review marker
@@ -60,6 +61,19 @@ Only the target model uses `origin`.
 - `fields` lists field names in index order. An entry that is not a plain name, such as `lower(email)` or
   `(data->>'key')`, is an expression: it is shown as written and not checked against the fields.
 - `note` says why the index exists; the inspector shows it next to the index.
+
+## Data kind and module
+
+Two independent classifications of a table, both optional:
+
+- `kind` says what the table holds (for example `catalog` vs. `sales`); it colours tables and forms zones.
+- `module` says which part of the system owns the table (for example `catalog`, `ordering`, `billing`); it
+  drives the module view and the module filter.
+
+Both are resolved the same way: the table's own value (when it names a key declared in `config.json`), else
+`config.entityKinds` / `config.entityModules` by table name, else (target tables) the value of the first
+origin that has one. `"none"` marks a table explicitly as unassigned. Layout `groups` are a third, purely visual
+thing. Neither `kind` nor `module` is part of the schema, so the diff ignores them.
 
 ## Review marker
 

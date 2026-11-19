@@ -11,9 +11,11 @@ Both are optional side files passed to `build`. Unknown keys are rejected so typ
   "language": "en",
   "storageKey": "bookshop-schema",
   "dbDocPath": "schema-canvas/state",
-  "tileTables": ["Edition"],
+  "tileTables": ["Edition", { "name": "Account", "display": "badge" }],
   "dataKinds": { "catalog": { "label": "Catalog", "color": "#0060a3", "description": "long-lived" }, "sales": { "label": "Sales" } },
   "entityKinds": { "Book": "catalog", "Order": "sales" },
+  "modules": { "catalog": { "label": "Catalog", "dependsOn": [] }, "ordering": { "label": "Ordering", "color": "#a86400", "dependsOn": ["catalog"] } },
+  "entityModules": { "Book": "catalog", "Order": "ordering" },
   "notes": { "Inventory": "Shown in the table's details." },
   "sections": [{ "title": "Open questions", "markdown": "- Shareable wishlists?" }],
   "strings": { "addTable": "+ Entity" }
@@ -27,9 +29,11 @@ Both are optional side files passed to `build`. Unknown keys are rejected so typ
 | `language` | Language tag of the page (`lang` attribute), e.g. when `strings` translate the interface |
 | `storageKey` | Prefix for browser storage (default: derived from the title or model name). Give pages that share an origin different keys. |
 | `dbDocPath` | Document path in the shared artifact store, see [storage.md](storage.md) (default `schema-canvas/state`) |
-| `tileTables` | Tables drawn as tiles by default; each viewer can change this for themselves |
+| `tileTables` | Tile tables by default: a table name (drawn as tiles) or `{ "name", "display": "tile" \| "badge" }`; each viewer can change this for themselves |
 | `dataKinds` | Data kinds with `label`, optional CSS `color` and optional `description` (tooltip of the filter button); their order is the zone order. Without a colour a palette colour is used. |
 | `entityKinds` | Kind per table name; target tables inherit the kind of their origin. `"none"` is reserved for "no kind". |
+| `modules` | Modules with `label`, optional CSS `color`, `description` and `dependsOn` (keys of modules it may reference); their order is the box and filter order |
+| `entityModules` | Module per table name, for models whose tables carry no `module` (for example a current model from an adapter); target tables inherit the module of their origin. `"none"` is reserved for "no module". |
 | `notes` | Extra note per table name, shown in the inspector |
 | `sections` | Text cards below the canvas, `[{ "title", "markdown" }]`: decisions, open questions, glossaries |
 | `strings` | Replacement texts for the interface, see below |
@@ -62,8 +66,34 @@ border, draw a background zone behind the tables of one kind and drive the filte
 ### Tile tables
 
 A busy table that nearly everything references (accounts, users) produces long lines everywhere. Mark it
-as a tile table: its relations are drawn as small name tiles above the referencing tables instead.
-`tileTables` sets the default; the toggle in the inspector is a per-browser preference.
+as a tile table and choose how its relations are shown instead of a line:
+
+- `"tile"` (default, also a plain name): a small name tile above each referencing table;
+- `"badge"`: a badge "-> Account" on the referencing foreign-key field, nothing drawn between the tables.
+
+`tileTables` sets the default; the select in the inspector is a per-browser preference. Relations to tile
+tables do not pull tables together in the automatic layouts and form no edge in the module view.
+
+### Modules and the module view
+
+A module says which part of the system owns a table, independent of its data kind and of layout groups.
+Assign it per table (`module` in the model, editable in the inspector) or by name with `entityModules`. When
+`modules` is set, the toolbar offers **Modules**: one box per module (table count, foreign keys inside, and
+`+n` references to tile tables that are not drawn), one arrow per direction labelled with the number of
+foreign keys between the two modules. Clicking an arrow lists its relations; clicking one opens it in the
+table view. Tables without a module form the box "(no module)". The module filter buttons hide modules in both
+views. The module view shows schema (foreign-key) coupling only: calls, events or jobs between modules do not
+appear.
+
+`dependsOn` turns on layer rules. Once any module declares it, an arrow is red when
+
+- it lies on a cycle between modules (the modules reference each other, directly or around a loop), or
+- its source module declares `dependsOn` and the target is not reachable through it (transitively:
+  `billing -> ordering -> catalog` allows `billing` to reference `catalog`).
+
+A module without `dependsOn` is not judged (only cycles are marked); `"dependsOn": []` forbids every outgoing
+arrow. Arrows from or to "(no module)" are never judged. Without any `dependsOn` nothing is red. `build`
+rejects `dependsOn` entries that name unknown modules or form a cycle.
 
 ## layout.json
 

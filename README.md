@@ -29,14 +29,17 @@ mail, host anywhere or open from disk.
 
 - **Diff colouring** between current and target model, based on explicit `origin` references (no guessing from names).
 - **Editing the target model**: rename tables and fields (double-click), add tables, fields, relations and
-  groups, edit types, keys, defaults, notes, data kinds and origins, move fields between tables, undo.
+  groups, edit types, keys, defaults, notes, data kinds, modules and origins, move fields between tables, undo.
 - **Data kinds**: colour tables by kind (for example "catalog" vs. "sales"), draw background zones per kind,
   hide kinds with filter buttons.
 - **Three automatic layouts**: by relations (stress layout, few crossings), as a star around one table, and by data kind.
 - **Review support**: tick tables as reviewed and dim them; mark fields whose content changes although their type does not.
 - **Text sections and translations**: a description and markdown sections (decisions, open questions) from
   `config.json`; every interface text can be replaced, for example to translate the page.
-- **Tile mode** per table: relations to a busy hub table are drawn as small name tiles instead of long lines.
+- **Tile mode** per table: relations to a busy hub table are drawn as small name tiles or as a badge
+  "-> Table" on the foreign-key field instead of long lines.
+- **Module view**: one box per module with the number of foreign keys between modules; layer rules from
+  `dependsOn` mark forbidden directions and cycles in red. Shows schema (FK) coupling only.
 - **Storage**: browser localStorage, JSON file export / import, or a shared claude.ai artifact database, with a
   keep-mine / take-theirs conflict dialog.
 - Index display, enum list, inspector for tables, fields and relations, lasso multi-select, full screen,
@@ -91,7 +94,9 @@ schema-canvas build --current current.model.json --target target.model.json \
 - **Origin.** Every target table or field can name the current parts it continues: absent = the same-named
   counterpart, `[]` = new, another name = renamed (or moved), several = merged. See [docs/model-format.md](docs/model-format.md).
 - **Data kinds.** Labels such as "catalog" or "sales" that colour tables and form zones. Configured in `config.json`.
-- **Tile tables.** Hub tables whose relations are drawn as tiles. Configured in `config.json`, switchable per viewer.
+- **Modules.** Which part of the system owns a table, apart from its data kind and from layout groups. Set
+  per table (`module`) or by name in `config.json`; the module view folds the tables into one box per module.
+- **Tile tables.** Hub tables whose relations are drawn as tiles or badges. Configured in `config.json`, switchable per viewer.
 - **Layout file.** Table positions and groups live in `layout.json`, apart from the model, so regenerating a
   model never wipes them. **More -> Export layout** in the page writes it. See [docs/config.md](docs/config.md).
 
@@ -120,7 +125,7 @@ How edits are saved in each case: [docs/storage.md](docs/storage.md).
 
 - [docs/cli.md](docs/cli.md) - commands and options
 - [docs/model-format.md](docs/model-format.md) - `model.json`, origins, relations
-- [docs/config.md](docs/config.md) - `config.json`, `layout.json`, data kinds, tile tables
+- [docs/config.md](docs/config.md) - `config.json`, `layout.json`, data kinds, modules, tile tables
 - [docs/storage.md](docs/storage.md) - storage modes, snapshot format, conflict rule
 - [docs/adapters.md](docs/adapters.md) - Prisma, tbls, writing a new adapter
 - [docs/architecture.md](docs/architecture.md) - module map and data flow

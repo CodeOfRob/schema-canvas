@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Modules: optional `module` per table, `modules` (with `dependsOn` layer rules) and `entityModules` in
+  `config.json`, a module selector in the inspector and module filter buttons. A **Modules** view folds the
+  tables into one box per module with the foreign-key count per direction; arrows that break `dependsOn` or lie
+  on a cycle between modules are red. Data kind and module resolve the same way (own value, by name, origin).
+- Tile tables: `tileTables` entries may be `{ "name", "display": "badge" }`; the relations are then shown as a
+  badge "-> Table" on the foreign-key field instead of a tile. The inspector offers lines / tile / badge per
+  viewer. Preferences saved by earlier versions keep working.
+- `dataKinds` entries reject unknown keys (a typo such as `colour` was silently dropped before).
+
 - Fix: a state saved against an older built-in target model (in this browser or in the shared store) no longer
   silently replaces the newer target of a rebuilt page. Snapshots record the fingerprint of the built-in target
   they were based on (`base`); on a mismatch the page asks whether to use the page's version or keep the saved
