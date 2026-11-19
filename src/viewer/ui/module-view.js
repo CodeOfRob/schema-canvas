@@ -113,12 +113,12 @@ function edgeItem(edge) {
 }
 
 function summaryHtml(graph) {
-  let html = "<section><h3>" + S.moduleHelpTitle + '</h3><p class="muted">' + S.moduleHelp + "</p><p class=\"muted\">" + (graph.layered ? S.moduleRulesLegend : S.moduleRulesNone) + "</p></section>";
+  let html = "<section><h3>" + esc(S.moduleHelpTitle) + '</h3><p class="muted">' + esc(S.moduleHelp) + "</p><p class=\"muted\">" + (graph.layered ? esc(S.moduleRulesLegend) : esc(S.moduleRulesNone)) + "</p></section>";
   if (graph.layered) {
     const violations = graph.edges.filter(e => e.violation);
-    html += "<section><h3>" + S.moduleViolations + " (" + violations.length + ")</h3>" + (violations.length ? items(violations.map(edgeItem)) : '<p class="muted">' + S.moduleViolationsNone + "</p>") + "</section>";
+    html += "<section><h3>" + esc(S.moduleViolations) + " (" + violations.length + ")</h3>" + (violations.length ? items(violations.map(edgeItem)) : '<p class="muted">' + esc(S.moduleViolationsNone) + "</p>") + "</section>";
   }
-  html += "<section><h3>" + S.moduleList + " (" + graph.nodes.length + ")</h3>" + items(graph.nodes.map(n => ({ attr: 'data-module="' + esc(n.key) + '"', name: moduleLabel(n), meta: S.moduleTables(n.tableCount) }))) + "</section>";
+  html += "<section><h3>" + esc(S.moduleList) + " (" + graph.nodes.length + ")</h3>" + items(graph.nodes.map(n => ({ attr: 'data-module="' + esc(n.key) + '"', name: moduleLabel(n), meta: S.moduleTables(n.tableCount) }))) + "</section>";
   return html;
 }
 
@@ -126,28 +126,28 @@ function moduleHtml(graph, key) {
   const node = graph.nodes.find(n => n.key === key);
   if (!node) return null;
   const spec = axisSpec("module", key);
-  let html = '<section><button class="linkbtn" id="p-back" type="button">' + S.backToModules + '</button><div class="row"><h2>' + esc(moduleLabel(node)) + "</h2></div>";
+  let html = '<section><button class="linkbtn" id="p-back" type="button">' + esc(S.backToModules) + '</button><div class="row"><h2>' + esc(moduleLabel(node)) + "</h2></div>";
   if (spec && spec.description) html += '<div class="note">' + esc(spec.description) + "</div>";
   if (spec) {
     const deps = spec.dependsOn;
-    html += '<span class="muted">' + S.moduleDependsOn + ": " + esc(deps === undefined ? S.moduleDependsOnUndeclared : deps.length ? deps.map(moduleName).join(", ") : S.moduleDependsOnNothing) + "</span>";
-    if (spec.transitive === false) html += '<span class="muted">' + S.moduleDependsOnDirectOnly + "</span>";
+    html += '<span class="muted">' + esc(S.moduleDependsOn + ": " + (deps === undefined ? S.moduleDependsOnUndeclared : deps.length ? deps.map(moduleName).join(", ") : S.moduleDependsOnNothing)) + "</span>";
+    if (spec.transitive === false) html += '<span class="muted">' + esc(S.moduleDependsOnDirectOnly) + "</span>";
   }
   html += '<span class="muted">' + esc(S.moduleInternal(node.internalRelationCount)) + (node.hiddenRelationCount ? " · " + esc(S.moduleHiddenText(node.hiddenRelationCount)) : "") + "</span></section>";
   const touching = graph.edges.filter(e => e.from === key || e.to === key);
-  if (touching.length) html += "<section><h3>" + S.moduleCoupling + "</h3>" + items(touching.map(edgeItem)) + "</section>";
-  html += "<section><h3>" + S.groupTables + " (" + node.tableCount + ")</h3>" + items(node.entityIds.map(id => ({ attr: 'data-eid="' + esc(id) + '"', name: entityById(id).name }))) + "</section>";
+  if (touching.length) html += "<section><h3>" + esc(S.moduleCoupling) + "</h3>" + items(touching.map(edgeItem)) + "</section>";
+  html += "<section><h3>" + esc(S.groupTables) + " (" + node.tableCount + ")</h3>" + items(node.entityIds.map(id => ({ attr: 'data-eid="' + esc(id) + '"', name: entityById(id).name }))) + "</section>";
   return html;
 }
 
 function edgeHtml(graph, key) {
   const edge = graph.edges.find(e => e.key === key);
   if (!edge) return null;
-  let html = '<section><button class="linkbtn" id="p-back" type="button">' + S.backToModules + '</button><div class="row"><h2>' + esc(edgeTitle(edge)) + "</h2></div>";
+  let html = '<section><button class="linkbtn" id="p-back" type="button">' + esc(S.backToModules) + '</button><div class="row"><h2>' + esc(edgeTitle(edge)) + "</h2></div>";
   html += '<span class="muted">' + esc(edgeCount(edge)) + "</span>";
   if (edge.violation) html += '<div class="note viol">' + esc(violationText(edge)) + "</div>";
   if (edge.kind === "opaque") html += '<div class="note">' + esc(S.moduleOpaqueNote) + "</div>";
-  html += "</section><section><h3>" + (edge.kind === "opaque" ? S.moduleEdgeRelationsOpaque : S.moduleEdgeRelations) + "</h3>" + items(edge.relations.map(relationText).map(r => ({ attr: 'data-rid="' + esc(r.id) + '" data-eid="' + esc(r.from) + '"', name: r.text }))) + "</section>";
+  html += "</section><section><h3>" + (edge.kind === "opaque" ? esc(S.moduleEdgeRelationsOpaque) : esc(S.moduleEdgeRelations)) + "</h3>" + items(edge.relations.map(relationText).map(r => ({ attr: 'data-rid="' + esc(r.id) + '" data-eid="' + esc(r.from) + '"', name: r.text }))) + "</section>";
   return html;
 }
 
