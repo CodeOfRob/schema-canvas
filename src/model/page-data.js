@@ -130,16 +130,16 @@ export function normalizeConfig(raw = {}, label = "config") {
 }
 
 export function emptyLayout() {
-  return { version: LAYOUT_FORMAT_VERSION, current: {}, target: {}, groups: [] };
+  return { version: LAYOUT_FORMAT_VERSION, current: {}, target: {}, groups: [], modules: {} };
 }
 
 export function normalizeLayout(raw, label = "layout") {
   const issues = [];
   if (!isPlainObject(raw)) throw new Error(label + " must be a JSON object");
   if (raw.version !== LAYOUT_FORMAT_VERSION) issues.push("version must be " + LAYOUT_FORMAT_VERSION);
-  const positions = key => {
+  const positions = (key, what = "entity ids") => {
     const value = raw[key] === undefined ? {} : raw[key];
-    if (!isPlainObject(value) || !Object.values(value).every(isPosition)) { issues.push(key + " must map entity ids to [x, y]"); return {}; }
+    if (!isPlainObject(value) || !Object.values(value).every(isPosition)) { issues.push(key + " must map " + what + " to [x, y]"); return {}; }
     return Object.fromEntries(Object.entries(value).map(([id, [x, y]]) => [id, [x, y]]));
   };
   const groups = raw.groups === undefined ? [] : raw.groups;
@@ -150,6 +150,8 @@ export function normalizeLayout(raw, label = "layout") {
     current: positions("current"),
     target: positions("target"),
     groups: groupsValid ? groups.map(g => ({ id: g.id, name: g.name, members: [...g.members] })) : [],
+    // Module box positions of the module view, one map for both tabs (optional: older layouts have none).
+    modules: positions("modules", "module keys"),
   };
   if (issues.length) throw new Error(label + " is not a valid layout:\n  - " + issues.join("\n  - "));
   return layout;

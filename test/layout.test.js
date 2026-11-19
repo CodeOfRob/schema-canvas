@@ -69,3 +69,64 @@ test("arrangeRadial: chosen centre in the middle, neighbours on the first ring, 
   assert.ok(centreOf("t10")[0] < Math.min(...["t0", "t1", "t4", "t5", "t6", "t7"].map(id => centreOf(id)[0])), "separate groups sit left of the star");
   assert.equal(arrangeRadial(boxes, relations).centre, "t0", "without a choice the most central table is the centre");
 });
+
+// ---------- module positions ----------
+import { placeModules } from "../src/viewer/layout.js";
+
+const MODULE_BOX = { w: 220, h: 92 };
+const moduleNodes = keys => keys.map(key => ({ key }));
+const moduleEdges = pairs => pairs.map(([from, to]) => ({ key: from + "->" + to, from, to }));
+const moduleBoxes = (keys, pos) => keys.map(key => ({ id: key, x: pos[key][0], y: pos[key][1], ...MODULE_BOX }));
+
+test("placeModules without saved positions equals the derived arrangement and is deterministic", () => {
+  const keys = ["sales", "catalog", "billing", "none"], edges = moduleEdges([["sales", "catalog"], ["billing", "sales"]]);
+  const a = placeModules(moduleNodes(keys), edges, {}, MODULE_BOX), b = placeModules(moduleNodes(keys), edges, {}, MODULE_BOX);
+  assert.deepEqual(a, b);
+  assert.deepEqual(Object.keys(a).sort(), [...keys].sort());
+  assert.equal(overlapCount(moduleBoxes(keys, a), a), 0);
+});
+
+test("placeModules: a saved position wins, unknown saved keys are ignored (and not part of the result)", () => {
+  const keys = ["sales", "catalog"];
+  const saved = { sales: [500, 700], catalog: [20, 30], gone: [1, 1] };
+  const pos = placeModules(moduleNodes(keys), moduleEdges([["sales", "catalog"]]), saved, MODULE_BOX);
+  assert.deepEqual(pos, { sales: [500, 700], catalog: [20, 30] });
+  assert.deepEqual(saved.gone, [1, 1]);
+});
+
+test("placeModules: modules without saved position are placed free next to the saved ones", () => {
+  const keys = ["sales", "catalog", "billing", "shipping", "none"];
+  const saved = { sales: [100, 100], catalog: [150, 120] }; // saved boxes overlap each other on purpose: they stay as saved
+  const pos = placeModules(moduleNodes(keys), moduleEdges([["billing", "sales"]]), saved, MODULE_BOX);
+  assert.deepEqual(pos.sales, [100, 100]);
+  assert.deepEqual(pos.catalog, [150, 120]);
+  const fresh = ["billing", "shipping", "none"];
+  const boxes = moduleBoxes(keys, pos);
+  for (const id of fresh) for (const other of boxes) {
+    const me = boxes.find(b => b.id === id);
+    if (other.id !== id) assert.ok(!overlapping(me, other), id + " overlaps " + other.id);
+  }
+});
+
+test("placeModules: the reserved key none is positioned like any other key", () => {
+  const pos = placeModules(moduleNodes(["none", "sales"]), [], { none: [5, 6] }, MODULE_BOX);
+  assert.deepEqual(pos.none, [5, 6]);
+  assert.equal(pos.sales.length, 2);
+});
+
+test("placeModules does not mutate its inputs", () => {
+  const saved = { sales: [1, 2] }, nodes = moduleNodes(["sales", "catalog"]);
+  const before = JSON.stringify([saved, nodes]);
+  placeModules(nodes, [], saved, MODULE_BOX);
+  assert.equal(JSON.stringify([saved, nodes]), before);
+});
+
+test("freezeModulePositions: first drag freezes every shown module, keeps saved and unknown (hidden) keys untouched", () => {
+  const saved = { hiddenOne: [9, 9], sales: [1, 2] };
+  const shown = { sales: [100, 100], catalog: [300, 100], none: [0, 0] };
+  const frozen = freezeModulePositions(saved, shown);
+  assert.deepEqual(frozen, { hiddenOne: [9, 9], sales: [1, 2], catalog: [300, 100], none: [0, 0] });
+  assert.deepEqual(saved, { hiddenOne: [9, 9], sales: [1, 2] }, "input untouched");
+  const empty = freezeModulePositions({}, shown);
+  assert.deepEqual(empty, shown);
+});

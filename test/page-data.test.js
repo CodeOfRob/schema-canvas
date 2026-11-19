@@ -75,3 +75,21 @@ test("data kinds reject unknown keys in their spec (typos must not vanish silent
   assert.throws(() => normalizeConfig({ dataKinds: { a: { label: "A", colour: "#fff" } } }), /dataKinds\.a must be/);
   assert.throws(() => normalizeConfig({ dataKinds: { a: { label: "A", dependsOn: [] } } }), /dataKinds\.a must be/);
 });
+
+// ---------- layout.modules ----------
+import { normalizeLayout, emptyLayout } from "../src/model/page-data.js";
+
+test("normalizeLayout carries layout.modules and accepts old layouts without it", () => {
+  const withModules = normalizeLayout({ version: 1, current: {}, target: {}, groups: [], modules: { sales: [10, 20], none: [0, 5] } });
+  assert.deepEqual(withModules.modules, { sales: [10, 20], none: [0, 5] });
+  assert.deepEqual(normalizeLayout(withModules), withModules);
+  assert.deepEqual(normalizeLayout({ version: 1, current: {}, target: {}, groups: [] }).modules, {});
+  assert.deepEqual(emptyLayout().modules, {});
+});
+
+test("normalizeLayout rejects a bad layout.modules shape", () => {
+  const base = { version: 1, current: {}, target: {}, groups: [] };
+  for (const bad of [[], "x", { sales: [1] }, { sales: ["a", 2] }, { sales: [1, NaN] }, { sales: { x: 1, y: 2 } }]) {
+    assert.throws(() => normalizeLayout({ ...base, modules: bad }), /modules must map module keys to \[x, y\]/, JSON.stringify(bad));
+  }
+});

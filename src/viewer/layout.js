@@ -192,3 +192,47 @@ export function arrangeByRelations(boxes, relations, { extra = [], starts = 8, g
   boxes.forEach((b, i) => { pos[b.id] = [Math.round(nodes[i].x - b.w / 2 - minX + ORIGIN_X), Math.round(nodes[i].y - b.h / 2 - minY + ORIGIN_Y)]; });
   return { pos, score: layoutScore(nodes, lines) };
 }
+
+const MODULE_GAP = { gapX: 120, gapY: 110 };
+const MODULES_PER_ROW = 4;
+let derivedModules = { signature: "", pos: {} };
+
+/** The derived arrangement (relations pull modules together); memoised because the stress layout is not cheap. */
+function deriveModulePositions(nodes, edges, box) {
+  const signature = [box.w, box.h, nodes.map(n => n.key).join("|"), edges.map(e => e.key).join("|")].join("#");
+  if (derivedModules.signature !== signature) {
+    const boxes = nodes.map((n, i) => ({ id: n.key, x: (i % MODULES_PER_ROW) * 300, y: Math.floor(i / MODULES_PER_ROW) * 200, ...box }));
+    derivedModules = { signature, pos: arrangeByRelations(boxes, edges, MODULE_GAP).pos };
+  }
+  return derivedModules.pos;
+}
+
+/**
+ * Positions of the shown module boxes: a saved position wins; with none saved the derived arrangement is used;
+ * modules without a saved position next to saved ones go in rows below everything already placed (never overlapping).
+ * Saved keys of modules that are not shown are ignored here and stay in the saved map untouched.
+ * @param nodes [{key}] shown modules, @param edges [{key, from, to}], @param saved {key: [x, y]}, @param box {w, h}
+ * @returns {key: [x, y]} for every node
+ */
+export function placeModules(nodes, edges, saved, box) {
+  const savedNodes = nodes.filter(n => saved[n.key]);
+  if (!savedNodes.length) return structuredClone(deriveModulePositions(nodes, edges, box));
+  const pos = Object.fromEntries(savedNodes.map(n => [n.key, [...saved[n.key]]]));
+  const fresh = nodes.filter(n => !saved[n.key]);
+  const left = Math.min(...savedNodes.map(n => pos[n.key][0]));
+  const below = Math.max(...savedNodes.map(n => pos[n.key][1] + box.h)) + MODULE_GAP.gapY;
+  fresh.forEach((n, i) => {
+    pos[n.key] = [left + (i % MODULES_PER_ROW) * (box.w + MODULE_GAP.gapX), below + Math.floor(i / MODULES_PER_ROW) * (box.h + MODULE_GAP.gapY)];
+  });
+  return pos;
+}
+
+/**
+ * Saved map plus the currently shown positions for every module not saved yet, so a first drag moves one box
+ * and nothing else jumps. Modules that are not shown are not frozen (they count as new when they appear later).
+ */
+export function freezeModulePositions(saved, shown) {
+  const result = { ...saved };
+  for (const [key, position] of Object.entries(shown)) if (!result[key]) result[key] = [...position];
+  return result;
+}
