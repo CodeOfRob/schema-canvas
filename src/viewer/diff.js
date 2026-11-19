@@ -126,7 +126,8 @@ export function computeDiff(current, target) {
     return from + "|" + to + "|" + (fields.length ? sortedJoin(fields) : "~" + (r.label || ""));
   };
   const targetKey = r => targetNameById.get(r.from) + "|" + targetNameById.get(r.to) + "|" + (r.fromFields.length ? sortedJoin(r.fromFields) : "~" + (r.label || ""));
-  const sameCardinality = (a, b) => a.cardinality.from === b.cardinality.from && a.cardinality.to === b.cardinality.to;
+  // Same shape: cardinality and the opaque flag (a reference without foreign key is a different kind of relation).
+  const sameShape = (a, b) => a.cardinality.from === b.cardinality.from && a.cardinality.to === b.cardinality.to && !!a.opaque === !!b.opaque;
   // Several relations can share a key (two merged tables both referenced the same table), so keys map to lists.
   const groupByKey = (relations, keyOf) => {
     const groups = new Map();
@@ -139,7 +140,7 @@ export function computeDiff(current, target) {
   };
   const currentByKey = groupByKey(current.relations, currentKey);
   const targetByKey = groupByKey(target.relations, targetKey);
-  const statusAgainst = (r, counterparts, missing) => (!counterparts ? missing : counterparts.some(c => sameCardinality(c, r)) ? "same" : "changed");
+  const statusAgainst = (r, counterparts, missing) => (!counterparts ? missing : counterparts.some(c => sameShape(c, r)) ? "same" : "changed");
   const targetRelations = {}, currentRelations = {};
   for (const [key, list] of targetByKey) for (const r of list) targetRelations[r.id] = statusAgainst(r, currentByKey.get(key), "added");
   for (const [key, list] of currentByKey) for (const r of list) currentRelations[r.id] = statusAgainst(r, targetByKey.get(key), "removed");

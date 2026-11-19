@@ -92,6 +92,7 @@ function normalizeRelation(raw, path, issues) {
     if (card[end] !== undefined && !CARDINALITIES.includes(card[end])) issues.push(path + ".cardinality." + end + " must be one of " + CARDINALITIES.join(", "));
   }
   if (raw.label !== undefined && typeof raw.label !== "string") issues.push(path + ".label must be a string");
+  if (raw.opaque !== undefined && typeof raw.opaque !== "boolean") issues.push(path + ".opaque must be a boolean");
   const fromFields = Array.isArray(raw.fromFields) ? [...raw.fromFields] : [];
   const relation = {
     id: isNonEmptyString(raw.id) ? raw.id : raw.from + "." + (fromFields.join("_") || "ref") + "->" + raw.to,
@@ -102,6 +103,7 @@ function normalizeRelation(raw, path, issues) {
     cardinality: { from: card.from || "n", to: card.to || "1" },
   };
   if (raw.label) relation.label = raw.label;
+  if (raw.opaque === true) relation.opaque = true;
   return relation;
 }
 

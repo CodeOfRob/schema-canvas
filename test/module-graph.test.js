@@ -116,3 +116,89 @@ test("foreign keys OF a badge table stay edges (with their violations); only ref
   assert.equal(g.nodes.find(n => n.key === "ordering").hiddenRelationCount, 1);
   assert.equal(g.nodes.find(n => n.key === "accounts").hiddenRelationCount, 0);
 });
+
+// ---------- badge references are checked; opaque references; transitive: false ----------
+function build(entities, relations, modulesRaw, badges = []) {
+  const m = normalizeModel({ version: 1, entities, relations });
+  const modules = normalizeConfig({ modules: modulesRaw }).modules;
+  const axis = classificationAxes({ dataKinds: {}, entityKinds: {}, modules, entityModules: {} }).module;
+  const displays = new Map(badges.map(name => [name, "badge"]));
+  return buildModuleGraph(m, { modules, moduleOf: e => classify(e, axis), tileOf: r => tileOf(m, r, displays) });
+}
+const badgeEntities = [table("Member", "accounts"), table("Review", "community"), table("Order", "ordering"), table("Book", "catalog")];
+
+test("a reference to a badge table that breaks the layer rules becomes a visible violating edge", () => {
+  const g = build(badgeEntities, [ref("Review", "Member"), ref("Review", "Book")], {
+    accounts: { label: "Accounts", dependsOn: [] }, catalog: { label: "Catalog", dependsOn: [] }, community: { label: "Community", dependsOn: ["catalog"] },
+  }, ["Member"]);
+  assert.deepEqual(g.edges.map(e => [e.key, e.kind, e.relations.length, e.violation]), [["community->accounts", "fk", 1, "not-allowed"], ["community->catalog", "fk", 1, null]]);
+  assert.equal(g.nodes.find(n => n.key === "community").hiddenRelationCount, 0, "a shown relation is not hidden any more");
+});
+
+test("an allowed reference to a badge table stays hidden and counted as hidden", () => {
+  const g = build(badgeEntities, [ref("Order", "Member")], {
+    accounts: { label: "Accounts", dependsOn: [] }, ordering: { label: "Ordering", dependsOn: ["accounts"] }, catalog: { label: "Catalog", dependsOn: [] }, community: { label: "Community", dependsOn: [] },
+  }, ["Member"]);
+  assert.deepEqual(g.edges, []);
+  assert.equal(g.nodes.find(n => n.key === "ordering").hiddenRelationCount, 1);
+});
+
+test("a hidden allowed reference still closes a cycle; the edge becomes visible with its hidden relation", () => {
+  const g = build([table("Member", "accounts"), table("Order", "ordering")], [ref("Order", "Member"), ref("Member", "Order")], {
+    accounts: { label: "Accounts" }, ordering: { label: "Ordering", dependsOn: ["accounts"] },
+  }, ["Member"]);
+  assert.deepEqual(g.edges.map(e => [e.key, e.violation]), [["accounts->ordering", "cycle"], ["ordering->accounts", "cycle"]]);
+});
+
+test("a hidden and a visible relation of one direction share one edge when it violates; only the visible one when it does not", () => {
+  const mods = { accounts: { label: "Accounts", dependsOn: [] }, community: { label: "Community", dependsOn: [] }, catalog: { label: "Catalog", dependsOn: [] } };
+  const entities = [table("Member", "accounts"), table("Profile", "accounts"), table("Review", "community")];
+  const g = build(entities, [ref("Review", "Member"), ref("Review", "Profile")], mods, ["Member"]);
+  assert.deepEqual(g.edges.map(e => [e.key, e.relations.length, e.violation]), [["community->accounts", 2, "not-allowed"]]);
+  const ok = build(entities, [ref("Review", "Member"), ref("Review", "Profile")], { ...mods, community: { label: "Community", dependsOn: ["accounts"] } }, ["Member"]);
+  assert.deepEqual(ok.edges.map(e => [e.key, e.relations.length, e.violation]), [["community->accounts", 1, null]]);
+  assert.equal(ok.nodes.find(n => n.key === "community").hiddenRelationCount, 1);
+});
+
+test("opaque references form their own dashed edge kind and never violate, not even upward or in a cycle", () => {
+  const mods = { catalog: { label: "Catalog", dependsOn: [] }, ordering: { label: "Ordering", dependsOn: ["catalog"] } };
+  const g = build([table("Book", "catalog"), table("Order", "ordering")], [
+    { ...ref("Order", "Book"), id: "fk" }, { ...ref("Book", "Order"), id: "up", opaque: true },
+  ], mods);
+  assert.deepEqual(g.edges.map(e => [e.key, e.kind, e.relations, e.violation]), [
+    ["catalog->ordering:opaque", "opaque", ["up"], null], ["ordering->catalog", "fk", ["fk"], null],
+  ]);
+  assert.equal(g.layered, true);
+});
+
+test("an opaque reference does not turn a foreign-key edge into a cycle; an opaque reference inside a module is not counted as foreign key", () => {
+  const mods = { catalog: { label: "Catalog", dependsOn: [] }, ordering: { label: "Ordering", dependsOn: [] } };
+  const g = build([table("Book", "catalog"), table("Edition", "catalog"), table("Order", "ordering")], [
+    ref("Order", "Book"), { ...ref("Book", "Order"), opaque: true }, { ...ref("Book", "Edition"), opaque: true },
+  ], mods);
+  assert.equal(g.edges.find(e => e.key === "ordering->catalog").violation, "not-allowed");
+  assert.equal(g.nodes.find(n => n.key === "catalog").internalRelationCount, 0);
+});
+
+test("an opaque reference to a badge table is hidden like any other", () => {
+  const g = build(badgeEntities, [{ ...ref("Review", "Member"), opaque: true }], { accounts: { label: "Accounts", dependsOn: [] }, community: { label: "Community", dependsOn: [] } }, ["Member"]);
+  assert.deepEqual(g.edges, []);
+  assert.equal(g.nodes.find(n => n.key === "community").hiddenRelationCount, 1);
+});
+
+test("transitive: false allows only direct dependsOn targets; the default keeps the closure", () => {
+  const entities = [table("Book", "catalog"), table("Order", "ordering"), table("Invoice", "billing")];
+  const relations = [ref("Invoice", "Order"), ref("Invoice", "Book")];
+  const mods = transitive => ({ catalog: { label: "Catalog", dependsOn: [] }, ordering: { label: "Ordering", dependsOn: ["catalog"] }, billing: { label: "Billing", dependsOn: ["ordering"], ...transitive } });
+  const strict = build(entities, relations, mods({ transitive: false }));
+  assert.deepEqual(strict.edges.map(e => [e.key, e.violation]), [["billing->catalog", "not-allowed"], ["billing->ordering", null]]);
+  assert.equal(build(entities, relations, mods({ transitive: true })).edges.find(e => e.key === "billing->catalog").violation, null);
+  assert.equal(build(entities, relations, mods({})).edges.find(e => e.key === "billing->catalog").violation, null);
+});
+
+test("transitive: false does not shrink what other modules may reach through it", () => {
+  const entities = [table("Book", "catalog"), table("Order", "ordering"), table("Invoice", "billing")];
+  const mods = { catalog: { label: "Catalog", dependsOn: [] }, ordering: { label: "Ordering", dependsOn: ["catalog"], transitive: false }, billing: { label: "Billing", dependsOn: ["ordering"] } };
+  const g = build(entities, [ref("Invoice", "Book")], mods);
+  assert.equal(g.edges[0].violation, null);
+});

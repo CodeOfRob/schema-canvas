@@ -93,3 +93,13 @@ test("normalizeLayout rejects a bad layout.modules shape", () => {
     assert.throws(() => normalizeLayout({ ...base, modules: bad }), /modules must map module keys to \[x, y\]/, JSON.stringify(bad));
   }
 });
+
+test("modules.transitive: only a boolean next to dependsOn; kept only where declared", () => {
+  const config = normalizeConfig({ modules: { a: { label: "A", dependsOn: [] }, b: { label: "B", dependsOn: ["a"], transitive: false }, c: { label: "C", dependsOn: ["b"], transitive: true } } });
+  assert.equal(config.modules.b.transitive, false);
+  assert.equal(config.modules.c.transitive, true);
+  assert.equal("transitive" in config.modules.a, false);
+  assert.deepEqual(normalizeConfig(config), config);
+  assert.throws(() => normalizeConfig({ modules: { a: { label: "A", dependsOn: [], transitive: "no" } } }), /modules\.a must be/);
+  assert.throws(() => normalizeConfig({ modules: { a: { label: "A", transitive: false } } }), /modules\.a\.transitive: needs dependsOn/);
+});

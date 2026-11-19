@@ -46,16 +46,21 @@ function assignments(raw, path, known, what, issues) {
   return map;
 }
 
+// Layer-rule keys of a module spec: dependsOn (list of module keys) and transitive (boolean, default true).
 function moduleDependencies(spec) {
-  if (spec.dependsOn === undefined) return {};
-  return Array.isArray(spec.dependsOn) && spec.dependsOn.every(k => typeof k === "string") ? { dependsOn: [...spec.dependsOn] } : null;
+  if (spec.dependsOn !== undefined && !(Array.isArray(spec.dependsOn) && spec.dependsOn.every(k => typeof k === "string"))) return null;
+  if (spec.transitive !== undefined && typeof spec.transitive !== "boolean") return null;
+  return { ...(spec.dependsOn !== undefined ? { dependsOn: [...spec.dependsOn] } : {}), ...(spec.transitive !== undefined ? { transitive: spec.transitive } : {}) };
 }
 
 // dependsOn must name other declared modules and stay acyclic: a cycle would make every layer rule meaningless.
 function checkModuleDependencies(modules, issues) {
-  for (const [key, spec] of Object.entries(modules)) for (const dep of spec.dependsOn || []) {
-    if (dep === key) issues.push("modules." + key + ".dependsOn: a module cannot depend on itself");
-    else if (!modules[dep]) issues.push("modules." + key + ".dependsOn: unknown module \"" + dep + "\"");
+  for (const [key, spec] of Object.entries(modules)) {
+    if (spec.transitive !== undefined && spec.dependsOn === undefined) issues.push("modules." + key + ".transitive: needs dependsOn (without it the module is not judged)");
+    for (const dep of spec.dependsOn || []) {
+      if (dep === key) issues.push("modules." + key + ".dependsOn: a module cannot depend on itself");
+      else if (!modules[dep]) issues.push("modules." + key + ".dependsOn: unknown module \"" + dep + "\"");
+    }
   }
   const done = new Set(), path = [];
   const visit = key => {
@@ -101,7 +106,7 @@ export function normalizeConfig(raw = {}, label = "config") {
     if (raw[key] !== undefined && typeof raw[key] !== "string") issues.push(key + " must be a string");
   }
   const dataKinds = categories(raw.dataKinds, "dataKinds", issues);
-  const modules = categories(raw.modules, "modules", issues, { extra: { dependsOn: "[module key]" }, normalizeExtra: moduleDependencies });
+  const modules = categories(raw.modules, "modules", issues, { extra: { dependsOn: "[module key]", transitive: "boolean (default true)" }, normalizeExtra: moduleDependencies });
   checkModuleDependencies(modules, issues);
   const sections = raw.sections === undefined ? [] : raw.sections;
   const sectionsValid = Array.isArray(sections) && sections.every(s => isPlainObject(s) && typeof s.title === "string" && typeof s.markdown === "string" && Object.keys(s).every(k => k === "title" || k === "markdown"));

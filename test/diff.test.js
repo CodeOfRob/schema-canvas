@@ -133,3 +133,14 @@ test("data kind and module are classification, not schema: changing them leaves 
   assert.equal(diff.target.entities.Book.status, "same");
   assert.equal(diff.current.entities.Book.status, "same");
 });
+
+test("a relation that turns opaque (or stops being) counts as changed on both sides", () => {
+  const entities = [{ name: "Title", fields: [field("id", { pk: true }), field("writerId")] }, { name: "Writer", fields: [field("id", { pk: true })] }];
+  const rel = extra => ({ from: "Title", to: "Writer", fromFields: ["writerId"], toFields: ["id"], ...extra });
+  const before = normalizeModel({ version: 1, entities, relations: [rel({})] });
+  const after = normalizeModel({ version: 1, entities, relations: [rel({ opaque: true })] });
+  const diff = computeDiff(before, after);
+  assert.deepEqual(Object.values(diff.target.relations), ["changed"]);
+  assert.deepEqual(Object.values(diff.current.relations), ["changed"]);
+  assert.deepEqual(Object.values(computeDiff(after, after).target.relations), ["same"]);
+});

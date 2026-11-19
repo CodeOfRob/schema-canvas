@@ -70,3 +70,15 @@ test("entity module is kept, checked and written back (round trip)", () => {
   assert.equal(validateWithSchema(bad), false);
   assert.throws(() => normalizeModel(bad), /entities\[0\]\.module must be a string/);
 });
+
+test("opaque relations: flag is kept only when true, must be a boolean, schema agrees", () => {
+  const doc = { ...base, relations: [{ from: "A", to: "A", fromFields: ["id"], opaque: true }, { from: "A", to: "A", opaque: false }] };
+  assert.ok(validateWithSchema(doc), JSON.stringify(validateWithSchema.errors));
+  const model = normalizeModel(doc);
+  assert.equal(model.relations[0].opaque, true);
+  assert.equal("opaque" in model.relations[1], false);
+  assert.ok(validateWithSchema(toDocument(model)));
+  const bad = { ...base, relations: [{ from: "A", to: "A", opaque: "yes" }] };
+  assert.equal(validateWithSchema(bad), false);
+  assert.throws(() => normalizeModel(bad), /opaque must be a boolean/);
+});

@@ -77,7 +77,8 @@
             "to": { "$ref": "#/$defs/cardinality", "description": "How many 'to' rows one 'from' row points at (default 1)." }
           }
         },
-        "label": { "type": "string" }
+        "label": { "type": "string" },
+        "opaque": { "type": "boolean", "description": "A reference by id without a database foreign key (e.g. a text column naming a row of another table). Drawn dashed; never judged by the module layer rules." }
       }
     },
     "index": {
