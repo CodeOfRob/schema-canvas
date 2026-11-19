@@ -47,7 +47,8 @@ export function renderChrome() {
   arrangeRel.disabled = modules && !Object.keys(state.layout.modules).length;
   arrangeRel.title = modules ? S.arrangeModulesTitle : S.arrangeByRelationsTitle;
   $("module-view").setAttribute("aria-pressed", String(modules));
-  // The data-kind filter acts on tables only; the module view has its own module filter.
+  // The data-kind filter acts on tables only, which the module view does not draw. The module filter stays: it hides
+  // modules in the module view and their tables in the table view (docs/config.md: "both views").
   $("kind-filter").hidden = !axisKeys("kind").length || modules;
   $("undo").disabled = !state.undo.length;
   $("add-rel").setAttribute("aria-pressed", String(state.linking));
