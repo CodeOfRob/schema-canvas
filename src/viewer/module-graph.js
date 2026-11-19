@@ -86,7 +86,8 @@ export function buildModuleGraph(model, { modules, moduleOf, tileOf }) {
       else if (kind === "fk") nodeByKey.get(from).internalRelationCount += 1;
       continue;
     }
-    const key = from + "->" + to + (kind === "opaque" ? ":opaque" : "");
+    // JSON, not a joined string: module keys are free text and may contain any separator.
+    const key = JSON.stringify([from, to, kind]);
     if (!edgeByKey.has(key)) edgeByKey.set(key, { key, kind, from, to, relations: [], violation: null });
     edgeByKey.get(key).relations.push(r.id);
     if (tile) hiddenAt.set(r.id, keyOf.get(tile.other));
