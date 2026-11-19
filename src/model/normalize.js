@@ -65,13 +65,14 @@ function normalizeEntity(raw, path, issues) {
   if (!isPlainObject(raw)) { issues.push(path + " must be an object"); return null; }
   if (!isNonEmptyString(raw.name)) issues.push(path + ".name must be a non-empty string");
   if (!Array.isArray(raw.fields)) { issues.push(path + ".fields must be an array"); return null; }
-  for (const text of ["kind", "note"]) {
+  for (const text of ["kind", "module", "note"]) {
     if (raw[text] !== undefined && typeof raw[text] !== "string") issues.push(path + "." + text + " must be a string");
   }
   if (raw.origin !== undefined && !isStringArray(raw.origin)) issues.push(path + ".origin must be an array of entity names");
   if (raw.reviewed !== undefined && typeof raw.reviewed !== "boolean") issues.push(path + ".reviewed must be a boolean");
   const entity = { id: isNonEmptyString(raw.id) ? raw.id : raw.name, name: raw.name };
   if (raw.kind) entity.kind = raw.kind;
+  if (raw.module) entity.module = raw.module;
   if (raw.note) entity.note = raw.note;
   if (raw.origin) entity.origin = [...raw.origin];
   if (raw.reviewed === true) entity.reviewed = true;

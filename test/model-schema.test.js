@@ -57,3 +57,16 @@ test("review marker, change flag, index note and index expressions are kept", ()
   assert.throws(() => normalizeModel({ ...doc, indexes: [{ entity: "A", fields: ["missing"] }] }), /"missing" is not a field of A/);
   assert.throws(() => normalizeModel({ ...doc, entities: [{ ...doc.entities[0], reviewed: "yes" }] }), /reviewed must be a boolean/);
 });
+
+test("entity module is kept, checked and written back (round trip)", () => {
+  const doc = { version: 1, entities: [{ name: "Book", kind: "catalog", module: "catalog", fields: [{ name: "id", type: "Int", pk: true }] }] };
+  assert.ok(validateWithSchema(doc), JSON.stringify(validateWithSchema.errors));
+  const model = normalizeModel(doc);
+  assert.equal(model.entities[0].module, "catalog");
+  assert.equal(toDocument(model).entities[0].module, "catalog");
+  assert.deepEqual(normalizeModel(toDocument(model)), model);
+  assert.equal(normalizeModel({ ...doc, entities: [{ ...doc.entities[0], module: "" }] }).entities[0].module, undefined);
+  const bad = { ...doc, entities: [{ ...doc.entities[0], module: 3 }] };
+  assert.equal(validateWithSchema(bad), false);
+  assert.throws(() => normalizeModel(bad), /entities\[0\]\.module must be a string/);
+});

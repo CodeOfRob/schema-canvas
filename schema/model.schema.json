@@ -25,6 +25,7 @@
         "id": { "type": "string", "minLength": 1, "description": "Stable id; defaults to name. Relations and indexes refer to it." },
         "name": { "type": "string", "minLength": 1 },
         "kind": { "type": "string", "description": "Data kind (a key of config.dataKinds); overrides config.entityKinds." },
+        "module": { "type": "string", "description": "Module (a key of config.modules); overrides config.entityModules. Independent of the data kind and of layout groups." },
         "note": { "type": "string" },
         "origin": {
           "type": "array",

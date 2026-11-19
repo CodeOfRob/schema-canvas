@@ -124,3 +124,12 @@ test("a field whose only difference is the fk flag counts as changed", () => {
   assert.equal(d.current.fields["Title.writerId"].status, "changed");
   assert.equal(d.target.fields["Title.id"], "same");
 });
+
+test("data kind and module are classification, not schema: changing them leaves the diff unchanged", () => {
+  const entity = extra => ({ name: "Book", ...extra, fields: [{ name: "id", type: "Int", pk: true }] });
+  const current = normalizeModel({ version: 1, entities: [entity({ kind: "catalog", module: "catalog" })] });
+  const target = normalizeModel({ version: 1, entities: [entity({ kind: "sales", module: "ordering" })] });
+  const diff = computeDiff(current, target);
+  assert.equal(diff.target.entities.Book.status, "same");
+  assert.equal(diff.current.entities.Book.status, "same");
+});
