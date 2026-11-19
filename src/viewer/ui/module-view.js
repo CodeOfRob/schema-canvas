@@ -15,7 +15,7 @@ const MODULE_BOX = { w: 220, h: 92 };
 let placed = { signature: "", pos: {} };
 
 /** The module graph of the shown model without the modules switched off in the module filter. */
-export function shownModuleGraph() {
+function shownModuleGraph() {
   const model = activeModel();
   const graph = buildModuleGraph(model, { modules: state.page.config.modules, moduleOf, tileOf: r => tileOf(model, r) });
   const visible = key => !state.hidden.module.has(key);
