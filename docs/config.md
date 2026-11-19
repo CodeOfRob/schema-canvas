@@ -32,7 +32,7 @@ Both are optional side files passed to `build`. Unknown keys are rejected so typ
 | `tileTables` | Tile tables by default: a table name (drawn as tiles) or `{ "name", "display": "tile" \| "badge" }`; each viewer can change this for themselves |
 | `dataKinds` | Data kinds with `label`, optional CSS `color` and optional `description` (tooltip of the filter button); their order is the zone order. Without a colour a palette colour is used. |
 | `entityKinds` | Kind per table name; target tables inherit the kind of their origin. `"none"` is reserved for "no kind". |
-| `modules` | Modules with `label`, optional CSS `color`, `description` and `dependsOn` (keys of modules it may reference); their order is the box and filter order |
+| `modules` | Modules with `label`, optional CSS `color`, `description`, `dependsOn` (keys of modules it may reference) and `transitive` (boolean, needs `dependsOn`, default `true`); their order is the box and filter order |
 | `entityModules` | Module per table name, for models whose tables carry no `module` (for example a current model from an adapter); target tables inherit the module of their origin. `"none"` is reserved for "no module". |
 | `notes` | Extra note per table name, shown in the inspector |
 | `sections` | Text cards below the canvas, `[{ "title", "markdown" }]`: decisions, open questions, glossaries |
@@ -80,7 +80,7 @@ tables do not pull tables together in the automatic layouts and form no edge in 
 A module says which part of the system owns a table, independent of its data kind and of layout groups.
 Assign it per table (`module` in the model, editable in the inspector) or by name with `entityModules`. When
 `modules` is set, the toolbar offers **Modules**: one box per module (table count, foreign keys inside, and
-`+n` references to tile tables that are not drawn), one arrow per direction labelled with the number of
+`+n` references to tile tables that are not drawn while they follow the rules), one arrow per direction labelled with the number of
 foreign keys between the two modules. Clicking an arrow lists its relations; clicking one opens it in the
 table view. Tables without a module form the box "(no module)". The module filter buttons hide modules in both
 views. The module view shows schema (foreign-key) coupling only: calls, events or jobs between modules do not
@@ -92,9 +92,23 @@ appear.
 - its source module declares `dependsOn` and the target is not reachable through it (transitively:
   `billing -> ordering -> catalog` allows `billing` to reference `catalog`).
 
+`"transitive": false` on a module narrows that to its direct `dependsOn` entries (and itself): with
+`billing: { "dependsOn": ["ordering"], "transitive": false }` a reference from `billing` to `catalog` is red even
+though `ordering` depends on `catalog`. It only restricts the module it is set on; other modules still reach
+through it. The inspector of such a module says "only direct dependencies". `transitive` without `dependsOn` is
+rejected.
+
 A module without `dependsOn` is not judged (only cycles are marked); `"dependsOn": []` forbids every outgoing
 arrow. Arrows from or to "(no module)" are never judged. Without any `dependsOn` nothing is red. `build`
 rejects `dependsOn` entries that name unknown modules or form a cycle.
+
+References to **tile tables** (tile or badge display) take part in the check like any other: one that follows the
+rules stays hidden (counted as `+n` on the box), one that breaks them is drawn as a red arrow, and the arrow's
+inspector lists it.
+
+**Opaque references** (`"opaque": true` on a relation, see [model-format.md](model-format.md)) have no foreign key.
+They get their own dashed grey arrow, are never red (an opaque reference upward is allowed by design), do not take part
+in cycle detection and are not counted as foreign keys inside a module.
 
 ## layout.json
 

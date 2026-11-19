@@ -55,9 +55,16 @@ const ARROW_MARKERS = '<defs><marker id="m-arrow" viewBox="0 0 10 10" refX="10" 
 
 function violationText(edge) {
   if (edge.violation === "cycle") return S.violationCycle;
-  if (edge.violation === "not-allowed") return S.violationNotAllowed(moduleName(edge.from), moduleName(edge.to));
+  if (edge.violation === "not-allowed") {
+    // Non-transitive module: say why a module further down the dependency chain is refused.
+    const directOnly = (axisSpec("module", edge.from) || {}).transitive === false;
+    return (directOnly ? S.violationNotDirect : S.violationNotAllowed)(moduleName(edge.from), moduleName(edge.to));
+  }
   return "";
 }
+
+const edgeTitle = edge => (edge.kind === "opaque" ? S.moduleEdgeTitleOpaque : S.moduleEdgeTitle)(moduleName(edge.from), moduleName(edge.to));
+const edgeCount = edge => (edge.kind === "opaque" ? S.moduleEdgeCountOpaque : S.moduleEdgeCount)(edge.relations.length);
 
 function moduleName(key) {
   return key === UNASSIGNED ? S.moduleNone : (axisSpec("module", key) || { label: key }).label;
@@ -68,21 +75,23 @@ export function drawModuleEdges(world, links, graph = shownModuleGraph()) {
     const el = world.querySelector('.mod[data-module="' + CSS.escape(key) + '"]');
     return el && { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
   };
-  const keys = new Set(graph.edges.map(e => e.key));
   let out = ARROW_MARKERS;
   for (const edge of graph.edges) {
     const a = boxOf(edge.from), b = boxOf(edge.to);
     if (!a || !b) continue;
     const pa = boxBorderPoint(a, b.x + b.w / 2, b.y + b.h / 2), pb = boxBorderPoint(b, a.x + a.w / 2, a.y + a.h / 2);
     const len = Math.hypot(pb.x - pa.x, pb.y - pa.y) || 1, nx = -(pb.y - pa.y) / len, ny = (pb.x - pa.x) / len;
-    // Both directions present: shift each arrow to its own side so they do not cover each other.
-    const shift = keys.has(edge.to + "->" + edge.from) ? 9 : 0;
+    // Several arrows between the same two modules (both directions, foreign keys plus opaque): spread them side by side
+    // so they do not cover each other. The normal flips with the direction, so the slot is measured in a fixed frame.
+    const pair = graph.edges.filter(o => (o.from === edge.from && o.to === edge.to) || (o.from === edge.to && o.to === edge.from));
+    const slot = pair.indexOf(edge) - (pair.length - 1) / 2;
+    const shift = slot * 18 * (edge.from < edge.to ? 1 : -1);
     const x1 = pa.x + nx * shift, y1 = pa.y + ny * shift, x2 = pb.x + nx * shift, y2 = pb.y + ny * shift;
-    const viol = edge.violation ? " viol" : "";
+    const viol = (edge.violation ? " viol" : "") + (edge.kind === "opaque" ? " opaque" : "");
     const selected = state.sel && state.sel.kind === "module-edge" && state.sel.id === edge.key;
     out += '<line class="medge-line' + viol + '" x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" marker-end="url(#m-arrow' + (edge.violation ? "-viol" : "") + ')" />';
     const text = String(edge.relations.length), w = Math.max(24, text.length * 7 + 14), lx = (x1 + x2) / 2 + nx * shift, ly = (y1 + y2) / 2 + ny * shift;
-    const title = S.moduleEdgeTitle(moduleName(edge.from), moduleName(edge.to)) + ": " + S.moduleEdgeCount(edge.relations.length) + (edge.violation ? ". " + violationText(edge) : "");
+    const title = edgeTitle(edge) + ": " + edgeCount(edge) + (edge.violation ? ". " + violationText(edge) : "");
     out += '<g class="lbl medge' + viol + (selected ? " sel" : "") + '" data-edge="' + esc(edge.key) + '"><title>' + esc(title) + '</title><rect x="' + (lx - w / 2) + '" y="' + (ly - 9) + '" width="' + w + '" height="18" rx="9" /><text x="' + lx + '" y="' + (ly + 4) + '" text-anchor="middle">' + esc(text) + "</text></g>";
   }
   links.innerHTML = out;
@@ -100,7 +109,7 @@ function items(list) {
 }
 
 function edgeItem(edge) {
-  return { attr: 'data-edge="' + esc(edge.key) + '"', name: S.moduleEdgeTitle(moduleName(edge.from), moduleName(edge.to)), meta: String(edge.relations.length), viol: !!edge.violation };
+  return { attr: 'data-edge="' + esc(edge.key) + '"', name: edgeTitle(edge), meta: String(edge.relations.length), viol: !!edge.violation };
 }
 
 function summaryHtml(graph) {
@@ -122,6 +131,7 @@ function moduleHtml(graph, key) {
   if (spec) {
     const deps = spec.dependsOn;
     html += '<span class="muted">' + S.moduleDependsOn + ": " + esc(deps === undefined ? S.moduleDependsOnUndeclared : deps.length ? deps.map(moduleName).join(", ") : S.moduleDependsOnNothing) + "</span>";
+    if (spec.transitive === false) html += '<span class="muted">' + S.moduleDependsOnDirectOnly + "</span>";
   }
   html += '<span class="muted">' + esc(S.moduleInternal(node.internalRelationCount)) + (node.hiddenRelationCount ? " · " + esc(S.moduleHiddenText(node.hiddenRelationCount)) : "") + "</span></section>";
   const touching = graph.edges.filter(e => e.from === key || e.to === key);
@@ -133,10 +143,11 @@ function moduleHtml(graph, key) {
 function edgeHtml(graph, key) {
   const edge = graph.edges.find(e => e.key === key);
   if (!edge) return null;
-  let html = '<section><button class="linkbtn" id="p-back" type="button">' + S.backToModules + '</button><div class="row"><h2>' + esc(S.moduleEdgeTitle(moduleName(edge.from), moduleName(edge.to))) + "</h2></div>";
-  html += '<span class="muted">' + esc(S.moduleEdgeCount(edge.relations.length)) + "</span>";
+  let html = '<section><button class="linkbtn" id="p-back" type="button">' + S.backToModules + '</button><div class="row"><h2>' + esc(edgeTitle(edge)) + "</h2></div>";
+  html += '<span class="muted">' + esc(edgeCount(edge)) + "</span>";
   if (edge.violation) html += '<div class="note viol">' + esc(violationText(edge)) + "</div>";
-  html += "</section><section><h3>" + S.moduleEdgeRelations + "</h3>" + items(edge.relations.map(relationText).map(r => ({ attr: 'data-rid="' + esc(r.id) + '" data-eid="' + esc(r.from) + '"', name: r.text }))) + "</section>";
+  if (edge.kind === "opaque") html += '<div class="note">' + esc(S.moduleOpaqueNote) + "</div>";
+  html += "</section><section><h3>" + (edge.kind === "opaque" ? S.moduleEdgeRelationsOpaque : S.moduleEdgeRelations) + "</h3>" + items(edge.relations.map(relationText).map(r => ({ attr: 'data-rid="' + esc(r.id) + '" data-eid="' + esc(r.from) + '"', name: r.text }))) + "</section>";
   return html;
 }
 

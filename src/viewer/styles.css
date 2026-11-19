@@ -25,6 +25,7 @@ header > div:first-child { min-width: 0; flex: 1 1 420px; }
 .hright { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 14px; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px; }
 .fatal { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--del-bg); color: var(--del); font-weight: 500; }
+.chip.s-opaque { border: 1px dashed var(--muted); color: var(--muted); }
 .chip { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; font: 500 11px var(--font-body); border: 1px solid transparent; white-space: nowrap; }
 .s-added { color: var(--add); background: var(--add-bg); }
 .s-renamed, .s-moved, .s-merged { color: var(--ren); background: var(--ren-bg); }
@@ -91,7 +92,9 @@ svg.links { position: absolute; left: 0; top: 0; overflow: visible; pointer-even
 svg.links line, svg.links path { stroke: var(--muted); stroke-width: 1.4; fill: none; }
 svg.links .added { stroke: var(--add); stroke-width: 2; }
 svg.links .changed { stroke: var(--chg); stroke-width: 2; }
+svg.links .opaque { stroke-dasharray: 10 5; }
 svg.links .removed { stroke: var(--del); stroke-dasharray: 5 4; }
+svg.links g.lbl.opaque rect { stroke-dasharray: 3 2; }
 svg.links text { font: 500 10.5px var(--font-mono); fill: var(--muted); }
 svg.links text.card { font-weight: 600; fill: var(--fg); }
 svg.links g.lbl { pointer-events: auto; cursor: pointer; }
@@ -104,6 +107,8 @@ svg.links marker.viol path { fill: var(--del); }
 svg.links line.viol { stroke: var(--del); stroke-width: 2.2; }
 svg.links g.medge rect { fill: var(--surface); stroke: var(--muted); }
 svg.links g.medge text { font: 600 11px var(--font-body); fill: var(--fg); }
+svg.links line.opaque { stroke: var(--muted); stroke-width: 1.8; stroke-dasharray: 10 5; }
+svg.links g.medge.opaque rect { stroke-dasharray: 3 2; }
 svg.links g.medge.viol rect { fill: var(--del-bg); stroke: var(--del); }
 svg.links g.medge.viol text { fill: var(--del); }
 .lasso { position: absolute; z-index: 40; border: 1.5px dashed var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); pointer-events: none; border-radius: 3px; }

@@ -23,14 +23,16 @@
     "catalog": { "label": "Catalog", "color": "#0060a3", "description": "Books, authors and editions", "dependsOn": [] },
     "accounts": { "label": "Accounts", "color": "#54606d", "description": "Who buys and writes reviews", "dependsOn": [] },
     "stock": { "label": "Stock", "color": "#00796b", "dependsOn": ["catalog"] },
-    "ordering": { "label": "Ordering", "color": "#a86400", "dependsOn": ["catalog", "accounts"] },
-    "community": { "label": "Community", "color": "#7a3e9d", "description": "Reviews should only know the catalog; the account is shown as a badge", "dependsOn": ["catalog"] }
+    "ordering": { "label": "Ordering", "color": "#a86400", "description": "Direct dependencies only: reading the catalog has to go through stock", "dependsOn": ["stock", "accounts"], "transitive": false },
+    "community": { "label": "Community", "color": "#7a3e9d", "description": "Reviews should only know the catalog; the account is shown as a badge, but the reference is still checked", "dependsOn": ["catalog"] }
   },
   "entityModules": {
     "Author": "catalog",
     "Book": "catalog",
     "Edition": "catalog",
     "Customer": "accounts",
+    "Account": "accounts",
+    "Inventory": "stock",
     "Warehouse": "stock",
     "Stock": "stock",
     "Order": "ordering",

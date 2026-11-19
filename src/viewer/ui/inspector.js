@@ -271,6 +271,7 @@ function renderRelation(rid) {
   if (!r) { state.sel = null; return renderSummary(); }
   const name = id => (entityById(id) || {}).name || "?";
   let html = '<section><button class="linkbtn" id="p-back" type="button">' + (hasTarget() ? S.backToSummary : S.backToTables) + '</button><div class="row"><h2>' + S.relation + "</h2>" + (state.diff ? chip(relationStatus(r)) : "") + "</div>";
+  if (r.opaque) html += '<span class="muted">' + esc(S.opaqueReference) + "</span>";
   if (!edit) {
     html += '<span class="muted mono">' + esc(name(r.from)) + " " + esc(r.cardinality.from) + " : " + esc(r.cardinality.to) + " " + esc(name(r.to)) + "</span>";
     if (relationLabel(r)) html += '<span class="muted">' + esc(S.via(relationLabel(r))) + "</span>";

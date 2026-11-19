@@ -81,7 +81,8 @@
         { "name": "warehouseName", "type": "String", "nullable": false, "origin": ["Warehouse.name"] },
         { "name": "city", "type": "String", "nullable": false },
         { "name": "editionId", "type": "Int", "nullable": false, "fk": true },
-        { "name": "onHand", "type": "Int", "nullable": false, "default": "0" }
+        { "name": "onHand", "type": "Int", "nullable": false, "default": "0" },
+        { "name": "reservedOrderRef", "type": "Int", "nullable": true, "note": "Id of the order that reserved the stock; no foreign key, stock must not depend on ordering." }
       ]
     },
     {
@@ -103,6 +104,7 @@
     { "from": "Review", "to": "Book", "fromFields": ["bookId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
     { "from": "Review", "to": "Account", "fromFields": ["accountId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
     { "from": "Inventory", "to": "Edition", "fromFields": ["editionId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
+    { "from": "Inventory", "to": "Order", "fromFields": ["reservedOrderRef"], "toFields": ["id"], "cardinality": { "from": "n", "to": "0..1" }, "opaque": true },
     { "from": "Wishlist", "to": "Account", "fromFields": ["accountId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } },
     { "from": "Wishlist", "to": "Edition", "fromFields": ["editionId"], "toFields": ["id"], "cardinality": { "from": "n", "to": "1" } }
   ],

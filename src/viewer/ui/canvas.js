@@ -162,7 +162,8 @@ function zoneElement(className, boxes, pad, labelHtml) {
 function labelSvg(r, x, y, selected) {
   const text = relationLabel(r) || "·";
   const w = Math.max(18, text.length * 6.4 + 10);
-  return '<g class="lbl' + (selected ? " sel" : "") + '" data-rid="' + esc(r.id) + '"><rect x="' + (x - w / 2) + '" y="' + (y - 9) + '" width="' + w + '" height="18" rx="4" /><text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle">' + esc(text) + "</text></g>";
+  const tooltip = r.opaque ? "<title>" + esc(S.opaqueReference) + "</title>" : "";
+  return '<g class="lbl' + (selected ? " sel" : "") + (r.opaque ? " opaque" : "") + '" data-rid="' + esc(r.id) + '">' + tooltip + '<rect x="' + (x - w / 2) + '" y="' + (y - 9) + '" width="' + w + '" height="18" rx="4" /><text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle">' + esc(text) + "</text></g>";
 }
 
 export function drawLinks() {
@@ -184,7 +185,7 @@ export function drawLinks() {
     const a = boxOf(r.from), b = boxOf(r.to);
     if (!a || !b) continue;
     const st = relationStatus(r);
-    const cls = st === "added" || st === "removed" || st === "changed" ? st : "";
+    const cls = [st === "added" || st === "removed" || st === "changed" ? st : "", r.opaque ? "opaque" : ""].filter(Boolean).join(" ");
     const selected = state.sel && state.sel.kind === "rel" && state.sel.id === r.id;
     if (r.from === r.to) {
       const x = a.x + a.w, y = a.y + 16;

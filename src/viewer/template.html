@@ -17,11 +17,12 @@
     <div class="hright">
       <span class="savestate" id="counts" data-s-title="countsTitle"></span>
       <div class="legend" id="legend" data-s-label="legendLabel" hidden>
-        <span class="chip s-added" data-s="status.added"></span>
-        <span class="chip s-renamed" data-s="legendRenamed"></span>
-        <span class="chip s-changed" data-s="status.changed"></span>
-        <span class="chip s-removed" data-s="status.removed"></span>
-        <span class="chip s-same" data-s="status.same"></span>
+        <span class="chip s-added target-only" data-s="status.added"></span>
+        <span class="chip s-renamed target-only" data-s="legendRenamed"></span>
+        <span class="chip s-changed target-only" data-s="status.changed"></span>
+        <span class="chip s-removed target-only" data-s="status.removed"></span>
+        <span class="chip s-same target-only" data-s="status.same"></span>
+        <span class="chip s-opaque" id="legend-opaque" data-s="legendOpaque" hidden></span>
       </div>
     </div>
   </header>

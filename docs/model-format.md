@@ -40,7 +40,8 @@ Only the target model uses `origin`.
       "from": "Order", "to": "Account",
       "fromFields": ["accountId"], "toFields": ["id"],
       "cardinality": { "from": "n", "to": "1" },
-      "label": "optional"
+      "label": "optional",
+      "opaque": false
     }
   ],
   "indexes": [{ "entity": "Order", "name": "optional", "fields": ["accountId", "placedAt"], "unique": false, "where": "optional predicate", "note": "optional: why it exists" }],
@@ -55,6 +56,9 @@ Only the target model uses `origin`.
 - `cardinality.from` / `cardinality.to` say how many rows sit on each end: `"1"`, `"0..1"` or `"n"`.
   `Order -> Account` with `{ from: "n", to: "1" }` reads "many orders per account".
 - `label` defaults to the foreign-key field names.
+- `opaque: true` marks a reference by id **without a database foreign key** (for example a text column
+  `propertyRef` that names a row of another table). The table view draws it dashed grey, and the module view draws
+  a dashed arrow of its own kind that the layer rules never judge. Default `false`; the flag is only written when true.
 
 ## Indexes
 
@@ -100,6 +104,6 @@ Further rules:
   cannot show (new enum values, a new meaning). The inspector has a checkbox for it.
 - Current parts that no target part claims are *removed*.
 - Relations are compared by endpoints and foreign-key fields after mapping current names to their
-  successors; a different cardinality marks a relation as *changed*.
+  successors; a different cardinality or a changed `opaque` flag marks a relation as *changed*.
 - Entity names may contain dots (`audit.events`); field references split at the **last** dot.
 - References that point to nothing in the current model are reported as warnings by `build`.

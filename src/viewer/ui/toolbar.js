@@ -241,7 +241,10 @@ export function initToolbar() {
   document.title = title;
   $("title").textContent = title;
   $("tabs").hidden = !hasTarget();
-  $("legend").hidden = !hasTarget();
+  // The legend explains the diff colours (target only) and the dashed line of opaque references (when the page has any).
+  const hasOpaque = [state.current, state.target].some(model => model && model.relations.some(r => r.opaque));
+  $("legend").hidden = !hasTarget() && !hasOpaque;
+  $("legend-opaque").hidden = !hasOpaque;
   document.querySelectorAll(".target-only").forEach(el => { el.hidden = !hasTarget(); });
   document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
   $("add-table").addEventListener("click", addTable);
