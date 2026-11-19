@@ -107,4 +107,7 @@ Positions are kept apart from the model, so regenerating a model never wipes the
 - Keys are entity ids; values are `[x, y]` in page coordinates.
 - Tables without a position are placed automatically.
 - `groups` are named frames around tables.
+- `modules` (optional) holds the positions of the module boxes in the module view, `{ "<module key>": [x, y] }`, one map for
+  both tabs. Dragging a box saves all shown positions; modules without one are arranged automatically. **Arrange** in the
+  module view clears the map. Keys of modules that are not shown are kept.
 - In the page, **More -> Export layout** downloads the current arrangement as a file you can pass to `--layout`.

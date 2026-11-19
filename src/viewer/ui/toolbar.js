@@ -4,7 +4,7 @@ import { normalizeLayout } from "../../model/page-data.js";
 import { saveJsonFile, pickJsonFile } from "../storage.js";
 import { S, STATUS_LABEL } from "../strings.js";
 import { applyTransform, clearMultiSelection, drawLinks, fitAll, renderCanvas, setZoom } from "./canvas.js";
-import { addGroup, addTable, arrange, commit, placeMissing, restoreArrangement, select, setModuleView, setView, startGrouping, startLinking, undo } from "./actions.js";
+import { addGroup, addTable, arrange, clearModulePositions, commit, placeMissing, restoreArrangement, select, setModuleView, setView, startGrouping, startLinking, undo } from "./actions.js";
 import { esc } from "./html.js";
 import { view } from "./view.js";
 import { UNASSIGNED } from "../../model/page-data.js";
@@ -39,9 +39,13 @@ function renderEnums() {
 export function renderChrome() {
   const editing = isEditing(), modules = state.moduleView;
   document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === state.view)));
-  // The module view is derived and read only: table edits and table arrangements pause while it is shown.
+  // The module view shows no table edits: those and the table arrangements pause while it is shown.
+  // Its boxes are dragged and saved; "Arrange" there forgets the dragged positions.
   document.querySelectorAll(".edit-only").forEach(el => { el.hidden = !editing || modules; });
   document.querySelectorAll(".table-view-only").forEach(el => { el.disabled = modules; });
+  const arrangeRel = $("arrange-rel");
+  arrangeRel.disabled = modules && !Object.keys(state.layout.modules).length;
+  arrangeRel.title = modules ? S.arrangeModulesTitle : S.arrangeByRelationsTitle;
   $("module-view").setAttribute("aria-pressed", String(modules));
   // The data-kind filter acts on tables only; the module view has its own module filter.
   $("kind-filter").hidden = !axisKeys("kind").length || modules;
@@ -248,7 +252,7 @@ export function initToolbar() {
   $("zoom-out").addEventListener("click", () => setZoom(state.zoom / 1.15));
   $("fit").addEventListener("click", fitAll);
   $("arrange").addEventListener("click", () => arrange("kind"));
-  $("arrange-rel").addEventListener("click", () => arrange("relations"));
+  $("arrange-rel").addEventListener("click", () => (state.moduleView ? clearModulePositions() : arrange("relations")));
   $("arrange-radial").addEventListener("click", () => arrange("radial"));
   $("layout-restore").addEventListener("click", restoreArrangement);
   $("full").addEventListener("click", () => setFullscreen(!$("stage").classList.contains("full")));

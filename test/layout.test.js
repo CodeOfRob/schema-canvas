@@ -71,7 +71,7 @@ test("arrangeRadial: chosen centre in the middle, neighbours on the first ring, 
 });
 
 // ---------- module positions ----------
-import { placeModules } from "../src/viewer/layout.js";
+import { freezeModulePositions, placeModules } from "../src/viewer/layout.js";
 
 const MODULE_BOX = { w: 220, h: 92 };
 const moduleNodes = keys => keys.map(key => ({ key }));

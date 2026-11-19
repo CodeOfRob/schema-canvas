@@ -159,6 +159,12 @@ export function arrange(how) {
   }, 30);
 }
 
+/** Module view "Arrange": forgets the dragged module positions, back to the derived arrangement (undoable). */
+export function clearModulePositions() {
+  commit(s => { s.layout.modules = {}; });
+  view.fitAll();
+}
+
 export function restoreArrangement() {
   const saved = state.arrangedFrom[state.view];
   if (!saved) return;

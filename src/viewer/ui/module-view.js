@@ -2,7 +2,7 @@
 // canvas world instead of the tables, plus its inspector panels. Schema (FK) coupling only.
 import { UNASSIGNED } from "../../model/page-data.js";
 import { boxBorderPoint } from "../geometry.js";
-import { arrangeByRelations } from "../layout.js";
+import { placeModules } from "../layout.js";
 import { buildModuleGraph } from "../module-graph.js";
 import { S } from "../strings.js";
 import { select, setModuleView } from "./actions.js";
@@ -11,8 +11,8 @@ import { state, activeModel, axisClass, axisSpec, entityById, moduleOf, tileOf }
 import { view } from "./view.js";
 
 const MODULE_BOX = { w: 220, h: 92 };
-// Positions are derived, not saved: recomputed only when the set of shown modules or edges changes.
-let placed = { signature: "", pos: {} };
+// Positions come from layout.modules (saved by dragging, ONE map for both tabs: buildModuleGraph returns all configured
+// modules in both views, so shared positions keep the comparison stable); modules without one are derived (placeModules).
 
 /** The module graph of the shown model without the modules switched off in the module filter. */
 function shownModuleGraph() {
@@ -26,15 +26,6 @@ function moduleLabel(node) {
   return node.unassigned ? S.moduleNone : node.label;
 }
 
-function positionsFor(graph) {
-  const signature = graph.nodes.map(n => n.key).join("|") + "#" + graph.edges.map(e => e.key).join("|");
-  if (placed.signature !== signature) {
-    const boxes = graph.nodes.map((n, i) => ({ id: n.key, x: (i % 4) * 300, y: Math.floor(i / 4) * 200, ...MODULE_BOX }));
-    placed = { signature, pos: arrangeByRelations(boxes, graph.edges, { gapX: 120, gapY: 110 }).pos };
-  }
-  return placed.pos;
-}
-
 function moduleBoxHtml(node) {
   const hidden = node.hiddenRelationCount ? '<span class="mhid" title="' + esc(S.moduleHiddenText(node.hiddenRelationCount)) + '">' + esc(S.moduleHidden(node.hiddenRelationCount)) + "</span>" : "";
   return '<div class="mh"><span class="en">' + esc(moduleLabel(node)) + "</span>" + hidden + '</div><div class="mb">' + esc(S.moduleTables(node.tableCount)) + "<br>" + esc(S.moduleInternal(node.internalRelationCount)) + "</div>";
@@ -42,7 +33,7 @@ function moduleBoxHtml(node) {
 
 /** Replaces the canvas content with the module boxes and their arrows. */
 export function renderModuleCanvas(world, links) {
-  const graph = shownModuleGraph(), pos = positionsFor(graph);
+  const graph = shownModuleGraph(), pos = placeModules(graph.nodes, graph.edges, state.layout.modules, MODULE_BOX);
   world.querySelectorAll(".ent, .zone, .mod").forEach(n => n.remove());
   const frag = document.createDocumentFragment();
   for (const node of graph.nodes) {

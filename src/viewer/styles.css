@@ -141,7 +141,7 @@ svg.links g.medge.viol text { fill: var(--del); }
 .ent .addf { display: block; width: 100%; border: 0; border-top: 1px dashed var(--line); background: transparent; color: var(--muted); font: 500 11.5px var(--font-body); padding: 4px; cursor: pointer; border-radius: 0 0 5px 5px; }
 .ent .addf:hover { color: var(--accent); }
 .ent input.inl { width: 100%; font: inherit; color: var(--fg); background: var(--bg); border: 1px solid var(--accent); border-radius: 3px; padding: 0 3px; }
-.mod { position: absolute; width: 220px; min-height: 92px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 8px; box-shadow: 0 1px 2px rgb(0 0 0 / 0.06); cursor: pointer; font-size: 12.5px; }
+.mod { position: absolute; width: 220px; min-height: 92px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 8px; box-shadow: 0 1px 2px rgb(0 0 0 / 0.06); cursor: move; user-select: none; font-size: 12.5px; }
 .mod.sel { outline: 2.5px solid var(--accent); outline-offset: 1px; }
 .mod.m-none { border-style: dashed; }
 .mod .mh { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); }

@@ -1,5 +1,6 @@
 // Infinite canvas: tables as absolutely positioned boxes in a translated + scaled "world", relations as SVG.
 import { boxBorderPoint } from "../geometry.js";
+import { freezeModulePositions } from "../layout.js";
 import { STATUS_LABEL, S } from "../strings.js";
 import {
   state, activeModel, activePositions, axisClass, axisKeys, axisLabel, entityById, entityStatus, fieldStatus, indexesOf, isEditing, isFilteredOut, kindOf, relationStatus, tileOf,
@@ -268,6 +269,20 @@ function movingMembers(ids) {
   return ids.map(id => ({ id, el: world.querySelector('.ent[data-id="' + CSS.escape(id) + '"]') })).filter(m => m.el && positions[m.id]).map(m => ({ ...m, ox: positions[m.id][0], oy: positions[m.id][1] }));
 }
 
+// Where a move drag writes: table positions of the shown tab, or the module boxes (one map for both tabs).
+const tablePositionsOf = s => s.layout[s.view];
+const modulePositionsOf = s => s.layout.modules;
+
+/** One module box as a move drag; its position is read from the DOM because it may be derived, not saved yet. */
+function movingModule(box) {
+  return [{ id: box.dataset.module, el: box, ox: box.offsetLeft, oy: box.offsetTop }];
+}
+
+/** Positions of all shown module boxes, frozen into layout.modules by the first drag so nothing else jumps. */
+function shownModulePositions() {
+  return Object.fromEntries([...world.querySelectorAll(".mod")].map(el => [el.dataset.module, [el.offsetLeft, el.offsetTop]]));
+}
+
 function startDrag(ev, value) {
   drag = { sx: ev.clientX, sy: ev.clientY, moved: false, ...value };
   viewport.setPointerCapture(ev.pointerId);
@@ -292,13 +307,17 @@ function onPointerDown(ev) {
   const groupLabel = ev.target.closest(".zone.grp .zl");
   if (groupLabel && isEditing()) {
     const g = state.layout.groups.find(x => x.id === groupLabel.dataset.gid);
-    startDrag(ev, { kind: "move", members: movingMembers(g.members), onClick: () => select({ kind: "group", id: g.id }) });
+    startDrag(ev, { kind: "move", positionsOf: tablePositionsOf, members: movingMembers(g.members), onClick: () => select({ kind: "group", id: g.id }) });
     return;
   }
   const ent = ev.target.closest(".ent");
   const pan = onClick => startDrag(ev, { kind: "pan", px: state.pan.x, py: state.pan.y, onClick });
   const moduleBox = ev.target.closest(".mod");
-  if (moduleBox) { pan(() => select({ kind: "module", id: moduleBox.dataset.module })); return; }
+  if (moduleBox) {
+    const id = moduleBox.dataset.module;
+    startDrag(ev, { kind: "move", positionsOf: modulePositionsOf, members: movingModule(moduleBox), shown: shownModulePositions(), joinGroups: false, onClick: () => select({ kind: "module", id }) });
+    return;
+  }
   if (!ent) { pan(null); return; }
   const id = ent.dataset.id;
   if (state.linking) { pickForLink(id); return; }
@@ -307,7 +326,7 @@ function onPointerDown(ev) {
   if (row) { pan(() => select({ kind: "field", eid: id, fid: row.dataset.fid })); return; }
   if (ev.target.closest(".eh")) {
     const ids = state.multiSel.has(id) && state.multiSel.size > 1 ? [...state.multiSel] : [id];
-    startDrag(ev, { kind: "move", id, members: movingMembers(ids), joinGroups: ids.length === 1, onClick: () => select({ kind: "entity", id }) });
+    startDrag(ev, { kind: "move", id, positionsOf: tablePositionsOf, members: movingMembers(ids), joinGroups: ids.length === 1, onClick: () => select({ kind: "entity", id }) });
     return;
   }
   pan(() => select({ kind: "entity", id }));
@@ -379,7 +398,8 @@ function endDrag() {
   if (dr.kind !== "move") return;
   const membership = isEditing() && dr.joinGroups ? groupMembershipAfterDrop(dr) : null;
   commit(s => {
-    const positions = s.layout[s.view];
+    if (dr.shown) s.layout.modules = freezeModulePositions(s.layout.modules, dr.shown);
+    const positions = dr.positionsOf(s);
     for (const m of dr.members) positions[m.id] = [m.ox + dr.gx, m.oy + dr.gy];
     if (!membership) return;
     for (const g of s.layout.groups) {
