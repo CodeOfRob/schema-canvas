@@ -69,7 +69,8 @@ A busy table that nearly everything references (accounts, users) produces long l
 as a tile table and choose how its relations are shown instead of a line:
 
 - `"tile"` (default, also a plain name): a small name tile above each referencing table;
-- `"badge"`: a badge "-> Account" on the referencing foreign-key field, nothing drawn between the tables.
+- `"badge"`: a badge "-> Account" on the referencing foreign-key field, nothing drawn between the tables. Only
+  references *to* the badge table become badges; its own foreign keys (`Account -> Role`) stay normal lines.
 
 `tileTables` sets the default; the select in the inspector is a per-browser preference. Relations to tile
 tables do not pull tables together in the automatic layouts and form no edge in the module view.

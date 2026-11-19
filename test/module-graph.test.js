@@ -101,3 +101,18 @@ test("without modules every table lands in the unassigned node", () => {
   assert.deepEqual(g.nodes.map(n => [n.key, n.tableCount, n.internalRelationCount]), [["none", 7, 10]]);
   assert.deepEqual(g.edges, []);
 });
+
+test("foreign keys OF a badge table stay edges (with their violations); only references TO it are hidden", () => {
+  const badgeModel = normalizeModel({
+    version: 1,
+    entities: [table("Member", "accounts"), table("Asset", "media"), table("Order", "ordering")],
+    relations: [ref("Member", "Asset"), ref("Order", "Member")],
+  });
+  const modules = normalizeConfig({ modules: { media: { label: "Media", dependsOn: [] }, accounts: { label: "Accounts", dependsOn: [] }, ordering: { label: "Ordering", dependsOn: ["accounts"] } } }).modules;
+  const axis = classificationAxes({ dataKinds: {}, entityKinds: {}, modules, entityModules: {} }).module;
+  const displays = new Map([["Member", "badge"]]);
+  const g = buildModuleGraph(badgeModel, { modules, moduleOf: e => classify(e, axis), tileOf: r => tileOf(badgeModel, r, displays) });
+  assert.deepEqual(g.edges.map(e => [e.key, e.relations.length, e.violation]), [["accounts->media", 1, "not-allowed"]]);
+  assert.equal(g.nodes.find(n => n.key === "ordering").hiddenRelationCount, 1);
+  assert.equal(g.nodes.find(n => n.key === "accounts").hiddenRelationCount, 0);
+});
