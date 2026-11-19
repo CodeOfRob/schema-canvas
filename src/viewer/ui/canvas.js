@@ -89,7 +89,6 @@ function entityHtml(e, model, badges) {
 }
 
 export function renderCanvas() {
-  world.classList.toggle("modules", state.moduleView);
   if (state.moduleView) {
     renderModuleCanvas(world, links);
     applyTransform();

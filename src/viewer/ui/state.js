@@ -103,7 +103,8 @@ export function loadPrefs(prefsKey, config) {
     const hidden = readLocalJson(prefsKey + ":" + pref, []);
     state.hidden[name] = new Set(Array.isArray(hidden) ? hidden : []);
   }
-  state.moduleView = readLocalJson(prefsKey + ":module-view", false) === true;
+  // Only with modules configured: otherwise the toggle is hidden and a saved "on" would trap the viewer.
+  state.moduleView = Object.keys(config.modules).length > 0 && readLocalJson(prefsKey + ":module-view", false) === true;
   state.showIndexes = readLocalJson(prefsKey + ":show-indexes", false) === true;
   state.dimReviewed = readLocalJson(prefsKey + ":dim-reviewed", false) === true;
   const zoneGap = readLocalJson(prefsKey + ":zone-gap", null), groupJoin = readLocalJson(prefsKey + ":group-join", null);
