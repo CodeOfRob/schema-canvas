@@ -40,10 +40,22 @@ export function viewportSize() { return { width: viewport.clientWidth, height: v
 /** World coordinates of a point given in viewport pixels. */
 export function worldPointAt(vx, vy) { return [(vx - state.pan.x) / state.zoom, (vy - state.pan.y) / state.zoom]; }
 
+/** Drawn box of one element (top-left, world px). */
+function offsetBox(el) {
+  return { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+}
+
 export function boxOf(id) {
   const el = world.querySelector('.ent[data-id="' + CSS.escape(id) + '"]');
-  if (!el) return null;
-  return { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+  return el ? offsetBox(el) : null;
+}
+
+/**
+ * All drawn table boxes by id, in one pass. A frame needs a box per line end; boxOf per end searched the page each
+ * time, which at 500 tables and 1420 lines cost most of a drag frame.
+ */
+function drawnTableBoxes() {
+  return new Map([...world.querySelectorAll(".ent")].map(el => [el.dataset.id, offsetBox(el)]));
 }
 
 function groupOfSelection() {
@@ -131,14 +143,14 @@ function drawZones() {
   const pad = 28;
   for (const kind of axisKeys("kind")) {
     const cls = axisClass("kind", kind);
-    const boxes = [...world.querySelectorAll(".ent." + cls)].map(el => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }));
+    const boxes = [...world.querySelectorAll(".ent." + cls)].map(offsetBox);
     for (const group of islandsWithin(boxes, state.zoneGap)) world.insertBefore(zoneElement("zone " + cls, group, pad, '<span class="zl">' + esc(axisLabel("kind", kind)) + "</span>"), world.firstChild);
   }
   if (!isEditing()) return;
   for (const g of state.layout.groups) {
     const els = g.members.map(id => world.querySelector('.ent[data-id="' + CSS.escape(id) + '"]')).filter(Boolean);
     if (!els.length) continue;
-    const boxes = els.map(el => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }));
+    const boxes = els.map(offsetBox);
     const selected = state.sel && state.sel.kind === "group" && state.sel.id === g.id;
     const label = '<span class="zl" data-gid="' + esc(g.id) + '" title="' + esc(S.groupLabelTitle) + '">' + esc(g.name || S.groupFallbackName) + "</span>";
     world.insertBefore(zoneElement("zone grp" + (selected ? " sel" : ""), boxes, 46, label), world.firstChild);
@@ -182,7 +194,7 @@ function drawModuleAreas() {
   const layer = document.getElementById("module-area-layer");
   if (!state.showModuleAreas || state.moduleView) { layer.innerHTML = ""; return; }
   const model = activeModel();
-  const boxes = [...world.querySelectorAll(".ent")].map(el => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight, module: moduleOf(entityById(el.dataset.id, model)) }));
+  const boxes = [...drawnTableBoxes()].map(([id, box]) => ({ ...box, module: moduleOf(entityById(id, model)) }));
   layer.innerHTML = moduleAreas(boxes, axisKeys("module")).map(area => '<path class="' + axisClass("module", area.module) + '" stroke-width="' + 2 * MODULE_AREA_PAD + '" d="' + areaPath(area.hull) + '"/>').join("");
 }
 
@@ -196,6 +208,7 @@ export function drawLinks() {
   // References to a tile table are not drawn as long lines: each referencing table gets its own small tile,
   // or (badge display) its foreign-key field a badge, rendered with the table in entityHtml.
   const tileRefs = {};
+  const drawn = drawnTableBoxes();
   for (const r of model.relations) {
     if (isRelationHidden(r)) continue;
     const t = tileOf(model, r);
@@ -205,7 +218,7 @@ export function drawLinks() {
       (perTable[t.tile.name] = perTable[t.tile.name] || []).push(r);
       continue;
     }
-    const a = boxOf(r.from), b = boxOf(r.to);
+    const a = drawn.get(r.from), b = drawn.get(r.to);
     if (!a || !b) continue;
     const st = relationStatus(r);
     const cls = [st === "added" || st === "removed" || st === "changed" ? st : "", r.opaque ? "opaque" : ""].filter(Boolean).join(" ");
@@ -224,7 +237,7 @@ export function drawLinks() {
     out += labelSvg(r, (pa.x + pb.x) / 2, (pa.y + pb.y) / 2, selected);
   }
   for (const [otherId, perTable] of Object.entries(tileRefs)) {
-    const b = boxOf(otherId);
+    const b = drawn.get(otherId);
     if (!b) continue;
     let right = b.x + b.w - 8;
     for (const name of Object.keys(perTable).sort()) {
@@ -276,7 +289,7 @@ export function centerOn(id) {
 }
 
 export function fitAll() {
-  const boxes = [...world.querySelectorAll(".ent, .zone, .mod")].map(el => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }));
+  const boxes = [...world.querySelectorAll(".ent, .zone, .mod")].map(offsetBox);
   if (!boxes.length) return;
   const x0 = Math.min(...boxes.map(b => b.x)), y0 = Math.min(...boxes.map(b => b.y));
   const x1 = Math.max(...boxes.map(b => b.x + b.w)), y1 = Math.max(...boxes.map(b => b.y + b.h));
