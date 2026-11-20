@@ -15,6 +15,13 @@ let running = null;
 
 const prefersReducedMotion = () => typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/**
+ * True while an arrangement plays. The shared store treats it like a drag (persistence.js isBusy): a remote state that
+ * arrives meanwhile waits until the final positions are applied, instead of being drawn over by the remaining frames
+ * and then overwritten by them as an undo step.
+ */
+export function isArrangementPlaying() { return running !== null; }
+
 /** Ends a running animation now, applying its final positions (no-op when none runs). */
 function finishRunning() {
   const run = running;

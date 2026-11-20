@@ -5,6 +5,7 @@ import { decideSavedState } from "../snapshot-base.js";
 import { createLocalStore, createSync, openStore, readLocalJson } from "../storage.js";
 import { S } from "../strings.js";
 import { onCommit, placeMissing, refresh } from "./actions.js";
+import { isArrangementPlaying } from "./arrange-animation.js";
 import { flash } from "./toolbar.js";
 import { state, entityById, hasTarget } from "./state.js";
 
@@ -115,7 +116,7 @@ export async function initPersistence(localSnapshot) {
     adopt: snapshot => { applySnapshot(snapshot, snapshot.base); refresh(); },
     onConflict: showConflict,
     onStatus,
-    isBusy: () => state.dragging,
+    isBusy: () => state.dragging || isArrangementPlaying(),
   });
   onCommit(() => sync.schedule());
   const localApplied = localSnapshot && localSnapshot.status === "applied";

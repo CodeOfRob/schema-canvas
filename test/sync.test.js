@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createSync } from "../src/viewer/storage.js";
 
-function harness({ failSave = false } = {}) {
+function harness({ failSave = false, isBusy, delayMs = 5 } = {}) {
   const events = { adopted: [], conflicts: [], statuses: [], saved: [] };
   let remoteListener = null, errorListener = null;
   const store = {
@@ -18,7 +18,8 @@ function harness({ failSave = false } = {}) {
     adopt: payload => { events.adopted.push(payload); local = { value: payload.value }; },
     onConflict: (payload, choice) => events.conflicts.push({ payload, choice }),
     onStatus: (status, detail) => events.statuses.push([status, detail]),
-    delayMs: 5,
+    delayMs,
+    ...(isBusy ? { isBusy } : {}),
   });
   sync.start();
   return { sync, events, remote: raw => remoteListener(raw), failSubscription: e => errorListener(e), edit: v => { local = { value: v }; sync.schedule(); } };
@@ -105,4 +106,18 @@ test("while paused nothing is saved, not even the cache; after resume the edits 
   assert.equal(saved.at(-1).value, 2);
   assert.equal(cached.at(-1).value, 2);
   assert.equal(sync.dirty, false);
+});
+
+test("a remote snapshot waits while the user is busy (drag, arrangement animation) and then asks about the edit made meanwhile", async () => {
+  let busy = true;
+  // The real save delay (900 ms) is longer than the 400 ms re-check of a waiting snapshot; 2 s keeps that order here.
+  const h = harness({ isBusy: () => busy, delayMs: 2000 });
+  h.remote({ format: "t", value: 9, savedAt: "2026-01-01T00:00:05Z" });
+  assert.equal(h.events.adopted.length, 0, "not drawn over a running gesture");
+  // The gesture ends with its own edit (the animation's final positions), before the waiting snapshot is looked at again.
+  h.edit(5);
+  busy = false;
+  await wait(450);
+  assert.equal(h.events.adopted.length, 0, "the gesture's result is not replaced silently");
+  assert.equal(h.events.conflicts.length, 1);
 });
