@@ -74,8 +74,9 @@ never allowed to silently replace unsaved local edits:
   animates) waits until you stop. When it is looked at again, the order in the store decides: the store holds one
   state and delivers states in the order it stores them, so arrival order is what counts (the `savedAt` clocks of
   different computers are not compared).
-  - A save of yours began after it arrived: your save replaced it in the store, so it is dropped; you keep what the
-    store holds.
+  - A save of yours began after it arrived and landed: your save replaced it in the store, so it is dropped; you keep
+    what the store holds. While that save is still being written, the snapshot keeps waiting. If the save fails, the
+    store still holds the snapshot and your edits are unsaved, so the dialog asks.
   - It arrived while a save of yours was being written: which of the two the store kept is unknown, so the dialog
     asks.
   - Otherwise the rules above apply.

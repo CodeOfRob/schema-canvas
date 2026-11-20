@@ -209,3 +209,35 @@ test("a waiting remote snapshot that arrived during one write and was followed b
   assert.equal(h.events.adopted.length, 0);
   assert.equal(h.local().value, 6);
 });
+
+test("a waiting remote snapshot is not dropped for a later write that failed: the store still holds it, so the dialog asks", async t => {
+  const busy = { now: true };
+  const h = controlledHarness(t, { busy });
+  h.remote({ format: "t", value: 9, savedAt: "2026-01-01T00:00:10Z" });
+  h.edit(5);
+  await h.tick(900); // the save of 5 begins after the remote arrived ...
+  await h.finishWrite(false); // ... and fails
+  busy.now = false;
+  await h.tick(400);
+  assert.equal(h.events.conflicts.length, 1, "unsaved edits against the state the store holds: ask");
+  assert.equal(h.events.adopted.length, 0);
+});
+
+test("a waiting remote snapshot waits for a later write that is still running and is decided by its outcome", async t => {
+  for (const ok of [true, false]) {
+    const busy = { now: true };
+    const h = controlledHarness(t, { busy });
+    h.remote({ format: "t", value: 9, savedAt: "2026-01-01T00:00:11Z" });
+    h.edit(5);
+    await h.tick(900); // the save of 5 begins after the remote arrived
+    busy.now = false;
+    await h.tick(400); // still being written: nothing decided yet
+    assert.equal(h.events.conflicts.length + h.events.adopted.length, 0);
+    await h.finishWrite(ok);
+    await h.tick(400);
+    // Landed: the store holds the save, the remote is dropped. Failed: the store still holds the remote, so ask.
+    assert.equal(h.events.conflicts.length, ok ? 0 : 1, ok ? "write landed" : "write failed");
+    assert.equal(h.events.adopted.length, 0);
+    t.mock.timers.reset();
+  }
+});

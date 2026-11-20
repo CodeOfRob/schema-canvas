@@ -146,9 +146,10 @@ export function pickJsonFile() {
  */
 export function createSync({ store, cache = null, snapshot, validate, adopt, onConflict, onStatus, isBusy = () => false, delayMs = 900 }) {
   let editGen = 0, savedGen = 0, lastSavedAt = null, saving = false, pending = false, timer = null, deferred = null, paused = false;
-  // Writes to the store begun so far. The store holds one document and delivers what it holds in order, so a remote
-  // snapshot that arrived before a local write began was overwritten by that write.
-  let writesStarted = 0;
+  // Writes to the store begun so far, and the number of the latest one that landed. The store holds one document and
+  // delivers what it holds in order, so a remote snapshot that arrived before a local write began was overwritten by
+  // that write once it landed; a write that failed overwrote nothing.
+  let writesStarted = 0, lastLandedWrite = 0;
   const ownSaves = new Set();
 
   async function save() {
@@ -167,9 +168,10 @@ export function createSync({ store, cache = null, snapshot, validate, adopt, onC
     if (cache) await cache.save(payload).catch(error => onStatus("cache-failed", { error }));
     if (saving) { pending = true; return; }
     saving = true;
-    writesStarted += 1;
+    const writeNumber = ++writesStarted;
     try {
       await store.save(payload);
+      lastLandedWrite = Math.max(lastLandedWrite, writeNumber);
       if (gen > savedGen) savedGen = gen;
       onStatus("saved", { kind: store.kind, savedAt: payload.savedAt });
     } catch (error) {
@@ -202,15 +204,18 @@ export function createSync({ store, cache = null, snapshot, validate, adopt, onC
    */
   function consider(payload, arrival) {
     if (payload.savedAt === lastSavedAt || ownSaves.has(payload.savedAt)) return;
-    if (isBusy()) {
+    // A write begun after it arrived and still running decides its fate: wait for it like for a drag.
+    const laterWriteRunning = saving && writesStarted > arrival.writes;
+    if (isBusy() || laterWriteRunning) {
       deferred = { payload, arrival };
       setTimeout(() => { const next = deferred; deferred = null; if (next) consider(next.payload, next.arrival); }, 400);
       return;
     }
-    // A local write begun after the snapshot arrived replaced it in the store: it is older than what the store holds
-    // (and what this viewer shows), so it is dropped. Replaying it would show an older state than everyone else sees.
-    // (arrival.writes already counts a write that was running when it arrived.)
-    if (writesStarted > arrival.writes) return;
+    // A local write begun after the snapshot arrived and landed replaced it in the store: it is older than what the
+    // store holds (and what this viewer shows), so it is dropped. Replaying it would show an older state than everyone
+    // else sees. (arrival.writes already counts a write that was running when it arrived.) If those writes failed, the
+    // store still holds the snapshot and the edits are unsaved: the rules below ask.
+    if (lastLandedWrite > arrival.writes) return;
     // It arrived while a local write was running: which of the two the store kept is unknown, so the viewer decides.
     if (editGen !== savedGen || arrival.writing) {
       onConflict(payload, { keepMine: () => save(), takeTheirs: () => takeTheirs(payload) });
