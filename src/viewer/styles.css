@@ -38,7 +38,7 @@ header > div:first-child { min-width: 0; flex: 1 1 420px; }
    keeps the text at full contrast (--muted on --bg: 5.4:1 light, 7.4:1 dark), unlike dimming with opacity. */
 button.chip { cursor: pointer; }
 button.chip[aria-pressed="false"] { color: var(--muted); background: transparent; border-color: var(--line); text-decoration: line-through; }
-button.chip:disabled { cursor: default; }
+button.chip[aria-disabled="true"] { cursor: default; opacity: 0.5; }
 .chip { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; font: 500 11px var(--font-body); border: 1px solid transparent; white-space: nowrap; }
 .s-added { color: var(--add); background: var(--add-bg); }
 .s-renamed, .s-moved, .s-merged { color: var(--ren); background: var(--ren-bg); }

@@ -104,15 +104,25 @@ function bindForceSpacing() {
   input.addEventListener("change", () => setForceSpacing(value(), true));
 }
 
-/** Legend entries as line switches: pressed = drawn; an entry that does not act in this view is marked inert. */
+/**
+ * Legend entries as line switches: pressed = drawn; an entry that does not act in this view is marked inert.
+ * Inert, not disabled: a disabled button leaves the tab order and shows no tooltip, so nobody learns why it does not
+ * act. An inert one stays focusable (aria-disabled, the click handler ignores it) and points to a visible reason in
+ * the legend (aria-describedby), which screen readers read on focus; the title repeats it on hover.
+ */
 function renderLineToggles() {
   const switchable = switchableLineTypes();
+  let anyInertShown = false;
   document.querySelectorAll("#legend [data-line]").forEach(button => {
-    const type = button.dataset.line, active = switchable.includes(type);
+    const type = button.dataset.line, inert = !switchable.includes(type);
     button.setAttribute("aria-pressed", String(!state.hiddenLines.has(type)));
-    button.disabled = !active;
-    button.title = active ? S.lineToggleTitle : S.lineToggleTableViewOnly;
+    button.setAttribute("aria-disabled", String(inert));
+    if (inert) button.setAttribute("aria-describedby", "legend-inert-reason");
+    else button.removeAttribute("aria-describedby");
+    button.title = inert ? S.lineToggleTableViewOnly : S.lineToggleTitle;
+    anyInertShown ||= inert && !button.hidden;
   });
+  $("legend-inert-reason").hidden = !anyInertShown;
 }
 
 function setFullscreen(on, fromBrowser) {
@@ -346,7 +356,8 @@ export function initToolbar() {
   $("module-view").hidden = !axisKeys("module").length;
   $("legend").addEventListener("click", ev => {
     const button = ev.target.closest("[data-line]");
-    if (button && !button.disabled) toggleLineType(button.dataset.line);
+    // Inert entries (renderLineToggles) stay focusable and clickable, so the guard sits here.
+    if (button && button.getAttribute("aria-disabled") !== "true") toggleLineType(button.dataset.line);
   });
   $("module-view").addEventListener("click", () => setModuleView(!state.moduleView));
   bindSlider("zone-gap", "zone-gap-val", "zoneGap", "zone-gap", drawLinks);

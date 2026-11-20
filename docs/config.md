@@ -68,7 +68,7 @@ Its tile or badge hides with its line. "renamed / moved / merged" describes tabl
 - Drawing only: no table moves, the arrangements ignore it, and counts, the inspector and exports are unchanged.
   A selected relation that gets hidden is deselected.
 - The module view draws no relation lines; there the diff entries are inert and the opaque entry hides the dashed
-  arrows.
+  arrows. Inert entries are dimmed but stay focusable, and the legend shows why they do not act.
 - The legend says how many relations are hidden in the shown view.
 - The choice is a viewer preference kept in this browser, like the other ones ([storage.md](storage.md)).
 
