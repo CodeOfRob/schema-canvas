@@ -73,6 +73,22 @@ function layoutScore(nodes, edges) {
   return { crossings, under, length, total: crossings + under + length / 200000 };
 }
 
+/**
+ * Score of finished positions with the measure arrangeByRelations optimises: line crossings, lines under tables and
+ * total line length (one line per related pair). Lets the arrangements be compared on equal terms.
+ * @param boxes [{id, w, h}], @param pos {id: [x, y]} top-left, @param relations [{from, to}]
+ */
+export function scoreArrangement(boxes, pos, relations) {
+  const index = new Map(boxes.map((b, i) => [b.id, i]));
+  const nodes = boxes.map(b => ({ x: pos[b.id][0] + b.w / 2, y: pos[b.id][1] + b.h / 2, w: b.w, h: b.h }));
+  const pairs = new Map();
+  for (const r of relations) {
+    const a = index.get(r.from), b = index.get(r.to);
+    if (a != null && b != null && a !== b) pairs.set(Math.min(a, b) + "-" + Math.max(a, b), [Math.min(a, b), Math.max(a, b)]);
+  }
+  return layoutScore(nodes, [...pairs.values()]);
+}
+
 // Stress layout: every pair of tables wants a distance that grows with the number of relation steps between them.
 function stressLayout(nodes, springs, iterations, unit) {
   const n = nodes.length, INF = 1e9;

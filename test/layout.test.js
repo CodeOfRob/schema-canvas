@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { arrangeByKind, arrangeByRelations, removeOverlaps, seededRandom } from "../src/viewer/layout.js";
+import { arrangeByKind, arrangeByRelations, removeOverlaps, scoreArrangement, seededRandom } from "../src/viewer/layout.js";
 
 const overlapping = (a, b, gap = 0) => a.x < b.x + b.w + gap && b.x < a.x + a.w + gap && a.y < b.y + b.h + gap && b.y < a.y + a.h + gap;
 function overlapCount(boxes, pos) {
@@ -40,6 +40,17 @@ test("arrangeByRelations puts related tables closer than unrelated ones", () => 
   const { pos } = arrangeByRelations(boxes, [{ from: "t0", to: "t1" }, { from: "t1", to: "t2" }, { from: "t3", to: "t4" }], { starts: 2 });
   const dist = (a, b) => Math.hypot(pos[a][0] - pos[b][0], pos[a][1] - pos[b][1]);
   assert.ok(dist("t0", "t1") < dist("t0", "t4"));
+});
+
+test("scoreArrangement counts crossings and lines under tables of finished positions", () => {
+  const box = id => ({ id, w: 20, h: 20 });
+  const boxes = ["a", "b", "c", "d", "e"].map(box);
+  // a-b and c-d cross in an X; e sits on the line a-b.
+  const pos = { a: [0, 0], b: [200, 200], c: [200, 0], d: [0, 200], e: [40, 40] };
+  const score = scoreArrangement(boxes, pos, [{ from: "a", to: "b" }, { from: "c", to: "d" }, { from: "b", to: "a" }]);
+  assert.equal(score.crossings, 1);
+  assert.equal(score.under, 1, "e is under a-b; the duplicate b-a counts once");
+  assert.equal(Math.round(score.length), Math.round(2 * Math.hypot(200, 200)));
 });
 
 test("arrangeByKind gives every kind its own zone, in the configured order", () => {
