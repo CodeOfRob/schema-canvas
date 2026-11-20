@@ -124,3 +124,42 @@ test("on the 130-table fixture Forces has fewer crossings and far shorter lines 
   assert.ok(forces.crossings + forces.under < star.crossings + star.under, JSON.stringify({ forces, star }));
   assert.ok(forces.length * 3 < star.length, JSON.stringify({ forces, star }));
 });
+
+// ---------- spacing (the viewer's slider) ----------
+const meanCentreDistance = (boxes, pos) => {
+  const at = [...centres(boxes, pos).values()];
+  let sum = 0, count = 0;
+  for (let i = 0; i < at.length; i++) for (let j = i + 1; j < at.length; j++) { sum += distance(at[i], at[j]); count += 1; }
+  return sum / count;
+};
+const drawingArea = (boxes, pos) => {
+  const x1 = Math.max(...boxes.map(b => pos[b.id][0] + b.w)), y1 = Math.max(...boxes.map(b => pos[b.id][1] + b.h));
+  const x0 = Math.min(...boxes.map(b => pos[b.id][0])), y0 = Math.min(...boxes.map(b => pos[b.id][1]));
+  return (x1 - x0) * (y1 - y0);
+};
+
+test("spacing 1 is the plain layout; the same spacing twice gives the same layout (no compounding)", () => {
+  const { boxes, relations, moduleOf } = fixture();
+  const plain = arrangeForces(boxes, relations, { moduleOf });
+  assert.deepEqual(arrangeForces(boxes, relations, { moduleOf, spacing: 1 }), plain);
+  const wide = arrangeForces(boxes, relations, { moduleOf, spacing: 1.8 });
+  assert.deepEqual(arrangeForces(boxes, relations, { moduleOf, spacing: 1.8 }), wide);
+  assert.notDeepEqual(wide.pos, plain.pos);
+});
+
+test("a larger spacing spreads the tables: larger mean distance, larger area, wider gaps", () => {
+  const { boxes, relations, moduleOf } = fixture();
+  const at = spacing => arrangeForces(boxes, relations, { moduleOf, spacing }).pos;
+  const [tight, plain, wide] = [0.5, 1, 2].map(at);
+  assert.ok(meanCentreDistance(boxes, tight) < meanCentreDistance(boxes, plain));
+  assert.ok(meanCentreDistance(boxes, plain) * 1.3 < meanCentreDistance(boxes, wide), "measured about 1.7x");
+  assert.ok(drawingArea(boxes, tight) < drawingArea(boxes, plain) && drawingArea(boxes, plain) * 2 < drawingArea(boxes, wide), "measured about 3x");
+  // The guaranteed gap between tables follows the factor: 100 px at spacing 2 (50 px at 1).
+  assert.deepEqual(overlappingPairs(boxes, wide, 99), []);
+  assert.ok(overlappingPairs(boxes, plain, 99).length > 0, "at spacing 1 tables sit closer than 100 px");
+});
+
+test("spacing must be a positive number", () => {
+  const { boxes, relations } = fixture();
+  for (const spacing of [0, -1, Number.NaN, Infinity, "2"]) assert.throws(() => arrangeForces(boxes, relations, { spacing }), RangeError);
+});

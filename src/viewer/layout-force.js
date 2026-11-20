@@ -50,12 +50,19 @@ const ORPHAN_GRAVITY = 3;
 const CLUSTER = 0.06;
 // Start positions that coincide (e.g. new tables in one spot) are spread by up to this many px, seeded.
 const JITTER = 30;
-// Final gap between table edges, as COLLISION_PAD.
-const GAP = COLLISION_PAD;
+// The viewer's spacing factor s (slider, 1 = the numbers above) widens the layout: repulsion x s^2, link gap and
+// collision padding (= final gap) x s. Repulsion alone was measured first: at s = 2 the drawing grew 1.6x in area,
+// but the median gap to the nearest table stayed at the 50 px padding, so tables still sat tight in their clusters
+// and only the clusters drifted apart. Scaling all three (the scale-free rule above: charge ~ length^2) moves the
+// median nearest gap with the factor (25 / 50 / 75 / 125 / 203 px at 0.5 / 1 / 1.5 / 2 / 2.5 on the fixture).
+function spacingForces(spacing) {
+  if (typeof spacing !== "number" || !Number.isFinite(spacing) || spacing <= 0) throw new RangeError("force layout: spacing must be a positive number, got " + spacing);
+  return { repulsion: REPULSION * spacing * spacing, linkGap: LINK_GAP * spacing, pad: COLLISION_PAD * spacing };
+}
 
 const radiusOf = node => Math.sqrt(node.w * node.h) / 2;
 
-function springsFrom(nodes, relations, extra) {
+function springsFrom(nodes, relations, extra, linkGap) {
   const index = new Map(nodes.map((n, i) => [n.id, i]));
   // One spring per pair of tables; a foreign key wins over an opaque reference between the same two tables.
   const pairs = new Map();
@@ -76,7 +83,7 @@ function springsFrom(nodes, relations, extra) {
     ...s,
     strength: s.strength / Math.min(degree[s.a], degree[s.b]),
     bias: degree[s.a] / (degree[s.a] + degree[s.b]),
-    length: radiusOf(nodes[s.a]) + radiusOf(nodes[s.b]) + LINK_GAP,
+    length: radiusOf(nodes[s.a]) + radiusOf(nodes[s.b]) + linkGap,
   }));
 }
 
@@ -85,9 +92,11 @@ function springsFrom(nodes, relations, extra) {
  * @param relations [{from, to, opaque?}] the relations that pull (pass hidden opaque ones too: hiding is drawing only)
  * @param options.moduleOf (id) => module key | null; tables without a module get no cluster force
  * @param options.extra [[idA, idB, weight]] pull without a line (e.g. members of one group), weight as a foreign key
+ * @param options.spacing positive factor for the distances between tables (1 = default; see spacingForces)
  * @returns the simulation state for forceTick
  */
-export function createForceSimulation(boxes, relations, { moduleOf = () => null, extra = [], seed = 7919 } = {}) {
+export function createForceSimulation(boxes, relations, { moduleOf = () => null, extra = [], seed = 7919, spacing = 1 } = {}) {
+  const forces = spacingForces(spacing);
   const random = seededRandom(seed);
   const nodes = centredNodes(boxes).map(n => ({ ...n, vx: 0, vy: 0 }));
   const taken = new Set();
@@ -104,10 +113,10 @@ export function createForceSimulation(boxes, relations, { moduleOf = () => null,
     return moduleIndex.get(key);
   });
   const centre = nodes.length ? [nodes.reduce((s, n) => s + n.x, 0) / nodes.length, nodes.reduce((s, n) => s + n.y, 0) / nodes.length] : [0, 0];
-  const springs = springsFrom(nodes, relations, extra);
+  const springs = springsFrom(nodes, relations, extra, forces.linkGap);
   const linked = new Set(springs.flatMap(s => [s.a, s.b]));
   const gravity = nodes.map((n, i) => (linked.has(i) || module[i] >= 0 ? GRAVITY : GRAVITY * ORPHAN_GRAVITY));
-  return { nodes, springs, module, moduleCount: moduleIndex.size, gravity, centre, alpha: 1 };
+  return { nodes, springs, module, moduleCount: moduleIndex.size, gravity, centre, forces, alpha: 1 };
 }
 
 function applySprings({ nodes, springs }, alpha) {
@@ -121,22 +130,22 @@ function applySprings({ nodes, springs }, alpha) {
   }
 }
 
-function applyRepulsion({ nodes }, alpha) {
+function applyRepulsion({ nodes, forces }, alpha) {
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
     const A = nodes[i], B = nodes[j];
     // Exactly equal centres: a fixed direction by index keeps the run deterministic (d3 jiggles randomly here).
     const dx = B.x - A.x || 1e-3, dy = B.y - A.y;
-    const k = REPULSION * alpha / Math.max(dx * dx + dy * dy, 1);
+    const k = forces.repulsion * alpha / Math.max(dx * dx + dy * dy, 1);
     A.vx += dx * k; A.vy += dy * k;
     B.vx -= dx * k; B.vy -= dy * k;
   }
 }
 
-function applyCollision({ nodes }) {
+function applyCollision({ nodes, forces }) {
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
     const A = nodes[i], B = nodes[j];
     const dx = B.x + B.vx - A.x - A.vx, dy = B.y + B.vy - A.y - A.vy;
-    const ox = (A.w + B.w) / 2 + COLLISION_PAD - Math.abs(dx), oy = (A.h + B.h) / 2 + COLLISION_PAD - Math.abs(dy);
+    const ox = (A.w + B.w) / 2 + forces.pad - Math.abs(dx), oy = (A.h + B.h) / 2 + forces.pad - Math.abs(dy);
     if (ox <= 0 || oy <= 0) continue;
     // Push along the axis that needs the shorter move, half each.
     if (ox < oy) { const s = (dx < 0 || (dx === 0 && i > j) ? -1 : 1) * ox / 2 * COLLISION_STRENGTH; A.vx -= s; B.vx += s; }
@@ -189,7 +198,7 @@ export function advanceForceSimulation(simulation, share) {
  */
 export function settledPositions(simulation) {
   const nodes = simulation.nodes.map(({ id, x, y, w, h }) => ({ id, x, y, w, h }));
-  removeOverlaps(nodes, GAP, GAP);
+  removeOverlaps(nodes, simulation.forces.pad, simulation.forces.pad);
   return positionsAtOrigin(nodes, ORIGIN);
 }
 
@@ -205,7 +214,8 @@ export function framePositions(simulation, [finalShiftX, finalShiftY]) {
 }
 
 /** The static run: every step at once. Same arguments as createForceSimulation; same input -> same output. */
-export function arrangeForces(boxes, relations, options) {
+export function arrangeForces(boxes, relations, options = {}) {
+  if (options.spacing !== undefined) spacingForces(options.spacing);
   if (!boxes.length) return { pos: {}, shift: [0, 0] };
   const simulation = createForceSimulation(boxes, relations, options);
   while (forceTick(simulation));
