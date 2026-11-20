@@ -137,7 +137,7 @@ function controlledHarness(t, { busy }) {
   let remoteListener = null, events = null;
   const store = {
     kind: "fake",
-    save(payload) { return new Promise(resolve => writes.push(() => { events.saved.push(payload); resolve(); })); },
+    save(payload) { return new Promise((resolve, reject) => writes.push(ok => { if (!ok) { reject(new Error("offline")); return; } events.saved.push(payload); resolve(); })); },
     subscribe(onRemote) { remoteListener = onRemote; return () => {}; },
   };
   const h = syncOver(store, { isBusy: () => busy.now, delayMs: 900 });
@@ -147,8 +147,8 @@ function controlledHarness(t, { busy }) {
   return {
     ...h,
     remote: raw => remoteListener(raw),
-    /** Lets the store finish the oldest running write. */
-    finishWrite: async () => { writes.shift()(); await flush(); },
+    /** Lets the store finish (or fail) the oldest running write. */
+    finishWrite: async (ok = true) => { writes.shift()(ok); await flush(); },
     tick: async ms => { t.mock.timers.tick(ms); await flush(); },
   };
 }
@@ -190,4 +190,22 @@ test("a waiting remote snapshot with no local write since it arrived is adopted 
   await h.tick(400);
   assert.equal(h.events.adopted.length, 1);
   assert.equal(h.local().value, 9);
+});
+
+test("a waiting remote snapshot that arrived during one write and was followed by another write is dropped", async t => {
+  const busy = { now: false };
+  const h = controlledHarness(t, { busy });
+  h.edit(5);
+  await h.tick(900); // W1 (5) is being written
+  busy.now = true;
+  h.remote({ format: "t", value: 9, savedAt: "2026-01-01T00:00:09Z" });
+  h.edit(6);
+  await h.finishWrite();
+  await h.tick(900); // W2 (6) begins after the remote arrived ...
+  await h.finishWrite(); // ... and the store keeps it
+  busy.now = false;
+  await h.tick(400);
+  assert.equal(h.events.conflicts.length, 0, "the store holds W2; offering the older remote would show a stale state");
+  assert.equal(h.events.adopted.length, 0);
+  assert.equal(h.local().value, 6);
 });

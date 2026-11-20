@@ -209,7 +209,8 @@ export function createSync({ store, cache = null, snapshot, validate, adopt, onC
     }
     // A local write begun after the snapshot arrived replaced it in the store: it is older than what the store holds
     // (and what this viewer shows), so it is dropped. Replaying it would show an older state than everyone else sees.
-    if (writesStarted > arrival.writes + (arrival.writing ? 1 : 0)) return;
+    // (arrival.writes already counts a write that was running when it arrived.)
+    if (writesStarted > arrival.writes) return;
     // It arrived while a local write was running: which of the two the store kept is unknown, so the viewer decides.
     if (editGen !== savedGen || arrival.writing) {
       onConflict(payload, { keepMine: () => save(), takeTheirs: () => takeTheirs(payload) });
