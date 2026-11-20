@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { normalizeModel } from "../src/model/normalize.js";
 import { normalizeConfig } from "../src/model/page-data.js";
-import { moduleLegendHtml, moduleTagHtml } from "../src/viewer/ui/module-marks.js";
+import { legendKeysHtml, moduleTagHtml } from "../src/viewer/ui/module-marks.js";
 import { state } from "../src/viewer/ui/state.js";
 
 // The table view's module marks (tag in each table header, legend section) on the example page's config, and on the
@@ -37,13 +37,13 @@ test("a table without a module gets no tag", () => {
 test("a page without modules shows no tag and no legend entries", () => {
   useConfig(withoutModules());
   for (const entity of model.entities) assert.equal(moduleTagHtml(entity), "", entity.name);
-  assert.equal(moduleLegendHtml(), "");
+  assert.equal(legendKeysHtml("module"), "");
 });
 
 test("the legend lists every module in config order, with its colour class and label", () => {
   useConfig(read("config.json"));
-  const html = moduleLegendHtml();
-  const entries = [...html.matchAll(/<span class="mkey (m-\d+)">([^<]*)<\/span>/g)].map(m => [m[1], m[2]]);
+  const html = legendKeysHtml("module");
+  const entries = [...html.matchAll(/<span class="lkey (m-\d+)">([^<]*)<\/span>/g)].map(m => [m[1], m[2]]);
   assert.deepEqual(entries, [["m-0", "Catalog"], ["m-1", "Accounts"], ["m-2", "Stock"], ["m-3", "Ordering"], ["m-4", "Community"]]);
 });
 
@@ -52,5 +52,5 @@ test("labels are escaped in the tag and the legend", () => {
   raw.modules.catalog.label = "<b>Cat & Co</b>";
   useConfig(raw);
   assert.match(moduleTagHtml(table("Book")), />&lt;b&gt;Cat &amp; Co&lt;\/b&gt;</);
-  assert.match(moduleLegendHtml(), />&lt;b&gt;Cat &amp; Co&lt;\/b&gt;</);
+  assert.match(legendKeysHtml("module"), />&lt;b&gt;Cat &amp; Co&lt;\/b&gt;</);
 });

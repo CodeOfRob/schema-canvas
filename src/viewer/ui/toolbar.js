@@ -8,10 +8,10 @@ import { applyTransform, clearMultiSelection, drawLinks, fitAll, renderCanvas, s
 import { addGroup, addTable, arrange, clearModulePositions, commit, isForceSpacingLive, placeMissing, restoreArrangement, select, setForceSpacing, setModuleView, setView, startGrouping, startLinking, toggleLineType, undo } from "./actions.js";
 import { SPACING_RANGE } from "../layout-force.js";
 import { esc } from "./html.js";
-import { moduleLegendHtml } from "./module-marks.js";
+import { legendKeysHtml } from "./module-marks.js";
 import { view } from "./view.js";
 import { UNASSIGNED } from "../../model/page-data.js";
-import { state, activeModel, axisClass, axisKeys, axisSpec, hasOpaqueRelations, hasTarget, isEditing, otherModel, savePref, saveTileDisplays, switchableLineTypes } from "./state.js";
+import { state, activeModel, axisClass, axisKeys, axisSpec, canChooseTableColour, hasOpaqueRelations, hasTarget, isEditing, otherModel, savePref, saveTileDisplays, switchableLineTypes, tableColourAxis } from "./state.js";
 
 const $ = id => document.getElementById(id);
 
@@ -57,6 +57,11 @@ export function renderChrome() {
   // Module colour keys: table view only (the module view's boxes carry the module themselves).
   $("module-legend").hidden = modules || !axisKeys("module").length;
   $("module-areas-toggle").setAttribute("aria-pressed", String(state.showModuleAreas));
+  // Table colour: a choice only with both axes; the legend then shows the key of the active one (the modules have theirs).
+  const colourAxis = tableColourAxis();
+  $("colour-legend").hidden = modules || !canChooseTableColour();
+  document.querySelectorAll("#colour-legend [data-colour]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.colour === colourAxis)));
+  $("kind-legend-keys").hidden = colourAxis !== "kind";
   renderLineToggles();
   renderForceSpacing();
   // The data-kind filter acts on tables only, which the module view does not draw. The module filter stays: it hides
@@ -284,7 +289,8 @@ export function initToolbar() {
   $("title").textContent = title;
   $("tabs").hidden = !hasTarget();
   document.querySelectorAll(".target-only").forEach(el => { el.hidden = !hasTarget(); });
-  $("module-legend-keys").innerHTML = moduleLegendHtml();
+  $("module-legend-keys").innerHTML = legendKeysHtml("module");
+  $("kind-legend-keys").innerHTML = legendKeysHtml("kind");
   document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
   $("add-table").addEventListener("click", addTable);
   $("add-rel").addEventListener("click", () => startLinking());
@@ -299,6 +305,14 @@ export function initToolbar() {
   $("arrange-forces").addEventListener("click", () => arrange("forces"));
   $("layout-restore").addEventListener("click", restoreArrangement);
   $("full").addEventListener("click", () => setFullscreen(!$("stage").classList.contains("full")));
+  $("colour-legend").addEventListener("click", ev => {
+    const button = ev.target.closest("[data-colour]");
+    if (!button || button.dataset.colour === state.tableColour) return;
+    state.tableColour = button.dataset.colour;
+    savePref("table-colour", state.tableColour);
+    renderChrome();
+    renderCanvas();
+  });
   $("module-areas-toggle").addEventListener("click", () => {
     state.showModuleAreas = !state.showModuleAreas;
     savePref("module-areas", state.showModuleAreas);

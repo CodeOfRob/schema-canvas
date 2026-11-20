@@ -17,13 +17,15 @@ const PALETTE = ["#0060a3", "#a86400", "#54606d", "#7a3e9d", "#00796b", "#b0306a
 function injectAxisStyles({ dataKinds, modules }) {
   const color = (spec, i) => spec.color || PALETTE[i % PALETTE.length];
   const kindRules = Object.values(dataKinds).map((spec, i) =>
-    ".ent.k-" + i + " { border-left: 5px solid " + color(spec, i) + "; }\n" +
+    ".world:not(.by-module) .ent.k-" + i + " { border-left: 5px solid " + color(spec, i) + "; }\n" +
+    ".lkey.k-" + i + "::before { background: " + color(spec, i) + "; }\n" +
     ".zone.k-" + i + " { border-color: " + color(spec, i) + "; background: color-mix(in srgb, " + color(spec, i) + " 9%, transparent); }\n" +
     ".zone.k-" + i + " .zl { background: " + color(spec, i) + "; }\n" +
     "button.filterbtn.k-" + i + "::before { background: " + color(spec, i) + "; }");
   const moduleRules = Object.values(modules).map((spec, i) =>
     ".mod.m-" + i + " { border-left: 6px solid " + color(spec, i) + "; }\n" +
-    "button.filterbtn.m-" + i + "::before, .ent .mtag.m-" + i + "::before, .mkey.m-" + i + "::before { background: " + color(spec, i) + "; }\n" +
+    ".world.by-module .ent.m-" + i + " { border-left: 5px solid " + color(spec, i) + "; }\n" +
+    "button.filterbtn.m-" + i + "::before, .ent .mtag.m-" + i + "::before, .lkey.m-" + i + "::before { background: " + color(spec, i) + "; }\n" +
     ".ent .mtag.m-" + i + " { border-color: color-mix(in srgb, " + color(spec, i) + " 60%, var(--line)); }\n" +
     "svg.mareas path.m-" + i + " { fill: " + color(spec, i) + "; stroke: " + color(spec, i) + "; }");
   const style = document.createElement("style");

@@ -1,5 +1,6 @@
-// The table view's module marks: a tag in each table header and the legend's "Modules" section. Both use the module
-// classes m-<i>, so their colours come from the same rules as the module view and the module filter (main.js).
+// The table view's module marks: a tag in each table header, and the legend's colour keys (the "Modules" section and the
+// data-kind key of the table colour). They use the axis classes k-<i> / m-<i>, so their colours come from the same rules
+// as the tables, the module view and the filters (main.js).
 import { S } from "../strings.js";
 import { axisClass, axisKeys, axisLabel, moduleOf } from "./state.js";
 import { esc } from "./html.js";
@@ -12,7 +13,7 @@ export function moduleTagHtml(entity) {
   return '<span class="mtag ' + cls + '" title="' + esc(S.moduleOfTable(label)) + '">' + esc(label) + "</span>";
 }
 
-/** One colour key per module, in config order; empty without modules. */
-export function moduleLegendHtml() {
-  return axisKeys("module").map(key => '<span class="mkey ' + axisClass("module", key) + '">' + esc(axisLabel("module", key)) + "</span>").join("");
+/** One colour key per value of an axis ("kind" or "module"), in config order; empty when the page declares none. */
+export function legendKeysHtml(axisName) {
+  return axisKeys(axisName).map(key => '<span class="lkey ' + axisClass(axisName, key) + '">' + esc(axisLabel(axisName, key)) + "</span>").join("");
 }

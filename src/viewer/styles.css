@@ -27,10 +27,11 @@ header > div:first-child { min-width: 0; flex: 1 1 420px; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px; }
 .mlegend { align-items: center; }
 .mlegend .ltitle { font: 600 11px var(--font-body); color: var(--muted); }
-.mkey { font: 500 11px var(--font-body); white-space: nowrap; }
-.chip.mareas-toggle { color: var(--muted); background: transparent; border-color: var(--line); }
-.chip.mareas-toggle[aria-pressed="true"] { color: var(--accent); background: var(--accent-bg); border-color: var(--accent); text-decoration: none; }
-.chip.mareas-toggle[aria-pressed="false"] { text-decoration: none; }
+.lkey { font: 500 11px var(--font-body); white-space: nowrap; }
+/* Legend settings (module areas, table colour): pressed = accent, like the toolbar toggles; never struck through. */
+.chip.ltoggle { color: var(--muted); background: transparent; border-color: var(--line); }
+.chip.ltoggle[aria-pressed="true"] { color: var(--accent); background: var(--accent-bg); border-color: var(--accent); text-decoration: none; }
+.chip.ltoggle[aria-pressed="false"] { text-decoration: none; }
 .fatal { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--del-bg); color: var(--del); font-weight: 500; }
 .chip.s-opaque { border: 1px dashed var(--muted); color: var(--muted); background: transparent; }
 /* Legend entries that switch their relation lines on and off. Off = muted text on no fill, struck through: a cue that
@@ -148,7 +149,7 @@ svg.links g.medge.viol text { fill: var(--del); }
 /* Module tag: a tab on the box's top edge (like a zone label), so it never takes width from the name or the status chip
    and never changes the box size the arrangements measure. Colour of the swatch per module: main.js injectAxisStyles. */
 .ent .mtag { position: absolute; top: -8px; left: 12px; max-width: 150px; height: 15px; padding: 0 6px 0 5px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); font: 600 10px/13px var(--font-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ent .mtag::before, .mkey::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 4px; border-radius: 2px; vertical-align: 0; }
+.ent .mtag::before, .lkey::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 4px; border-radius: 2px; vertical-align: 0; }
 .ent .fr { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 2px 8px; height: 24px; cursor: pointer; }
 .ent .fr:hover { background: var(--bg); }
 .ent .fr.sel { background: var(--ren-bg); }

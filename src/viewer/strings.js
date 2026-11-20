@@ -18,6 +18,8 @@ export const S = {
   legendRenamed: "renamed / moved / merged",
   legendOpaque: "reference without foreign key",
   legendModules: "Modules",
+  tableColour: "Colour tables by",
+  tableColourTitle: "What the coloured left edge of each table shows: its data kind or its module. Drawing only; only for your view.",
   moduleAreas: "Areas",
   moduleAreasTitle: "Show a soft area in the module's colour behind its tables. Drawing only, nothing moves; only for your view.",
   opaqueReference: "Opaque reference: by id, no foreign key in the database",

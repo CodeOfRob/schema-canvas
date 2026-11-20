@@ -42,7 +42,7 @@ mail, host anywhere or open from disk.
 - **Module view**: one box per module with the number of foreign keys between modules; layer rules from
   `dependsOn` mark forbidden directions and cycles in red and arrange the boxes in layers. Shows schema (FK)
   coupling only. In the table view each table carries its module as a coloured tag, with a colour legend and optional
-  module areas behind the tables.
+  module areas behind the tables; the tables' coloured edge can show the module instead of the data kind.
 - **Line switches**: click a legend entry to hide or show that kind of relation line (new, changed, removed,
   unchanged, references without foreign key); drawing only, nothing moves.
 - **Storage**: browser localStorage, JSON file export / import, or a shared claude.ai artifact database, with a

@@ -25,10 +25,16 @@
         <button class="chip s-opaque" type="button" id="legend-opaque" data-line="opaque" aria-pressed="true" data-s="legendOpaque" hidden></button>
         <span class="savestate" id="lines-hidden" hidden></span>
       </div>
+      <div class="legend mlegend" id="colour-legend" role="group" data-s-label="tableColour" hidden>
+        <span class="ltitle" data-s="tableColour"></span>
+        <button class="chip ltoggle" type="button" data-colour="kind" data-s="dataKind" data-s-title="tableColourTitle"></button>
+        <button class="chip ltoggle" type="button" data-colour="module" data-s="module" data-s-title="tableColourTitle"></button>
+        <span class="legend" id="kind-legend-keys"></span>
+      </div>
       <div class="legend mlegend" id="module-legend" data-s-label="legendModules" hidden>
         <span class="ltitle" data-s="legendModules"></span>
         <span class="legend" id="module-legend-keys"></span>
-        <button class="chip mareas-toggle" type="button" id="module-areas-toggle" aria-pressed="false" data-s="moduleAreas" data-s-title="moduleAreasTitle"></button>
+        <button class="chip ltoggle" type="button" id="module-areas-toggle" aria-pressed="false" data-s="moduleAreas" data-s-title="moduleAreasTitle"></button>
       </div>
     </div>
   </header>

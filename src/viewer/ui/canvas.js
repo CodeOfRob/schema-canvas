@@ -4,7 +4,7 @@ import { freezeModulePositions } from "../layout.js";
 import { MODULE_AREA_PAD, areaPath, moduleAreas } from "../module-areas.js";
 import { STATUS_LABEL, S } from "../strings.js";
 import {
-  state, activeModel, activePositions, axisClass, axisKeys, axisLabel, entityById, entityStatus, fieldStatus, indexesOf, isEditing, isFilteredOut, isRelationHidden, kindOf, moduleOf, relationStatus, switchableLineTypes, tileOf,
+  state, activeModel, activePositions, axisClass, axisKeys, axisLabel, entityById, entityStatus, fieldStatus, indexesOf, isEditing, isFilteredOut, isRelationHidden, kindOf, moduleOf, relationStatus, switchableLineTypes, tableColourAxis, tileOf,
 } from "./state.js";
 import { addField, commit, pickForLink, renameEntity, renameField, select, setReviewed, toggleGroupMember } from "./actions.js";
 import { esc } from "./html.js";
@@ -100,6 +100,10 @@ export function renderCanvas() {
   }
   const model = activeModel(), positions = activePositions(), picking = groupOfSelection(), badges = badgesByEntity(model);
   world.querySelectorAll(".ent, .mod").forEach(n => n.remove());
+  // The kind class stays on every table (the data-kind zones find their tables by it); the module class and the world's
+  // by-module class only switch which of the two colours the left edge (main.js injectAxisStyles).
+  const byModule = tableColourAxis() === "module";
+  world.classList.toggle("by-module", byModule);
   const frag = document.createDocumentFragment();
   for (const e of model.entities) {
     if (isFilteredOut(e)) continue;
@@ -107,7 +111,7 @@ export function renderCanvas() {
     const st = entityStatus(e);
     const el = document.createElement("div");
     const selected = state.sel && (state.sel.id === e.id || state.sel.eid === e.id) && state.sel.kind !== "rel" && state.sel.kind !== "group";
-    el.className = "ent st-" + (st ? st.status : "same") + (kind ? " " + axisClass("kind", kind) : "") + (selected ? " sel" : "") + (state.multiSel.has(e.id) ? " msel" : "") + (picking && picking.members.includes(e.id) ? " gpick" : "") + (isEditing() && e.reviewed ? " done" : "");
+    el.className = "ent st-" + (st ? st.status : "same") + (kind ? " " + axisClass("kind", kind) : "") + (byModule && moduleOf(e) ? " " + axisClass("module", moduleOf(e)) : "") + (selected ? " sel" : "") + (state.multiSel.has(e.id) ? " msel" : "") + (picking && picking.members.includes(e.id) ? " gpick" : "") + (isEditing() && e.reviewed ? " done" : "");
     const [x, y] = positions[e.id];
     el.style.left = x + "px"; el.style.top = y + "px";
     el.dataset.id = e.id;

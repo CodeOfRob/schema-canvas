@@ -36,6 +36,7 @@ export const state = {
   hiddenLines: new Set(), // line types switched off in the legend (line-visibility.js; a viewer setting, drawing only)
   forceSpacing: 1,     // spacing factor of "Arrange by forces" (slider; a viewer setting)
   showIndexes: false,
+  tableColour: "kind",  // axis that colours the tables' left edge: "kind" or "module" (a viewer setting, drawing only)
   showModuleAreas: false, // soft area behind the tables of each module (legend toggle; a viewer setting, drawing only)
   dimReviewed: false,
   zoneGap: 320,
@@ -76,6 +77,10 @@ export function axisClass(name, key) { const i = axisKeys(name).indexOf(key); re
 export function axisOf(name, entity, options) { return classify(entity, axis(name), options); }
 export function kindOf(entity) { return axisOf("kind", entity); }
 export function moduleOf(entity) { return axisOf("module", entity); }
+/** Only a page with data kinds and modules lets the viewer choose what colours the tables. */
+export function canChooseTableColour() { return axisKeys("kind").length > 0 && axisKeys("module").length > 0; }
+/** The axis that colours the tables; a page with one axis (or none) keeps the data kind, as before the choice existed. */
+export function tableColourAxis() { return state.tableColour === "module" && canChooseTableColour() ? "module" : "kind"; }
 /** True when a filter button hides the entity's data kind or module. */
 export function isFilteredOut(entity) {
   return state.hidden.kind.has(kindOf(entity) || UNASSIGNED) || state.hidden.module.has(moduleOf(entity) || UNASSIGNED);
@@ -131,6 +136,7 @@ export function loadPrefs(prefsKey, config) {
   state.hiddenLines = hiddenLineTypesFrom(readLocalJson(prefsKey + ":hidden-lines", null), readLocalJson(prefsKey + ":hide-opaque", false));
   state.dimReviewed = readLocalJson(prefsKey + ":dim-reviewed", false) === true;
   state.showModuleAreas = readLocalJson(prefsKey + ":module-areas", false) === true;
+  state.tableColour = readLocalJson(prefsKey + ":table-colour", "kind") === "module" ? "module" : "kind";
   const spacing = readLocalJson(prefsKey + ":force-spacing", null);
   if (Number.isFinite(spacing) && spacing >= SPACING_RANGE.min && spacing <= SPACING_RANGE.max) state.forceSpacing = spacing;
   const zoneGap = readLocalJson(prefsKey + ":zone-gap", null), groupJoin = readLocalJson(prefsKey + ":group-join", null);

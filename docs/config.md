@@ -107,6 +107,14 @@ filter buttons use the same colour per module: its `color`, else the built-in pa
 module carry no tag; a page without `modules` shows neither tags nor the legend. Tags only draw: box sizes, layouts
 and counts stay the same. The module view shows no tags and no legend (its boxes are the modules).
 
+A page with both `dataKinds` and `modules` adds **Colour tables by** to the legend: **Data kind** (the default) or
+**Module** decides what the coloured left edge of each table shows, with the colour of that data kind or module. A table
+without a module has a plain edge in module mode. The legend shows the data-kind colours next to the choice while tables
+are coloured by data kind; the module colours are in the **Modules** section. The choice is saved per browser and only
+draws: the data-kind filter keeps filtering by data kind, the data-kind zones stay, the diff colours keep the other
+edges, and layouts, counts and exports do not change. A page with only one of the two keeps today's colouring and shows
+no choice.
+
 **Areas** in that legend (off by default, saved per browser) draws a soft area in the module's colour behind the tables
 of each module: the rounded outline around tables that lie at most 120 px apart, so a module whose tables are spread out
 gets several areas. It is drawn behind tables, zones and lines, never takes a click, follows dragged tables and

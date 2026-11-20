@@ -30,6 +30,8 @@
   **Modules** legend lists the module colours (same colours as the module view and the filter). Pages without
   `modules` look as before. **Areas** in that legend (off by default, per browser) adds a soft area in the module
   colour behind each module's tables; drawing only.
+- **Colour tables by** data kind or module: a legend setting on pages with both (per browser, default data kind); the
+  coloured left edge of each table then shows its module. Pages with only one of the two look as before.
 - `dataKinds` entries reject unknown keys (a typo such as `colour` was silently dropped before).
 
 - Fix: a state saved against an older built-in target model (in this browser or in the shared store) no longer
