@@ -104,6 +104,10 @@ test("barycenter sweeps remove avoidable crossings", () => {
 test("ties inside a layer keep the config order", () => {
   const pos = arrange(declared({ d: [], a: [], c: [] }));
   assert.deepEqual(["d", "a", "c"].map(k => pos[k][0]), ["d", "a", "c"].map(k => pos[k][0]).sort((u, v) => u - v));
+  // p -> b2 crosses y -> b1, so the sweeps run; y and x then share a barycenter and keep their config order.
+  const swept = arrange(declared({ p: ["b2"], y: ["b1"], x: ["b1"], b1: [], b2: [] }));
+  assert.ok(swept.y[0] < swept.x[0], "y before x as in the config");
+  assert.ok(swept.x[0] < swept.p[0], "p moved right, over b2");
 });
 
 test("a very wide layer wraps into staggered sub-rows that keep the left-to-right order", () => {
