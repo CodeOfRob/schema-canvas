@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { arrangeForces, createForceSimulation, forceTick, framePositions, settledPositions } from "../src/viewer/layout-force.js";
+import { advanceForceSimulation, arrangeForces, createForceSimulation, forceTick, framePositions, settledPositions } from "../src/viewer/layout-force.js";
 import { arrangeRadial } from "../src/viewer/layout-radial.js";
 import { scoreArrangement } from "../src/viewer/layout.js";
 import { largeModel } from "./large-model.js";
@@ -37,6 +37,7 @@ test("forceTick step by step (the animation) ends in exactly the static result",
   const { boxes, relations, moduleOf } = fixture();
   const expected = arrangeForces(boxes, relations, { moduleOf });
   const simulation = createForceSimulation(boxes, relations, { moduleOf });
+  assert.deepEqual(framePositions(simulation, expected.shift), Object.fromEntries(boxes.map(b => [b.id, [b.x, b.y]])), "the first frame is the current arrangement");
   let steps = 0, last = null;
   while (forceTick(simulation)) { steps += 1; last = framePositions(simulation, expected.shift); }
   assert.ok(steps > 100, "the simulation runs many steps (got " + steps + ")");
@@ -100,6 +101,19 @@ test("tables starting on the same spot are spread (seeded) and end overlap-free;
   const ys = Object.values(first.pos).map(p => p[1]);
   assert.ok(Math.max(...ys) - Math.min(...ys) > 160, "spread in two dimensions, not lined up on the start row");
   assert.deepEqual(arrangeForces([], []), { pos: {}, shift: [0, 0] });
+});
+
+test("advancing by shares of the cooling schedule (the animation's clock) ends in exactly the static result", () => {
+  const { boxes, relations, moduleOf } = fixture();
+  const expected = arrangeForces(boxes, relations, { moduleOf });
+  const simulation = createForceSimulation(boxes, relations, { moduleOf });
+  // Uneven frames, as a busy page delivers them; a share repeated (no time passed) does nothing.
+  const shares = [0.01, 0.01, 0.07, 0.2, 0.21, 0.5, 0.9, 0.99];
+  const alphas = shares.map(share => { assert.equal(advanceForceSimulation(simulation, share), true); return simulation.alpha; });
+  assert.ok(alphas.every((alpha, i) => i === 0 || alpha <= alphas[i - 1]), "cooling only goes forward");
+  assert.ok(simulation.alpha > 0.001, "not yet cooled down before the end of the schedule");
+  assert.equal(advanceForceSimulation(simulation, 1), false, "the whole schedule cools the simulation down");
+  assert.deepEqual(settledPositions(simulation), expected);
 });
 
 test("on the 130-table fixture Forces has fewer crossings and far shorter lines than Star", () => {

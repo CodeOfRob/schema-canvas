@@ -2,7 +2,7 @@
 import { PAGE_DATA_GLOBAL, loadPageData, storageKeyFor } from "./model.js";
 import { S, applyStringOverrides } from "./strings.js";
 import { placeMissing, refresh } from "./ui/actions.js";
-import { boxOf, centerOn, fitAll, initCanvas, renderCanvas, viewportSize, worldPointAt } from "./ui/canvas.js";
+import { boxOf, centerOn, fitAll, initCanvas, previewPositions, renderCanvas, viewportSize, worldPointAt } from "./ui/canvas.js";
 import { initInspector, renderPanel } from "./ui/inspector.js";
 import { renderPageText } from "./ui/sections.js";
 import { applyLocalSnapshot, initPersistence } from "./ui/persistence.js";
@@ -43,7 +43,7 @@ async function main() {
     applyStringOverrides(page.config.strings);
   } catch (error) { showFatal(error); return; }
   if (page.config.language) document.documentElement.lang = page.config.language;
-  bindView({ renderCanvas, renderPanel, renderChrome, flash, boxOf, fitAll, centerOn, viewportSize, worldPointAt });
+  bindView({ renderCanvas, renderPanel, renderChrome, flash, boxOf, fitAll, centerOn, viewportSize, worldPointAt, previewPositions });
   state.page = page;
   state.current = page.current;
   state.target = page.target ? structuredClone(page.target) : null;

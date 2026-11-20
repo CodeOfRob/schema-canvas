@@ -49,7 +49,7 @@ export const S = {
   arrangeRadial: "Arrange as a star",
   arrangeRadialTitle: "The selected table (or the most central one) in the middle, every further relation step one ring further out, each branch in its own slice",
   arrangeForces: "Arrange by forces",
-  arrangeForcesTitle: "Relations pull like springs, all tables push each other apart and tables of one module gather in an island; tables without relations stay near the middle. Starts from the current positions, so a second run refines the first",
+  arrangeForcesTitle: "Relations pull like springs, all tables push each other apart and tables of one module gather in an island; tables without relations stay near the middle. Starts from the current positions, so a second run refines the first. A click or key press skips the animation",
   arrangeByKind: "Arrange by data kind",
   zoneGap: "Join zones up to",
   zoneGapTitle: "Distance between two tables of the same data kind above which their background zone splits into two islands",

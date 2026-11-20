@@ -2,12 +2,13 @@
 import { isIndexExpression } from "../../model/normalize.js";
 import { computeDiff } from "../diff.js";
 import { arrangeByKind, arrangeByRelations } from "../layout.js";
-import { arrangeForces } from "../layout-force.js";
+import { advanceForceSimulation, arrangeForces, createForceSimulation, framePositions } from "../layout-force.js";
 import { arrangeRadial } from "../layout-radial.js";
 import { S } from "../strings.js";
 import {
   state, activeModel, activePositions, entityById, estimatedBox, isEditing, isOpaqueHidden, axisKeys, kindOf, moduleOf, pushUndo, popUndo, savePref, tileOf, BOX_WIDTH,
 } from "./state.js";
+import { playArrangement } from "./arrange-animation.js";
 import { view } from "./view.js";
 
 const hooks = { afterCommit: () => {} };
@@ -149,8 +150,15 @@ export function arrange(how) {
   view.flash(S.arranging);
   // Let the status text paint before the (synchronous) layout run.
   setTimeout(() => {
-    const model = activeModel();
+    const model = activeModel(), viewName = state.view;
     const boxes = measuredBoxes(model);
+    const apply = pos => {
+      commit(s => {
+        if (!s.arrangedFrom[viewName]) s.arrangedFrom[viewName] = JSON.parse(JSON.stringify(s.layout[viewName]));
+        Object.assign(s.layout[viewName], pos);
+      });
+      view.flash("");
+    };
     let pos;
     // Relations drawn as tiles do not pull tables together.
     const lines = () => model.relations.filter(r => !tileOf(model, r));
@@ -160,7 +168,14 @@ export function arrange(how) {
       pos = arrangeByRelations(boxes, lines(), { extra: groupPairs() }).pos;
     } else if (how === "forces") {
       // Hidden opaque references still pull: hiding them is drawing only, as in the module view.
-      pos = arrangeForces(boxes, lines(), { moduleOf: id => moduleOf(entityById(id, model)), extra: groupPairs() }).pos;
+      const options = { moduleOf: id => moduleOf(entityById(id, model)), extra: groupPairs() };
+      const final = arrangeForces(boxes, lines(), options);
+      // The view is fitted to the result first, then the same simulation is replayed frame by frame.
+      view.previewPositions(final.pos);
+      view.fitAll();
+      const simulation = createForceSimulation(boxes, lines(), options);
+      playArrangement(share => (advanceForceSimulation(simulation, share) ? framePositions(simulation, final.shift) : null), () => apply(final.pos));
+      return;
     } else if (how === "radial") {
       const selected = state.sel && state.sel.kind !== "rel" && state.sel.kind !== "group" ? state.sel.eid || state.sel.id : null;
       const kinds = axisKeys("kind");
@@ -169,11 +184,7 @@ export function arrange(how) {
     } else {
       pos = arrangeByKind(boxes, axisKeys("kind"), id => kindOf(entityById(id, model)));
     }
-    commit(s => {
-      if (!s.arrangedFrom[s.view]) s.arrangedFrom[s.view] = JSON.parse(JSON.stringify(s.layout[s.view]));
-      Object.assign(s.layout[s.view], pos);
-    });
-    view.flash("");
+    apply(pos);
     view.fitAll();
   }, 30);
 }

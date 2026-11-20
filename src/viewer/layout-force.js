@@ -2,7 +2,7 @@
 // tables are rectangles that must not overlap, a weak gravity keeps loose tables near the middle and tables of one
 // module pull towards their module's centre, so modules form visible islands. Velocity Verlet with cooling (alpha).
 // One step is forceTick(simulation): the static run calls it until the simulation has cooled down, the animated run
-// calls it once per frame; both end in the same state by construction. Pure and deterministic (seeded jitter).
+// calls it frame by frame (advanceForceSimulation, framePositions); both end in the same state by construction. Pure and deterministic (seeded jitter).
 import { centredNodes, positionsAtOrigin } from "./geometry.js";
 import { ORIGIN, removeOverlaps, seededRandom } from "./layout.js";
 
@@ -172,6 +172,18 @@ export function forceTick(simulation) {
 }
 
 /**
+ * Runs steps until the simulation has reached the given share (0..1) of its cooling schedule; alpha falls
+ * geometrically, so share s means alpha = ALPHA_MIN^s. An animation passes the share of its duration that has
+ * passed and so plays every step within that duration at any frame rate (one step per frame would need 5 s at
+ * 60 frames per second, and a slow page shows far fewer). Returns false once the simulation has cooled down.
+ */
+export function advanceForceSimulation(simulation, share) {
+  const targetAlpha = Math.pow(ALPHA_MIN, Math.min(1, share));
+  while (simulation.alpha > targetAlpha) if (!forceTick(simulation)) return false;
+  return true;
+}
+
+/**
  * The finished layout of a simulation: overlaps removed on a copy, moved to the origin.
  * @returns {{ pos: Record<string, [number, number]>, shift: [number, number] }} shift: for framePositions
  */
@@ -181,10 +193,14 @@ export function settledPositions(simulation) {
   return positionsAtOrigin(nodes, ORIGIN);
 }
 
-/** Top-left positions of the simulation's current state, in the frame of the finished layout (shift from it). */
-export function framePositions(simulation, [shiftX, shiftY]) {
-  const pos = {};
-  for (const n of simulation.nodes) pos[n.id] = [Math.round(n.x - n.w / 2 + shiftX), Math.round(n.y - n.h / 2 + shiftY)];
+/**
+ * Top-left positions of the simulation's current state for an animation frame. The simulation runs in the start
+ * positions' coordinates, the finished layout is moved to the origin by finalShift (settledPositions); the frame
+ * glides from the one to the other as the simulation cools, so neither the first nor the last frame jumps.
+ */
+export function framePositions(simulation, [finalShiftX, finalShiftY]) {
+  const progress = 1 - simulation.alpha, pos = {};
+  for (const n of simulation.nodes) pos[n.id] = [Math.round(n.x - n.w / 2 + finalShiftX * progress), Math.round(n.y - n.h / 2 + finalShiftY * progress)];
   return pos;
 }
 

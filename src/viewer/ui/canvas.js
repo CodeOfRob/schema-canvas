@@ -234,6 +234,15 @@ export function drawLinks() {
   links.innerHTML = out;
 }
 
+/** Animation frame: moves the drawn tables to in-between positions and redraws the lines; state and layout stay untouched. */
+export function previewPositions(positions) {
+  for (const el of world.querySelectorAll(".ent")) {
+    const p = positions[el.dataset.id];
+    if (p) { el.style.left = p[0] + "px"; el.style.top = p[1] + "px"; }
+  }
+  drawLinks();
+}
+
 export function applyTransform() {
   const { x, y } = state.pan, z = state.zoom;
   world.style.transform = "translate(" + x + "px, " + y + "px) scale(" + z + ")";
