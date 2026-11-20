@@ -167,11 +167,11 @@ function labelSvg(r, x, y, selected) {
   return '<g class="lbl' + (selected ? " sel" : "") + (r.opaque ? " opaque" : "") + '" data-rid="' + esc(r.id) + '">' + tooltip + '<rect x="' + (x - w / 2) + '" y="' + (y - 9) + '" width="' + w + '" height="18" rx="4" /><text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle">' + esc(text) + "</text></g>";
 }
 
-/** The legend's "n relations hidden" note; shown only while a line type that acts in this view is switched off (a saved
- * "hide" whose legend entry is not shown here hides nothing and shows nothing). */
+/** The legend's "n relations hidden" note; shown only while a switched-off line type actually hides a line here (a type
+ * without lines in this view, or a saved "hide" whose legend entry is not shown here, hides nothing and shows nothing). */
 function showHiddenRelationCount(count) {
   const note = document.getElementById("lines-hidden");
-  note.hidden = !switchableLineTypes().some(type => state.hiddenLines.has(type));
+  note.hidden = count === 0 || !switchableLineTypes().some(type => state.hiddenLines.has(type));
   note.textContent = S.hiddenRelationsCount(count);
 }
 
