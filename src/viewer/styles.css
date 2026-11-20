@@ -33,7 +33,7 @@ header > div:first-child { min-width: 0; flex: 1 1 420px; }
    keeps the text at full contrast (--muted on --bg: 5.4:1 light, 7.4:1 dark), unlike dimming with opacity. */
 button.chip { cursor: pointer; }
 button.chip[aria-pressed="false"] { color: var(--muted); background: transparent; border-color: var(--line); text-decoration: line-through; }
-button.chip[aria-disabled="true"] { cursor: default; }
+button.chip:disabled { cursor: default; }
 .chip { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; font: 500 11px var(--font-body); border: 1px solid transparent; white-space: nowrap; }
 .s-added { color: var(--add); background: var(--add-bg); }
 .s-renamed, .s-moved, .s-merged { color: var(--ren); background: var(--ren-bg); }
@@ -76,6 +76,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .gapctl output { min-width: 52px; font-variant-numeric: tabular-nums; }
 /* Spacing slider while the shown layout is not the force result: it only sets the factor for the next run. */
 .gapctl.idle { color: var(--muted); }
+.gapctl:has(input:disabled) { opacity: 0.5; cursor: default; }
 .tilectl { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 12px; max-width: 260px; }
 .tilectl .chipbtn { font: inherit; font-size: 12px; padding: 1px 8px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent-bg); color: var(--accent); cursor: pointer; }
 

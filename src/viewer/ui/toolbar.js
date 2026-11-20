@@ -104,7 +104,7 @@ function renderLineToggles() {
   document.querySelectorAll("#legend [data-line]").forEach(button => {
     const type = button.dataset.line, active = switchable.includes(type);
     button.setAttribute("aria-pressed", String(!state.hiddenLines.has(type)));
-    button.setAttribute("aria-disabled", String(!active));
+    button.disabled = !active;
     button.title = active ? S.lineToggleTitle : S.lineToggleTableViewOnly;
   });
 }
@@ -325,7 +325,7 @@ export function initToolbar() {
   $("module-view").hidden = !axisKeys("module").length;
   $("legend").addEventListener("click", ev => {
     const button = ev.target.closest("[data-line]");
-    if (button && button.getAttribute("aria-disabled") !== "true") toggleLineType(button.dataset.line);
+    if (button && !button.disabled) toggleLineType(button.dataset.line);
   });
   $("module-view").addEventListener("click", () => setModuleView(!state.moduleView));
   bindSlider("zone-gap", "zone-gap-val", "zoneGap", "zone-gap", drawLinks);
