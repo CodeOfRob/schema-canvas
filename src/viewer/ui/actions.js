@@ -15,6 +15,12 @@ const hooks = { afterCommit: () => {} };
 /** main.js wires saving in here so this module does not depend on the persistence setup. */
 export function onCommit(fn) { hooks.afterCommit = fn; }
 
+// The last "Arrange by forces" run of this session: its start boxes, inputs and the positions now shown. The spacing
+// slider re-runs it from the same start, so a factor always gives the same layout and moving back restores it
+// (nothing compounds). Cleared by any other commit.
+let lastForceRun = null;
+let pendingSpacingPreview = 0;
+
 let sequence = 0;
 function newId(prefix) { sequence += 1; return prefix + Date.now().toString(36) + sequence.toString(36); }
 
@@ -48,6 +54,8 @@ export function refresh() {
 
 /** Applies fn(state) as one undoable step and schedules saving. */
 export function commit(fn) {
+  // Any other edit ends the force run the spacing slider re-runs (see setForceSpacing).
+  lastForceRun = null;
   pushUndo();
   fn(state);
   if (state.target) repairReferences(state.target, state.layout);
@@ -167,13 +175,17 @@ export function arrange(how) {
       pos = arrangeByRelations(boxes, lines(), { extra: groupPairs() }).pos;
     } else if (how === "forces") {
       // Hidden opaque references still pull: hiding them is drawing only, as in the module view.
-      const options = { moduleOf: id => moduleOf(entityById(id, model)), extra: groupPairs() };
-      const final = arrangeForces(boxes, lines(), options);
+      const relations = lines(), options = { moduleOf: id => moduleOf(entityById(id, model)), extra: groupPairs() };
+      const final = arrangeForces(boxes, relations, { ...options, spacing: state.forceSpacing });
       // The view is fitted to the result first, then the same simulation is replayed frame by frame.
       view.previewPositions(final.pos);
       view.fitAll();
-      const simulation = createForceSimulation(boxes, lines(), options);
-      playArrangement(share => (advanceForceSimulation(simulation, share) ? framePositions(simulation, final.shift) : null), () => apply(final.pos));
+      const simulation = createForceSimulation(boxes, relations, { ...options, spacing: state.forceSpacing });
+      playArrangement(share => (advanceForceSimulation(simulation, share) ? framePositions(simulation, final.shift) : null), () => {
+        apply(final.pos);
+        lastForceRun = { view: viewName, start: boxes, relations, options, result: final.pos };
+        view.renderChrome();
+      });
       return;
     } else if (how === "radial") {
       const selected = state.sel && state.sel.kind !== "rel" && state.sel.kind !== "group" ? state.sel.eid || state.sel.id : null;
@@ -186,6 +198,38 @@ export function arrange(how) {
     apply(pos);
     view.fitAll();
   }, 30);
+}
+
+// ---------- spacing of the force layout ----------
+/** True while the shown layout is still the result of the last force run, so the slider re-arranges it live. */
+export function isForceSpacingLive() {
+  const run = lastForceRun;
+  if (!run || run.view !== state.view || state.moduleView) return false;
+  const positions = activePositions(), ids = Object.keys(run.result);
+  return ids.length === activeModel().entities.length && ids.every(id => positions[id] && positions[id][0] === run.result[id][0] && positions[id][1] === run.result[id][1]);
+}
+
+const rerunForces = spacing => arrangeForces(lastForceRun.start, lastForceRun.relations, { ...lastForceRun.options, spacing }).pos;
+
+/**
+ * The spacing slider. While dragging (final = false) the layout is only previewed, at most once per frame; on release
+ * (final = true) the factor is saved and, when the force layout is live, applied as one undo step. When the shown layout
+ * is no longer the force result, the factor only waits for the next "Arrange by forces".
+ */
+export function setForceSpacing(spacing, final) {
+  state.forceSpacing = spacing;
+  cancelAnimationFrame(pendingSpacingPreview);
+  const live = isForceSpacingLive();
+  if (!final) {
+    if (live) pendingSpacingPreview = requestAnimationFrame(() => { if (isForceSpacingLive()) view.previewPositions(rerunForces(spacing)); });
+    return;
+  }
+  savePref("force-spacing", spacing);
+  if (!live) { view.renderChrome(); return; }
+  const run = lastForceRun, pos = rerunForces(spacing);
+  commit(s => { Object.assign(s.layout[run.view], pos); });
+  lastForceRun = { ...run, result: pos };
+  view.renderChrome();
 }
 
 /** Module view "Arrange": forgets the dragged module positions, back to the derived arrangement (undoable). */

@@ -55,6 +55,12 @@ const JITTER = 30;
 // but the median gap to the nearest table stayed at the 50 px padding, so tables still sat tight in their clusters
 // and only the clusters drifted apart. Scaling all three (the scale-free rule above: charge ~ length^2) moves the
 // median nearest gap with the factor (25 / 50 / 75 / 125 / 203 px at 0.5 / 1 / 1.5 / 2 / 2.5 on the fixture).
+/**
+ * Range the viewer offers for the spacing factor. Below 0.5 the tables crowd (crossings + lines under tables doubled
+ * at 0.5 already); at 2.5 the drawing covers about 4.5x the area of the default, enough to read a dense cluster.
+ */
+export const SPACING_RANGE = { min: 0.5, max: 2.5, step: 0.1 };
+
 function spacingForces(spacing) {
   if (typeof spacing !== "number" || !Number.isFinite(spacing) || spacing <= 0) throw new RangeError("force layout: spacing must be a positive number, got " + spacing);
   return { repulsion: REPULSION * spacing * spacing, linkGap: LINK_GAP * spacing, pad: COLLISION_PAD * spacing };

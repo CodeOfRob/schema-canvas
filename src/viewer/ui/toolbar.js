@@ -5,7 +5,8 @@ import { declaresLayers } from "../module-graph.js";
 import { saveJsonFile, pickJsonFile } from "../storage.js";
 import { S, STATUS_LABEL } from "../strings.js";
 import { applyTransform, clearMultiSelection, drawLinks, fitAll, renderCanvas, setZoom } from "./canvas.js";
-import { addGroup, addTable, arrange, clearModulePositions, commit, placeMissing, restoreArrangement, select, setModuleView, setView, startGrouping, startLinking, toggleLineType, undo } from "./actions.js";
+import { addGroup, addTable, arrange, clearModulePositions, commit, isForceSpacingLive, placeMissing, restoreArrangement, select, setForceSpacing, setModuleView, setView, startGrouping, startLinking, toggleLineType, undo } from "./actions.js";
+import { SPACING_RANGE } from "../layout-force.js";
 import { esc } from "./html.js";
 import { view } from "./view.js";
 import { UNASSIGNED } from "../../model/page-data.js";
@@ -53,6 +54,7 @@ export function renderChrome() {
   $("legend").hidden = !hasTarget() && !opaque;
   $("legend-opaque").hidden = !opaque;
   renderLineToggles();
+  renderForceSpacing();
   // The data-kind filter acts on tables only, which the module view does not draw. The module filter stays: it hides
   // modules in the module view and their tables in the table view (docs/config.md: "both views").
   $("kind-filter").hidden = !axisKeys("kind").length || modules;
@@ -73,6 +75,24 @@ export function renderChrome() {
     $("dim-reviewed").setAttribute("aria-pressed", String(state.dimReviewed));
     $("dim-reviewed").disabled = !editing || modules;
   }
+}
+
+/** The spacing slider: its value, and whether moving it re-arranges the shown layout now (live) or only later (idle). */
+function renderForceSpacing() {
+  const live = isForceSpacingLive();
+  $("force-spacing").value = state.forceSpacing;
+  $("force-spacing-val").textContent = S.forceSpacingValue(state.forceSpacing);
+  $("force-spacing-ctl").classList.toggle("idle", !live);
+  $("force-spacing-ctl").title = live ? S.forceSpacingTitle : S.forceSpacingIdleTitle;
+}
+
+function bindForceSpacing() {
+  const input = $("force-spacing");
+  Object.assign(input, { min: SPACING_RANGE.min, max: SPACING_RANGE.max, step: SPACING_RANGE.step });
+  input.setAttribute("aria-label", S.forceSpacing);
+  const value = () => Number(input.value);
+  input.addEventListener("input", () => { $("force-spacing-val").textContent = S.forceSpacingValue(value()); setForceSpacing(value(), false); });
+  input.addEventListener("change", () => setForceSpacing(value(), true));
 }
 
 /** Legend entries as line switches: pressed = drawn; an entry that does not act in this view is marked inert. */
@@ -305,6 +325,7 @@ export function initToolbar() {
   });
   $("module-view").addEventListener("click", () => setModuleView(!state.moduleView));
   bindSlider("zone-gap", "zone-gap-val", "zoneGap", "zone-gap", drawLinks);
+  bindForceSpacing();
   bindSlider("group-join", "group-join-val", "groupJoin", "group-join");
   buildKindControls();
   buildFilter("module");

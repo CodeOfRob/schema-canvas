@@ -159,6 +159,13 @@ positions, so a second click refines the first. It is animated for two seconds (
 result, which is the same either way; with "reduce motion" set in the system it is applied at once) and is one undo
 step.
 
+**Spacing** next to it (0.5x to 2.5x, default 1.0x) sets the distance between the tables: it scales the repulsion
+together with the rest length of the springs and the minimum gap (50 px at 1.0x, 100 px at 2.0x). While the shown
+layout is the result of the last force run, moving the slider re-arranges it live from that run's start positions,
+so a value always gives the same layout and moving back restores the earlier one; letting go is one undo step.
+Otherwise (another arrangement, a moved table, any edit) the slider is greyed and only sets the factor for the next
+**Arrange by forces**. The factor is a viewer preference kept in this browser.
+
 ## layout.json
 
 Positions are kept apart from the model, so regenerating a model never wipes them.

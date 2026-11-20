@@ -2,6 +2,7 @@
 import { UNASSIGNED } from "../../model/page-data.js";
 import { classificationAxes, classify } from "../classify.js";
 import { estimateHeight } from "../layout.js";
+import { SPACING_RANGE } from "../layout-force.js";
 import { LINE_TYPES, hiddenLineTypesFrom, isRelationHidden as hiddenByLineTypes } from "../line-visibility.js";
 import { readLocalJson, writeLocal } from "../storage.js";
 import { tileDisplaysFrom, tileOf as tileRule } from "../tiles.js";
@@ -33,6 +34,7 @@ export const state = {
   hidden: { kind: new Set(), module: new Set() }, // filtered-out values per axis, UNASSIGNED for "none"
   moduleView: false,   // show modules instead of tables (a viewer setting, not part of the model)
   hiddenLines: new Set(), // line types switched off in the legend (line-visibility.js; a viewer setting, drawing only)
+  forceSpacing: 1,     // spacing factor of "Arrange by forces" (slider; a viewer setting)
   showIndexes: false,
   dimReviewed: false,
   zoneGap: 320,
@@ -127,6 +129,8 @@ export function loadPrefs(prefsKey, config) {
   state.showIndexes = readLocalJson(prefsKey + ":show-indexes", false) === true;
   state.hiddenLines = hiddenLineTypesFrom(readLocalJson(prefsKey + ":hidden-lines", null), readLocalJson(prefsKey + ":hide-opaque", false));
   state.dimReviewed = readLocalJson(prefsKey + ":dim-reviewed", false) === true;
+  const spacing = readLocalJson(prefsKey + ":force-spacing", null);
+  if (Number.isFinite(spacing) && spacing >= SPACING_RANGE.min && spacing <= SPACING_RANGE.max) state.forceSpacing = spacing;
   const zoneGap = readLocalJson(prefsKey + ":zone-gap", null), groupJoin = readLocalJson(prefsKey + ":group-join", null);
   if (Number.isFinite(zoneGap)) state.zoneGap = zoneGap;
   if (Number.isFinite(groupJoin)) state.groupJoin = groupJoin;

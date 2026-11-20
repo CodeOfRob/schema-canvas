@@ -20,7 +20,8 @@
 - **View -> Arrange by forces**: a force-directed table layout (relations as springs, all tables repelling each
   other, no overlaps), where the tables of one module gather in an island and tables without relations stay near
   the middle. Animated for two seconds; a click or key press skips to the same result; respects "reduce motion";
-  one undo step.
+  one undo step. A **Spacing** slider (0.5x-2.5x) next to it widens or tightens the result live, always from the
+  same start, so moving it back restores the earlier layout; letting go is one undo step.
 - `dataKinds` entries reject unknown keys (a typo such as `colour` was silently dropped before).
 
 - Fix: a state saved against an older built-in target model (in this browser or in the shared store) no longer
