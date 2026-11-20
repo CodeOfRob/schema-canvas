@@ -57,6 +57,21 @@ status labels and field flags. Texts that contain values take numbered placehold
 
 `build` rejects unknown keys and placeholders beyond the values a text receives.
 
+### Line switches in the legend
+
+Each legend entry that stands for a kind of relation line is a switch: **new**, **changed**, **removed**,
+**unchanged** (the diff status of the relation in the shown tab, so only with a target model) and **reference
+without foreign key** (opaque). Click it, or focus it and press Enter or Space, to hide or show those lines; a hidden
+entry is dimmed and struck through. A relation hides when its status or, being opaque, the opaque entry is off.
+Its tile or badge hides with its line. "renamed / moved / merged" describes tables and fields only and is no switch.
+
+- Drawing only: no table moves, the arrangements ignore it, and counts, the inspector and exports are unchanged.
+  A selected relation that gets hidden is deselected.
+- The module view draws no relation lines; there the diff entries are inert and the opaque entry hides the dashed
+  arrows.
+- The legend says how many relations are hidden in the shown view.
+- The choice is a viewer preference kept in this browser, like the other ones ([storage.md](storage.md)).
+
 ### Data kinds and zones
 
 A data kind groups tables by what they hold (for example `catalog` vs. `sales`). Kinds colour the table
@@ -110,9 +125,8 @@ inspector lists it.
 They get their own dashed grey arrow, are never red (an opaque reference upward is allowed by design), do not take part
 in cycle detection and are not counted as foreign keys inside a module.
 
-**View -> Opaque references** (shown only when a model has any) hides them in both views, for your browser only.
-Hiding changes the drawing, never a position; the legend then says how many are hidden, and their diff colours are
-hidden with them. Red arrows are never opaque, so nothing red can be hidden.
+The legend entry **reference without foreign key** (shown only when a model has any) hides them in both views; see
+[Line switches in the legend](#line-switches-in-the-legend). Red arrows are never opaque, so nothing red can be hidden.
 
 #### Arrangement of the module view
 

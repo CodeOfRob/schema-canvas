@@ -41,7 +41,9 @@ mail, host anywhere or open from disk.
   "-> Table" on the foreign-key field instead of long lines.
 - **Module view**: one box per module with the number of foreign keys between modules; layer rules from
   `dependsOn` mark forbidden directions and cycles in red and arrange the boxes in layers. Shows schema (FK)
-  coupling only; opaque references (no foreign key) can be hidden.
+  coupling only.
+- **Line switches**: click a legend entry to hide or show that kind of relation line (new, changed, removed,
+  unchanged, references without foreign key); drawing only, nothing moves.
 - **Storage**: browser localStorage, JSON file export / import, or a shared claude.ai artifact database, with a
   keep-mine / take-theirs conflict dialog.
 - Index display, enum list, inspector for tables, fields and relations, lasso multi-select, full screen,

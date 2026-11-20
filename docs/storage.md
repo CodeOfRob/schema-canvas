@@ -21,7 +21,7 @@ covered by `test/export.test.js`.
 When hosting as a claude.ai artifact, declare the capabilities `db` (shared storage) and `downloads` (file export).
 
 Keys: the localStorage key and the artifact document path come from `storageKey` and `dbDocPath` in
-[config.md](config.md). Viewer preferences (tile tables, hidden kinds, index display, dimming of reviewed tables, zone distance)
+[config.md](config.md). Viewer preferences (tile tables, hidden kinds, hidden line types, index display, dimming of reviewed tables, zone distance)
 always stay in this browser.
 
 ## Snapshot format

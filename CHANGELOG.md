@@ -12,8 +12,11 @@
 - Module view: once a module declares `dependsOn`, the boxes are arranged in layers (foundation at the bottom,
   a module above everything it depends on, modules nothing depends on at the top); modules without `dependsOn`
   fall back to their foreign keys.
-- **View -> Opaque references** hides references without a foreign key in the table and the module view (drawing
-  only, positions stay); the legend counts the hidden ones.
+- **Line switches in the legend**: click a legend entry (new, changed, removed, unchanged, reference without
+  foreign key) to hide or show those relation lines, with their tiles and badges. Drawing only (nothing moves, counts,
+  inspector and exports stay), per browser; the legend counts the hidden relations. The opaque entry also hides the
+  dashed arrows of the module view; the diff entries act in the table view. A viewer who had opaque references
+  hidden keeps them hidden.
 - **View -> Arrange by forces**: a force-directed table layout (relations as springs, all tables repelling each
   other, no overlaps), where the tables of one module gather in an island and tables without relations stay near
   the middle. Animated for two seconds; a click or key press skips to the same result; respects "reduce motion";

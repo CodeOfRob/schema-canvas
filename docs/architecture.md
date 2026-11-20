@@ -35,6 +35,7 @@ target.model.json, layout.json, config.json ┘   (validate, warn)      (esbuild
 | `src/viewer/layout-layered.js` | Layered module layout from `dependsOn` (foundation at the bottom) |
 | `src/viewer/layout-force.js` | Force layout: springs, repulsion, collision, module clusters; one `forceTick` step for the static and the animated run |
 | `src/viewer/classify.js` | One resolver for the classification axes (data kind, module) |
+| `src/viewer/line-visibility.js` | Which relation lines the legend switches hide (drawing only), incl. the stored preference |
 | `src/viewer/tiles.js` | The tile rule: which relations are no line (tile or badge), per-viewer tile preference |
 | `src/viewer/module-graph.js` | Module view as data: nodes, edges with foreign-key counts, layer-rule violations |
 | `src/viewer/geometry.js` | Box geometry shared by the table canvas, the module view and the layouts (box/centre conversion, moving a layout to its origin) |

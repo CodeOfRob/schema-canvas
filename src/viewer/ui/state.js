@@ -2,6 +2,7 @@
 import { UNASSIGNED } from "../../model/page-data.js";
 import { classificationAxes, classify } from "../classify.js";
 import { estimateHeight } from "../layout.js";
+import { LINE_TYPES, hiddenLineTypesFrom, isRelationHidden as hiddenByLineTypes } from "../line-visibility.js";
 import { readLocalJson, writeLocal } from "../storage.js";
 import { tileDisplaysFrom, tileOf as tileRule } from "../tiles.js";
 
@@ -31,7 +32,7 @@ export const state = {
   tileDisplays: new Map(), // tile table name -> "tile" | "badge" (per viewer)
   hidden: { kind: new Set(), module: new Set() }, // filtered-out values per axis, UNASSIGNED for "none"
   moduleView: false,   // show modules instead of tables (a viewer setting, not part of the model)
-  hideOpaque: false,   // leave opaque references undrawn in both views (a viewer setting; positions never depend on it)
+  hiddenLines: new Set(), // line types switched off in the legend (line-visibility.js; a viewer setting, drawing only)
   showIndexes: false,
   dimReviewed: false,
   zoneGap: 320,
@@ -91,14 +92,21 @@ export function relationStatus(relation) {
   return (state.view === "target" ? state.diff.target.relations : state.diff.current.relations)[relation.id] || "same";
 }
 
-// ---------- opaque references (by id, no foreign key) ----------
-/** True when the current or the target model has an opaque relation (the legend entry and the toggle depend on it). */
+// ---------- line visibility (legend toggles) ----------
+/** True when the current or the target model has an opaque relation (the legend entry depends on it). */
 export function hasOpaqueRelations() {
   return [state.current, state.target].some(model => model && model.relations.some(r => r.opaque));
 }
-/** True for an opaque relation while the viewer hides them. Drawing only: layouts never ask this. */
-export function isOpaqueHidden(relation) {
-  return state.hideOpaque && relation.opaque === true;
+/**
+ * Line types whose legend toggle acts in the shown view: the diff statuses in the table view of a page with a
+ * target (the module view draws no relation lines, its arrows have no status), "opaque" whenever a model has any.
+ */
+export function switchableLineTypes() {
+  return LINE_TYPES.filter(type => (type === "opaque" ? hasOpaqueRelations() : !!state.diff && !state.moduleView));
+}
+/** True while the viewer has switched this relation's line off in the legend. Drawing only: layouts never ask this. */
+export function isRelationHidden(relation) {
+  return hiddenByLineTypes(relation, relationStatus(relation), state.hiddenLines, !!state.diff);
 }
 
 // ---------- tile tables ----------
@@ -117,7 +125,7 @@ export function loadPrefs(prefsKey, config) {
   // Only with modules configured: otherwise the toggle is hidden and a saved "on" would trap the viewer.
   state.moduleView = Object.keys(config.modules).length > 0 && readLocalJson(prefsKey + ":module-view", false) === true;
   state.showIndexes = readLocalJson(prefsKey + ":show-indexes", false) === true;
-  state.hideOpaque = readLocalJson(prefsKey + ":hide-opaque", false) === true;
+  state.hiddenLines = hiddenLineTypesFrom(readLocalJson(prefsKey + ":hidden-lines", null), readLocalJson(prefsKey + ":hide-opaque", false));
   state.dimReviewed = readLocalJson(prefsKey + ":dim-reviewed", false) === true;
   const zoneGap = readLocalJson(prefsKey + ":zone-gap", null), groupJoin = readLocalJson(prefsKey + ":group-join", null);
   if (Number.isFinite(zoneGap)) state.zoneGap = zoneGap;

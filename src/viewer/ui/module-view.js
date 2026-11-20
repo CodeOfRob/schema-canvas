@@ -24,7 +24,7 @@ function shownModuleGraph() {
   const graph = buildModuleGraph(model, { modules: state.page.config.modules, moduleOf, tileOf: r => tileOf(model, r) });
   const visible = key => !state.hidden.module.has(key);
   const layoutEdges = graph.edges.filter(e => visible(e.from) && visible(e.to));
-  const hidden = state.hideOpaque ? layoutEdges.filter(e => e.kind === "opaque") : [];
+  const hidden = state.hiddenLines.has("opaque") ? layoutEdges.filter(e => e.kind === "opaque") : [];
   return {
     ...graph, nodes: graph.nodes.filter(n => visible(n.key)), layoutEdges, edges: layoutEdges.filter(e => !hidden.includes(e)),
     hiddenOpaqueCount: hidden.reduce((sum, e) => sum + e.relations.length, 0),

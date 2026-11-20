@@ -5,11 +5,11 @@ import { declaresLayers } from "../module-graph.js";
 import { saveJsonFile, pickJsonFile } from "../storage.js";
 import { S, STATUS_LABEL } from "../strings.js";
 import { applyTransform, clearMultiSelection, drawLinks, fitAll, renderCanvas, setZoom } from "./canvas.js";
-import { addGroup, addTable, arrange, clearModulePositions, commit, placeMissing, restoreArrangement, select, setModuleView, setOpaqueHidden, setView, startGrouping, startLinking, undo } from "./actions.js";
+import { addGroup, addTable, arrange, clearModulePositions, commit, placeMissing, restoreArrangement, select, setModuleView, setView, startGrouping, startLinking, toggleLineType, undo } from "./actions.js";
 import { esc } from "./html.js";
 import { view } from "./view.js";
 import { UNASSIGNED } from "../../model/page-data.js";
-import { state, activeModel, axisClass, axisKeys, axisSpec, hasOpaqueRelations, hasTarget, isEditing, otherModel, savePref, saveTileDisplays } from "./state.js";
+import { state, activeModel, axisClass, axisKeys, axisSpec, hasOpaqueRelations, hasTarget, isEditing, otherModel, savePref, saveTileDisplays, switchableLineTypes } from "./state.js";
 
 const $ = id => document.getElementById(id);
 
@@ -48,12 +48,11 @@ export function renderChrome() {
   arrangeRel.disabled = modules && !Object.keys(state.layout.modules).length;
   arrangeRel.title = !modules ? S.arrangeByRelationsTitle : declaresLayers(state.page.config.modules) ? S.arrangeModulesLayeredTitle : S.arrangeModulesTitle;
   $("module-view").setAttribute("aria-pressed", String(modules));
-  // Opaque references: legend entry and toggle only when a model has any (an imported target may add or drop them).
+  // Opaque references: legend entry only when a model has any (an imported target may add or drop them).
   const opaque = hasOpaqueRelations();
   $("legend").hidden = !hasTarget() && !opaque;
   $("legend-opaque").hidden = !opaque;
-  $("opaque-toggle").hidden = !opaque;
-  $("opaque-toggle").setAttribute("aria-pressed", String(!state.hideOpaque));
+  renderLineToggles();
   // The data-kind filter acts on tables only, which the module view does not draw. The module filter stays: it hides
   // modules in the module view and their tables in the table view (docs/config.md: "both views").
   $("kind-filter").hidden = !axisKeys("kind").length || modules;
@@ -74,6 +73,17 @@ export function renderChrome() {
     $("dim-reviewed").setAttribute("aria-pressed", String(state.dimReviewed));
     $("dim-reviewed").disabled = !editing || modules;
   }
+}
+
+/** Legend entries as line switches: pressed = drawn; an entry that does not act in this view is marked inert. */
+function renderLineToggles() {
+  const switchable = switchableLineTypes();
+  document.querySelectorAll("#legend [data-line]").forEach(button => {
+    const type = button.dataset.line, active = switchable.includes(type);
+    button.setAttribute("aria-pressed", String(!state.hiddenLines.has(type)));
+    button.setAttribute("aria-disabled", String(!active));
+    button.title = active ? S.lineToggleTitle : S.lineToggleTableViewOnly;
+  });
 }
 
 function setFullscreen(on, fromBrowser) {
@@ -289,7 +299,10 @@ export function initToolbar() {
     if (state.sel || state.moduleView) view.renderPanel();
   });
   $("module-view").hidden = !axisKeys("module").length;
-  $("opaque-toggle").addEventListener("click", () => setOpaqueHidden(!state.hideOpaque));
+  $("legend").addEventListener("click", ev => {
+    const button = ev.target.closest("[data-line]");
+    if (button && button.getAttribute("aria-disabled") !== "true") toggleLineType(button.dataset.line);
+  });
   $("module-view").addEventListener("click", () => setModuleView(!state.moduleView));
   bindSlider("zone-gap", "zone-gap-val", "zoneGap", "zone-gap", drawLinks);
   bindSlider("group-join", "group-join-val", "groupJoin", "group-join");

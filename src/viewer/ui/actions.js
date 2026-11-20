@@ -6,7 +6,7 @@ import { advanceForceSimulation, arrangeForces, createForceSimulation, framePosi
 import { arrangeRadial } from "../layout-radial.js";
 import { S } from "../strings.js";
 import {
-  state, activeModel, activePositions, entityById, estimatedBox, isEditing, isOpaqueHidden, axisKeys, kindOf, moduleOf, pushUndo, popUndo, savePref, tileOf, BOX_WIDTH,
+  state, activeModel, activePositions, entityById, estimatedBox, isEditing, isRelationHidden, axisKeys, kindOf, moduleOf, pushUndo, popUndo, savePref, tileOf, BOX_WIDTH,
 } from "./state.js";
 import { playArrangement } from "./arrange-animation.js";
 import { view } from "./view.js";
@@ -105,16 +105,15 @@ export function setModuleView(on) {
 }
 
 /**
- * Shows or hides opaque references in both views (a per-viewer drawing setting: no position changes). A hidden relation
- * that is selected is deselected; a selected module arrow that gets hidden falls back to the summary in the module panel.
+ * Switches one line type (legend entry) on or off: a per-viewer drawing setting, nothing moves. A selected relation
+ * that gets hidden is deselected; a selected module arrow that gets hidden falls back to the summary in the module panel.
  */
-export function setOpaqueHidden(on) {
-  if (state.hideOpaque === on) return;
-  state.hideOpaque = on;
-  savePref("hide-opaque", on);
+export function toggleLineType(type) {
+  if (state.hiddenLines.has(type)) state.hiddenLines.delete(type); else state.hiddenLines.add(type);
+  savePref("hidden-lines", state.hiddenLines);
   if (state.sel && state.sel.kind === "rel") {
     const relation = activeModel().relations.find(r => r.id === state.sel.id);
-    if (relation && isOpaqueHidden(relation)) state.sel = null;
+    if (relation && isRelationHidden(relation)) state.sel = null;
   }
   refresh();
 }

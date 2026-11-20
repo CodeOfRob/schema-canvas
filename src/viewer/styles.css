@@ -26,6 +26,10 @@ header > div:first-child { min-width: 0; flex: 1 1 420px; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px; }
 .fatal { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--del-bg); color: var(--del); font-weight: 500; }
 .chip.s-opaque { border: 1px dashed var(--muted); color: var(--muted); }
+/* Legend entries that switch their relation lines on and off; off = dimmed and struck through. */
+button.chip { cursor: pointer; }
+button.chip[aria-pressed="false"] { opacity: 0.45; text-decoration: line-through; }
+button.chip[aria-disabled="true"] { cursor: default; }
 .chip { display: inline-flex; align-items: center; padding: 1px 7px; border-radius: 999px; font: 500 11px var(--font-body); border: 1px solid transparent; white-space: nowrap; }
 .s-added { color: var(--add); background: var(--add-bg); }
 .s-renamed, .s-moved, .s-merged { color: var(--ren); background: var(--ren-bg); }
