@@ -1,5 +1,5 @@
 // Infinite canvas: tables as absolutely positioned boxes in a translated + scaled "world", relations as SVG.
-import { boxBorderPoint } from "../geometry.js";
+import { boxBorderPoint, islandsWithin } from "../geometry.js";
 import { freezeModulePositions } from "../layout.js";
 import { STATUS_LABEL, S } from "../strings.js";
 import {
@@ -126,18 +126,7 @@ function drawZones() {
   for (const kind of axisKeys("kind")) {
     const cls = axisClass("kind", kind);
     const boxes = [...world.querySelectorAll(".ent." + cls)].map(el => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }));
-    if (!boxes.length) continue;
-    const parent = boxes.map((_, i) => i);
-    const find = i => (parent[i] === i ? i : (parent[i] = find(parent[i])));
-    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
-      const A = boxes[i], B = boxes[j];
-      const dx = Math.max(0, Math.max(A.x, B.x) - Math.min(A.x + A.w, B.x + B.w));
-      const dy = Math.max(0, Math.max(A.y, B.y) - Math.min(A.y + A.h, B.y + B.h));
-      if (Math.hypot(dx, dy) <= state.zoneGap) parent[find(i)] = find(j);
-    }
-    const islands = {};
-    boxes.forEach((b, i) => (islands[find(i)] = islands[find(i)] || []).push(b));
-    for (const group of Object.values(islands)) world.insertBefore(zoneElement("zone " + cls, group, pad, '<span class="zl">' + esc(axisLabel("kind", kind)) + "</span>"), world.firstChild);
+    for (const group of islandsWithin(boxes, state.zoneGap)) world.insertBefore(zoneElement("zone " + cls, group, pad, '<span class="zl">' + esc(axisLabel("kind", kind)) + "</span>"), world.firstChild);
   }
   if (!isEditing()) return;
   for (const g of state.layout.groups) {

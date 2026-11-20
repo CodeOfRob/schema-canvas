@@ -31,3 +31,20 @@ export function positionsAtOrigin(nodes, [originX, originY] = [0, 0]) {
   for (const n of nodes) pos[n.id] = [Math.round(n.x - n.w / 2 - minX + originX), Math.round(n.y - n.h / 2 - minY + originY)];
   return { pos, shift: [originX - minX, originY - minY] };
 }
+
+/** Edge-to-edge distance of two top-left boxes ({x, y, w, h}); 0 when they touch or overlap. */
+export function boxGap(a, b) {
+  const dx = Math.max(0, Math.max(a.x, b.x) - Math.min(a.x + a.w, b.x + b.w));
+  const dy = Math.max(0, Math.max(a.y, b.y) - Math.min(a.y + a.h, b.y + b.h));
+  return Math.hypot(dx, dy);
+}
+
+/** Boxes grouped into islands: two boxes at most gap apart (edge to edge, also through a chain) share one. */
+export function islandsWithin(boxes, gap) {
+  const parent = boxes.map((_, i) => i);
+  const find = i => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) if (boxGap(boxes[i], boxes[j]) <= gap) parent[find(i)] = find(j);
+  const islands = new Map();
+  boxes.forEach((b, i) => { const root = find(i); if (!islands.has(root)) islands.set(root, []); islands.get(root).push(b); });
+  return [...islands.values()];
+}
