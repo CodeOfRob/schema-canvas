@@ -32,6 +32,7 @@ target.model.json, layout.json, config.json ┘   (validate, warn)      (esbuild
 | `src/viewer/diff.js` | Current vs. target diff from `origin` references |
 | `src/viewer/layout.js` | Automatic layouts (stress layout by relations, by data kind) |
 | `src/viewer/layout-radial.js` | Star layout around one table |
+| `src/viewer/layout-layered.js` | Layered module layout from `dependsOn` (foundation at the bottom) |
 | `src/viewer/classify.js` | One resolver for the classification axes (data kind, module) |
 | `src/viewer/tiles.js` | The tile rule: which relations are no line (tile or badge), per-viewer tile preference |
 | `src/viewer/module-graph.js` | Module view as data: nodes, edges with foreign-key counts, layer-rule violations |

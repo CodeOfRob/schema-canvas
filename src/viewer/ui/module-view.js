@@ -33,7 +33,7 @@ function moduleBoxHtml(node) {
 
 /** Replaces the canvas content with the module boxes and their arrows. */
 export function renderModuleCanvas(world, links) {
-  const graph = shownModuleGraph(), pos = placeModules(graph.nodes, graph.edges, state.layout.modules, MODULE_BOX);
+  const graph = shownModuleGraph(), pos = placeModules(graph, state.layout.modules, MODULE_BOX);
   world.querySelectorAll(".ent, .zone, .mod").forEach(n => n.remove());
   const frag = document.createDocumentFragment();
   for (const node of graph.nodes) {

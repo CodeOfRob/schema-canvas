@@ -1,4 +1,5 @@
 // Automatic arrangements. Pure functions: boxes in ({id, x, y, w, h}, top-left), positions out ({id: [x, y]}).
+import { arrangeLayered } from "./layout-layered.js";
 
 const ORIGIN_X = 60, ORIGIN_Y = 80;
 const OVERLAP_EPSILON = 1e-6;
@@ -197,26 +198,39 @@ const MODULE_GAP = { gapX: 120, gapY: 110 };
 const MODULES_PER_ROW = 4;
 let derivedModules = { signature: "", pos: {} };
 
-/** The derived arrangement (relations pull modules together); memoised because the stress layout is not cheap. */
-function deriveModulePositions(nodes, edges, box) {
+/**
+ * The derived arrangement. With layer rules (any module declares dependsOn) the modules are layered by their declared
+ * dependencies (layout-layered.js): cheap, and it only reads dependsOn plus foreign-key edges. Without them related
+ * modules are pulled together by the stress layout, memoised because it is not cheap. The memo key is built from the
+ * passed edges only, so callers must pass every edge (also the ones a viewer hides) to keep positions stable.
+ */
+function deriveModulePositions(graph, box) {
+  if (graph.layered) {
+    const pos = arrangeLayered(graph.nodes, graph.edges, box, MODULE_GAP);
+    return Object.fromEntries(Object.entries(pos).map(([key, [x, y]]) => [key, [x + ORIGIN_X, y + ORIGIN_Y]]));
+  }
+  const { nodes, edges } = graph;
   const signature = [box.w, box.h, nodes.map(n => n.key).join("|"), edges.map(e => e.key).join("|")].join("#");
   if (derivedModules.signature !== signature) {
     const boxes = nodes.map((n, i) => ({ id: n.key, x: (i % MODULES_PER_ROW) * 300, y: Math.floor(i / MODULES_PER_ROW) * 200, ...box }));
     derivedModules = { signature, pos: arrangeByRelations(boxes, edges, MODULE_GAP).pos };
   }
-  return derivedModules.pos;
+  return structuredClone(derivedModules.pos);
 }
 
 /**
  * Positions of the shown module boxes: a saved position wins; with none saved the derived arrangement is used;
  * modules without a saved position next to saved ones go in rows below everything already placed (never overlapping).
  * Saved keys of modules that are not shown are ignored here and stay in the saved map untouched.
- * @param nodes [{key}] shown modules, @param edges [{key, from, to}], @param saved {key: [x, y]}, @param box {w, h}
+ * @param graph {nodes: [{key, dependsOn?, unassigned?}], edges: [{key, kind, from, to}], layered} the shown module graph
+ *   (module-graph.js), with ALL its edges: hiding some is a drawing matter and must not move a box
+ * @param saved {key: [x, y]}, @param box {w, h}
  * @returns {key: [x, y]} for every node
  */
-export function placeModules(nodes, edges, saved, box) {
+export function placeModules(graph, saved, box) {
+  const { nodes } = graph;
   const savedNodes = nodes.filter(n => saved[n.key]);
-  if (!savedNodes.length) return structuredClone(deriveModulePositions(nodes, edges, box));
+  if (!savedNodes.length) return deriveModulePositions(graph, box);
   const pos = Object.fromEntries(savedNodes.map(n => [n.key, [...saved[n.key]]]));
   const fresh = nodes.filter(n => !saved[n.key]);
   const left = Math.min(...savedNodes.map(n => pos[n.key][0]));

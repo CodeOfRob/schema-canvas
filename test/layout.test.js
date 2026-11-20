@@ -75,12 +75,14 @@ import { freezeModulePositions, placeModules } from "../src/viewer/layout.js";
 
 const MODULE_BOX = { w: 220, h: 92 };
 const moduleNodes = keys => keys.map(key => ({ key }));
-const moduleEdges = pairs => pairs.map(([from, to]) => ({ key: from + "->" + to, from, to }));
+const moduleEdges = (pairs, kind = "fk") => pairs.map(([from, to]) => ({ key: JSON.stringify([from, to, kind]), kind, from, to }));
 const moduleBoxes = (keys, pos) => keys.map(key => ({ id: key, x: pos[key][0], y: pos[key][1], ...MODULE_BOX }));
+// The module-graph.js shape placeModules reads: nodes, edges and whether any module declares dependsOn.
+const moduleGraph = (nodes, edges = []) => ({ nodes: typeof nodes[0] === "string" ? moduleNodes(nodes) : nodes, edges, layered: nodes.some(n => n.dependsOn !== undefined) });
 
 test("placeModules without saved positions equals the derived arrangement and is deterministic", () => {
   const keys = ["sales", "catalog", "billing", "none"], edges = moduleEdges([["sales", "catalog"], ["billing", "sales"]]);
-  const a = placeModules(moduleNodes(keys), edges, {}, MODULE_BOX), b = placeModules(moduleNodes(keys), edges, {}, MODULE_BOX);
+  const a = placeModules(moduleGraph(keys, edges), {}, MODULE_BOX), b = placeModules(moduleGraph(keys, edges), {}, MODULE_BOX);
   assert.deepEqual(a, b);
   assert.deepEqual(Object.keys(a).sort(), [...keys].sort());
   assert.equal(overlapCount(moduleBoxes(keys, a), a), 0);
@@ -89,7 +91,7 @@ test("placeModules without saved positions equals the derived arrangement and is
 test("placeModules: a saved position wins, unknown saved keys are ignored (and not part of the result)", () => {
   const keys = ["sales", "catalog"];
   const saved = { sales: [500, 700], catalog: [20, 30], gone: [1, 1] };
-  const pos = placeModules(moduleNodes(keys), moduleEdges([["sales", "catalog"]]), saved, MODULE_BOX);
+  const pos = placeModules(moduleGraph(keys, moduleEdges([["sales", "catalog"]])), saved, MODULE_BOX);
   assert.deepEqual(pos, { sales: [500, 700], catalog: [20, 30] });
   assert.deepEqual(saved.gone, [1, 1]);
 });
@@ -97,7 +99,7 @@ test("placeModules: a saved position wins, unknown saved keys are ignored (and n
 test("placeModules: modules without saved position are placed free next to the saved ones", () => {
   const keys = ["sales", "catalog", "billing", "shipping", "none"];
   const saved = { sales: [100, 100], catalog: [150, 120] }; // saved boxes overlap each other on purpose: they stay as saved
-  const pos = placeModules(moduleNodes(keys), moduleEdges([["billing", "sales"]]), saved, MODULE_BOX);
+  const pos = placeModules(moduleGraph(keys, moduleEdges([["billing", "sales"]])), saved, MODULE_BOX);
   assert.deepEqual(pos.sales, [100, 100]);
   assert.deepEqual(pos.catalog, [150, 120]);
   const fresh = ["billing", "shipping", "none"];
@@ -109,16 +111,42 @@ test("placeModules: modules without saved position are placed free next to the s
 });
 
 test("placeModules: the reserved key none is positioned like any other key", () => {
-  const pos = placeModules(moduleNodes(["none", "sales"]), [], { none: [5, 6] }, MODULE_BOX);
+  const pos = placeModules(moduleGraph(["none", "sales"]), { none: [5, 6] }, MODULE_BOX);
   assert.deepEqual(pos.none, [5, 6]);
   assert.equal(pos.sales.length, 2);
 });
 
 test("placeModules does not mutate its inputs", () => {
-  const saved = { sales: [1, 2] }, nodes = moduleNodes(["sales", "catalog"]);
-  const before = JSON.stringify([saved, nodes]);
-  placeModules(nodes, [], saved, MODULE_BOX);
-  assert.equal(JSON.stringify([saved, nodes]), before);
+  const saved = { sales: [1, 2] }, graph = moduleGraph([{ key: "sales", dependsOn: ["catalog"] }, { key: "catalog", dependsOn: [] }]);
+  const before = JSON.stringify([saved, graph]);
+  placeModules(graph, saved, MODULE_BOX);
+  placeModules(graph, {}, MODULE_BOX);
+  assert.equal(JSON.stringify([saved, graph]), before);
+});
+
+test("placeModules: once a module declares dependsOn the modules are layered, foundation at the bottom", () => {
+  const nodes = [{ key: "ordering", dependsOn: ["catalog"] }, { key: "catalog", dependsOn: [] }, { key: "billing", dependsOn: ["ordering"] }, { key: "loose" }];
+  const pos = placeModules(moduleGraph(nodes, moduleEdges([["loose", "billing"]])), {}, MODULE_BOX);
+  assert.ok(pos.catalog[1] > pos.ordering[1] && pos.ordering[1] > pos.billing[1] && pos.billing[1] > pos.loose[1]);
+  assert.equal(overlapCount(moduleBoxes(Object.keys(pos), pos), pos), 0);
+  assert.equal(Math.min(...Object.values(pos).map(p => p[0])), 60, "same page origin as the other arrangements");
+});
+
+test("placeModules (layered): with every module declared, only the config decides; opaque edges never do", () => {
+  const nodes = [{ key: "ordering", dependsOn: ["catalog"] }, { key: "catalog", dependsOn: [] }, { key: "billing", dependsOn: ["ordering", "catalog"] }];
+  const currentModel = moduleGraph(nodes, moduleEdges([["ordering", "catalog"], ["billing", "ordering"]]));
+  const targetModel = moduleGraph([...nodes, { key: "none", unassigned: true }], [...moduleEdges([["catalog", "billing"], ["none", "catalog"]]), ...moduleEdges([["catalog", "ordering"]], "opaque")]);
+  const current = placeModules(currentModel, {}, MODULE_BOX), target = placeModules(targetModel, {}, MODULE_BOX);
+  for (const key of ["ordering", "catalog", "billing"]) assert.deepEqual(target[key], current[key], key);
+  const withoutOpaque = placeModules({ ...targetModel, edges: targetModel.edges.filter(e => e.kind !== "opaque") }, {}, MODULE_BOX);
+  assert.deepEqual(withoutOpaque, target, "hiding opaque edges moves nothing");
+});
+
+test("placeModules (layered): saved positions still win", () => {
+  const graph = moduleGraph([{ key: "ordering", dependsOn: ["catalog"] }, { key: "catalog", dependsOn: [] }]);
+  const pos = placeModules(graph, { ordering: [7, 8] }, MODULE_BOX);
+  assert.deepEqual(pos.ordering, [7, 8]);
+  assert.equal(pos.catalog.length, 2);
 });
 
 test("freezeModulePositions: first drag freezes every shown module, keeps saved and unknown (hidden) keys untouched", () => {

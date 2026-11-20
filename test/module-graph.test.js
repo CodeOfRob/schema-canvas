@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { normalizeConfig } from "../src/model/page-data.js";
 import { normalizeModel } from "../src/model/normalize.js";
 import { classificationAxes, classify } from "../src/viewer/classify.js";
-import { buildModuleGraph } from "../src/viewer/module-graph.js";
+import { buildModuleGraph, declaresLayers } from "../src/viewer/module-graph.js";
 import { tileOf } from "../src/viewer/tiles.js";
 
 const table = (name, module) => ({ name, ...(module ? { module } : {}), fields: [{ name: "id", type: "Int", pk: true }, { name: "refId", type: "Int", fk: true }] });
@@ -33,6 +33,15 @@ test("one node per configured module in config order, unassigned tables last, wi
   assert.equal(g.nodes[0].color, "#0060a3");
   assert.equal(g.nodes.at(-1).unassigned, true);
   assert.deepEqual(g.nodes.find(n => n.key === "ordering").entityIds, ["Order", "OrderLine"]);
+});
+
+test("nodes carry their declared dependsOn (copied) for the layered arrangement; undeclared modules carry none", () => {
+  const g = graph(LAYERS);
+  assert.deepEqual(g.nodes.map(n => [n.key, n.dependsOn]), [["catalog", undefined], ["ordering", ["catalog"]], ["billing", ["ordering"]], ["shipping", undefined], ["none", undefined]]);
+  assert.ok(!Object.hasOwn(g.nodes[0], "dependsOn"), "no key at all when undeclared");
+  assert.equal(declaresLayers(LAYERS), true);
+  assert.equal(declaresLayers({ catalog: { label: "Catalog" } }), false);
+  assert.equal(declaresLayers({ catalog: { label: "Catalog", dependsOn: [] } }), true, "an empty list declares a foundation");
 });
 
 test("edges between modules carry every relation; relations inside a module only count on the node", () => {

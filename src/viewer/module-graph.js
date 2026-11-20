@@ -29,6 +29,11 @@ function reachable(start, adjacency) {
   return seen;
 }
 
+/** True once any module declares dependsOn (an empty list counts): turns on the layer rules and the layered arrangement. */
+export function declaresLayers(modules) {
+  return Object.values(modules).some(spec => spec.dependsOn !== undefined);
+}
+
 /**
  * Layer rule, only when at least one module declares dependsOn (otherwise nothing is judged):
  * - "cycle": the edge lies on a cycle between modules (the target module reaches the source again);
@@ -37,8 +42,7 @@ function reachable(start, adjacency) {
  * Only foreign-key edges are judged and take part in cycles; opaque edges never do.
  */
 function markViolations(edges, modules) {
-  const layered = Object.values(modules).some(spec => spec.dependsOn !== undefined);
-  if (!layered) return false;
+  if (!declaresLayers(modules)) return false;
   const allowed = allowedDependencies(modules);
   const judged = edges.filter(e => e.kind === "fk" && e.from !== UNASSIGNED && e.to !== UNASSIGNED);
   const adjacency = new Map();
@@ -55,7 +59,7 @@ function markViolations(edges, modules) {
  * @param {{ modules: object, moduleOf: (entity) => string | null, tileOf: (relation) => { other: string } | null }} options
  *   modules: config.modules; moduleOf: the module axis resolver; tileOf: the tile rule (relations that are no line)
  * @returns {{
- *   nodes: { key, label, color?, unassigned?: true, entityIds: string[], tableCount, internalRelationCount, hiddenRelationCount }[],
+ *   nodes: { key, label, color?, dependsOn?: string[], unassigned?: true, entityIds: string[], tableCount, internalRelationCount, hiddenRelationCount }[],
  *   edges: { key, kind: "fk" | "opaque", from, to, relations: string[], violation: null | "cycle" | "not-allowed" }[],
  *   layered: boolean
  * }} nodes in config order with the unassigned tables last (only when there are any). Relations to tile or badge
@@ -68,7 +72,10 @@ export function buildModuleGraph(model, { modules, moduleOf, tileOf }) {
     const key = moduleOf(e);
     return [e.id, key && modules[key] ? key : UNASSIGNED];
   }));
-  const nodes = Object.entries(modules).map(([key, spec]) => ({ key, label: spec.label, ...(spec.color ? { color: spec.color } : {}), entityIds: [], tableCount: 0, internalRelationCount: 0, hiddenRelationCount: 0 }));
+  const nodes = Object.entries(modules).map(([key, spec]) => ({
+    key, label: spec.label, ...(spec.color ? { color: spec.color } : {}), ...(spec.dependsOn !== undefined ? { dependsOn: [...spec.dependsOn] } : {}),
+    entityIds: [], tableCount: 0, internalRelationCount: 0, hiddenRelationCount: 0,
+  }));
   const unassigned = { key: UNASSIGNED, label: "", unassigned: true, entityIds: [], tableCount: 0, internalRelationCount: 0, hiddenRelationCount: 0 };
   const nodeByKey = new Map([...nodes, unassigned].map(n => [n.key, n]));
   for (const e of model.entities) {

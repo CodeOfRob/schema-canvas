@@ -1,6 +1,7 @@
 // Page chrome around the canvas: header counts, toolbar state, menus, kind filter, enums, keyboard, full screen.
 import { normalizeModel, toDocument } from "../../model/normalize.js";
 import { normalizeLayout } from "../../model/page-data.js";
+import { declaresLayers } from "../module-graph.js";
 import { saveJsonFile, pickJsonFile } from "../storage.js";
 import { S, STATUS_LABEL } from "../strings.js";
 import { applyTransform, clearMultiSelection, drawLinks, fitAll, renderCanvas, setZoom } from "./canvas.js";
@@ -45,7 +46,7 @@ export function renderChrome() {
   document.querySelectorAll(".table-view-only").forEach(el => { el.disabled = modules; });
   const arrangeRel = $("arrange-rel");
   arrangeRel.disabled = modules && !Object.keys(state.layout.modules).length;
-  arrangeRel.title = modules ? S.arrangeModulesTitle : S.arrangeByRelationsTitle;
+  arrangeRel.title = !modules ? S.arrangeByRelationsTitle : declaresLayers(state.page.config.modules) ? S.arrangeModulesLayeredTitle : S.arrangeModulesTitle;
   $("module-view").setAttribute("aria-pressed", String(modules));
   // The data-kind filter acts on tables only, which the module view does not draw. The module filter stays: it hides
   // modules in the module view and their tables in the table view (docs/config.md: "both views").

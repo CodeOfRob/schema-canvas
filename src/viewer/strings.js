@@ -41,6 +41,7 @@ export const S = {
   tileListBadge: name => name + " (badge)",
   arrangeByRelations: "Arrange by relations",
   arrangeModulesTitle: "Forget the dragged module positions and arrange the modules by their relations again",
+  arrangeModulesLayeredTitle: "Forget the dragged module positions and arrange the modules in layers by dependsOn again: foundation at the bottom, dependent modules above",
   arrangeByRelationsTitle: "Related tables close together, few crossing lines and few lines under tables",
   arrangeRadial: "Arrange as a star",
   arrangeRadialTitle: "The selected table (or the most central one) in the middle, every further relation step one ring further out, each branch in its own slice",
