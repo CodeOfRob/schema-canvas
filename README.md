@@ -39,7 +39,8 @@ mail, host anywhere or open from disk.
 - **Tile mode** per table: relations to a busy hub table are drawn as small name tiles or as a badge
   "-> Table" on the foreign-key field instead of long lines.
 - **Module view**: one box per module with the number of foreign keys between modules; layer rules from
-  `dependsOn` mark forbidden directions and cycles in red. Shows schema (FK) coupling only.
+  `dependsOn` mark forbidden directions and cycles in red and arrange the boxes in layers. Shows schema (FK)
+  coupling only; opaque references (no foreign key) can be hidden.
 - **Storage**: browser localStorage, JSON file export / import, or a shared claude.ai artifact database, with a
   keep-mine / take-theirs conflict dialog.
 - Index display, enum list, inspector for tables, fields and relations, lasso multi-select, full screen,

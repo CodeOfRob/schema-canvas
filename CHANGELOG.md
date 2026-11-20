@@ -9,6 +9,10 @@
 - Tile tables: `tileTables` entries may be `{ "name", "display": "badge" }`; the relations are then shown as a
   badge "-> Table" on the foreign-key field instead of a tile. The inspector offers lines / tile / badge per
   viewer. Preferences saved by earlier versions keep working.
+- Module view: once a module declares `dependsOn`, the boxes are arranged in layers (foundation at the bottom,
+  a module above everything it depends on); modules without `dependsOn` fall back to their foreign keys.
+- **View -> Opaque references** hides references without a foreign key in the table and the module view (drawing
+  only, positions stay); the legend counts the hidden ones.
 - `dataKinds` entries reject unknown keys (a typo such as `colour` was silently dropped before).
 
 - Fix: a state saved against an older built-in target model (in this browser or in the shared store) no longer

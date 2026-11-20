@@ -110,6 +110,29 @@ inspector lists it.
 They get their own dashed grey arrow, are never red (an opaque reference upward is allowed by design), do not take part
 in cycle detection and are not counted as foreign keys inside a module.
 
+**View -> Opaque references** (shown only when a model has any) hides them in both views, for your browser only.
+Hiding changes the drawing, never a position; the legend then says how many are hidden, and their diff colours are
+hidden with them. Red arrows are never opaque, so nothing red can be hidden.
+
+#### Arrangement of the module view
+
+Without any `dependsOn` the boxes are placed by their foreign keys (related modules close together). Once any module
+declares `dependsOn`, the boxes are arranged in **layers**, the foundation at the bottom:
+
+- a module's layer is its longest path down over `dependsOn`, so every module sits above everything it depends on;
+  `"dependsOn": []` puts a module on the bottom layer;
+- a module without `dependsOn` falls back to its foreign-key arrows (opaque ones never count); if those form a cycle,
+  the arrow that would close it is ignored for the arrangement, keeping declared `dependsOn` and the module earlier in
+  `modules`;
+- inside a layer the order follows the arrows to reduce crossings, otherwise the order of `modules`;
+- a layer wider than a balanced grid of all modules wraps into staggered sub-rows;
+- "(no module)" is not part of any layer: it sits to the right, so tables with or without a module do not move the
+  other boxes. With every module declared, the arrangement depends on the configuration alone, so both tabs show
+  the modules in the same places.
+
+Dragged positions (`modules` in layout.json) always win; **Arrange** in the module view forgets them and shows the
+derived arrangement again.
+
 ## layout.json
 
 Positions are kept apart from the model, so regenerating a model never wipes them.
