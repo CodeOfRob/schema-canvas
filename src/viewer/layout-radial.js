@@ -144,6 +144,19 @@ function radialTree(members, root, graph) {
 // them (about 115) take 0.2-0.35 s. The best centre ranked anywhere from 1st to 60th by the old centrality guess, so a
 // short list of "central" tables would miss it; beyond this many, the most central ones are tried (bounded wait).
 const MAX_CENTRE_CANDIDATES = 120;
+// Bigger models: one candidate costs about tables² + lines² checks (overlap removal over table pairs, crossings over line
+// pairs). Measured per candidate: 3.5 ms at 130 tables / 197 lines, 37 ms at 500 / 734, so 120 candidates took 4.4 s
+// there. This budget keeps the full search up to the fixture size and a real model of the same size (about 53 000
+// per candidate) and caps the wait near half a second on 500 tables. A size cap, not a clock: the same model always
+// tries the same candidates on any machine, so it always gives the same star.
+const CENTRE_SEARCH_BUDGET = 12e6;
+const MIN_CENTRE_CANDIDATES = 5;
+
+/** How many centres the star tries for a model of this size (the most central ones first). */
+export function centreCandidateCount(tableCount, lineCount) {
+  const perCandidate = tableCount * tableCount + lineCount * lineCount;
+  return Math.max(MIN_CENTRE_CANDIDATES, Math.min(MAX_CENTRE_CANDIDATES, Math.floor(CENTRE_SEARCH_BUDGET / perCandidate)));
+}
 
 /** Smallest mean number of relation steps to all others first (ties: more relations, then id). */
 function byCentrality(members, { adj, degree }) {
@@ -199,7 +212,7 @@ export function arrangeRadial(boxes, relations, { centre = null, rank = () => 0 
   const groups = components(boxes.map(b => b.id), graph.adj);
   if (centre && groups[0].includes(centre)) return { pos: layoutAround(centre, boxes, graph, groups, rank), centre };
   let best = null;
-  for (const candidate of byCentrality(groups[0], graph).slice(0, MAX_CENTRE_CANDIDATES)) {
+  for (const candidate of byCentrality(groups[0], graph).slice(0, centreCandidateCount(boxes.length, relations.length))) {
     const pos = layoutAround(candidate, boxes, graph, groups, rank);
     const score = weightedArrangementScore(boxes, pos, relations).total;
     // Candidates come in centrality order, not id order: an equal score goes to the smaller id.

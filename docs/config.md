@@ -162,7 +162,9 @@ Every table of the biggest group is tried as the centre (up to 120) and the layo
 crossings plus lines under tables, then mean line length and area as smaller terms (weights in
 `ARRANGEMENT_WEIGHTS`, `src/viewer/layout.js`). Equal scores go to the table whose id sorts first. The selection
 plays no part, and separate small groups take their most central table (ties: smallest id), so the same model
-always gives the same star. On 130 tables this takes about 0.3 s.
+always gives the same star. On 130 tables this takes about 0.3 s. Bigger models try fewer centres, the most central
+ones first, so the wait stays near half a second (500 tables: 15 centres); the number depends on the model's size
+only, never on the machine.
 
 #### Modules in the table view: Arrange by forces
 

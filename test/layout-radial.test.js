@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { arrangeRadial } from "../src/viewer/layout-radial.js";
+import { arrangeRadial, centreCandidateCount } from "../src/viewer/layout-radial.js";
 import { weightedArrangementScore } from "../src/viewer/layout.js";
 import { largeModel } from "./large-model.js";
 
@@ -55,4 +55,21 @@ test("equal scores: the centre with the smallest id wins, whatever the order of 
   const relations = [{ from: "a", to: "b" }, { from: "b", to: "c" }, { from: "c", to: "d" }, { from: "d", to: "a" }];
   assert.equal(arrangeRadial(boxes, relations).centre, "a");
   assert.equal(arrangeRadial([...boxes].reverse(), relations).centre, "a");
+});
+
+test("the centre search is bounded by size, not by the clock: all candidates up to the fixture size, few on a huge model", () => {
+  // The 130-table fixture (197 lines) and a real model of that size keep the full search.
+  assert.equal(centreCandidateCount(130, 197), 120);
+  assert.equal(centreCandidateCount(138, 185), 120);
+  // 500 tables: one candidate costs about 10x as much, so far fewer are tried; never fewer than a handful.
+  const big = centreCandidateCount(500, 734);
+  assert.ok(big >= 5 && big <= 20, "500 tables: " + big + " candidates");
+  assert.equal(centreCandidateCount(5000, 9000), 5);
+});
+
+test("on a 500-table model the bounded search stays deterministic", () => {
+  const model = largeModel(20261120, { tables: 500, modules: 60, relations: 1420 });
+  const hubs = new Set(model.hubTables);
+  const relations = model.relations.filter(r => !hubs.has(r.from) && !hubs.has(r.to));
+  assert.deepEqual(arrangeRadial(model.boxes, relations), arrangeRadial(model.boxes, relations));
 });

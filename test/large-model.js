@@ -5,9 +5,10 @@
 // tables without a module and two without any relation.
 import { estimateHeight, seededRandom } from "../src/viewer/layout.js";
 
-const TABLES = 130, MODULES = 18, RELATIONS = 370, WITHOUT_MODULE = 4, ISOLATED = 2;
+const WITHOUT_MODULE = 4, ISOLATED = 2;
 
-export function largeModel(seed = 20261120) {
+/** size: the default is the 130-table fixture; a bigger one (same rules) measures how the arrangements scale. */
+export function largeModel(seed = 20261120, { tables: TABLES = 130, modules: MODULES = 18, relations: RELATIONS = 370 } = {}) {
   const random = seededRandom(seed);
   const pick = list => list[Math.floor(random() * list.length)];
   const weights = Array.from({ length: MODULES }, () => 0.15 + random() * random());

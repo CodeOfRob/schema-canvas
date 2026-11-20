@@ -24,7 +24,8 @@
   same start, so moving it back restores the earlier layout; letting go is one undo step.
 - **Arrange as a star** tries every table as the centre and keeps the best layout (fewest crossings and lines
   under tables, then shorter lines and smaller area); the same model always gives the same star. The selected table
-  no longer becomes the centre.
+  no longer becomes the centre. Big models try fewer centres (by size, so still deterministic): 500 tables take about
+  0.5 s instead of 4.4 s.
 - **Module tags**: in the table view each table shows its module as a small coloured tag on its top edge, and a
   **Modules** legend lists the module colours (same colours as the module view and the filter). Pages without
   `modules` look as before.
