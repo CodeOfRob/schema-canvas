@@ -36,6 +36,9 @@
   coloured left edge of each table then shows its module. Pages with only one of the two look as before.
 - `dataKinds` entries reject unknown keys (a typo such as `colour` was silently dropped before).
 
+- Fix: a state from another viewer that arrived while you were dragging no longer replaces your newer saved state
+  afterwards (it showed an older state than the shared store held). It is dropped when your later save already replaced
+  it, and the conflict dialog asks when it arrived while your save was being written.
 - Fix: a state saved against an older built-in target model (in this browser or in the shared store) no longer
   silently replaces the newer target of a rebuilt page. Snapshots record the fingerprint of the built-in target
   they were based on (`base`); on a mismatch the page asks whether to use the page's version or keep the saved

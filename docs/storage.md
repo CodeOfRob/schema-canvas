@@ -70,7 +70,15 @@ never allowed to silently replace unsaved local edits:
 - No unsaved local edits: the remote state is adopted.
 - Unsaved local edits and a different remote state arrives: a dialog asks **keep mine** (save the local state over the
   remote one) or **take theirs** (drop local edits, adopt the remote state).
-- The echo of your own save is ignored. A remote snapshot that arrives while you drag waits until you stop.
+- The echo of your own save is ignored. A remote snapshot that arrives while you drag (or while an arrangement
+  animates) waits until you stop. When it is looked at again, the order in the store decides: the store holds one
+  state and delivers states in the order it stores them, so arrival order is what counts (the `savedAt` clocks of
+  different computers are not compared).
+  - A save of yours began after it arrived: your save replaced it in the store, so it is dropped; you keep what the
+    store holds.
+  - It arrived while a save of yours was being written: which of the two the store kept is unknown, so the dialog
+    asks.
+  - Otherwise the rules above apply.
 - A failing save is reported and the edits stay marked as unsaved.
 - Live sync starts only after the question about a saved state from another page version (above) is answered.
 

@@ -121,3 +121,76 @@ test("a remote snapshot waits while the user is busy (drag, arrangement animatio
   assert.equal(h.events.adopted.length, 0, "the gesture's result is not replaced silently");
   assert.equal(h.events.conflicts.length, 1);
 });
+
+// ---------- a waiting remote snapshot against saves made meanwhile (fake timers, no wall clock) ----------
+// The store holds one document; a remote snapshot that arrived before a local write began was overwritten by it.
+function controlledHarness(t, { busy }) {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const events = { adopted: [], conflicts: [], saved: [] };
+  const writes = [];
+  let local = { value: 1 }, remoteListener = null;
+  const store = {
+    kind: "fake",
+    save(payload) { return new Promise(resolve => writes.push(() => { events.saved.push(payload); resolve(); })); },
+    subscribe(onRemote) { remoteListener = onRemote; return () => {}; },
+  };
+  const sync = createSync({
+    store,
+    snapshot: () => ({ format: "t", ...local }),
+    validate: raw => { if (!raw || raw.format !== "t") throw new Error("bad"); return raw; },
+    adopt: payload => { events.adopted.push(payload); local = { value: payload.value }; },
+    onConflict: (payload, choice) => events.conflicts.push({ payload, choice }),
+    onStatus: () => {},
+    isBusy: () => busy.now,
+    delayMs: 900,
+  });
+  sync.start();
+  const flush = () => new Promise(resolve => setImmediate(resolve));
+  return {
+    sync, events, local: () => local,
+    edit: v => { local = { value: v }; sync.schedule(); },
+    remote: raw => remoteListener(raw),
+    /** Lets the store finish the oldest running write. */
+    finishWrite: async () => { writes.shift()(); await flush(); },
+    tick: async ms => { t.mock.timers.tick(ms); await flush(); },
+  };
+}
+
+test("a waiting remote snapshot that a later local save overwrote is not adopted (the store holds the newer save)", async t => {
+  const busy = { now: false };
+  const h = controlledHarness(t, { busy });
+  h.edit(5);
+  busy.now = true; // e.g. a drag starts right after the edit
+  h.remote({ format: "t", value: 9, savedAt: "2026-01-01T00:00:06Z" });
+  await h.tick(900); // the debounced save of 5 starts after the remote arrived ...
+  await h.finishWrite(); // ... and lands in the store over it
+  busy.now = false; // the drag ends without moving anything: no new edit
+  await h.tick(400);
+  assert.equal(h.events.adopted.length, 0, "the older remote must not replace the newer saved state");
+  assert.equal(h.events.conflicts.length, 0, "nothing to decide: the store already holds the local save");
+  assert.equal(h.local().value, 5);
+});
+
+test("a waiting remote snapshot that arrived while a local save was being written asks (the order in the store is unknown)", async t => {
+  const busy = { now: false };
+  const h = controlledHarness(t, { busy });
+  h.edit(5);
+  await h.tick(900); // the save of 5 is being written
+  busy.now = true;
+  h.remote({ format: "t", value: 9, savedAt: "2026-01-01T00:00:07Z" });
+  await h.finishWrite();
+  busy.now = false;
+  await h.tick(400);
+  assert.equal(h.events.adopted.length, 0, "not adopted silently");
+  assert.equal(h.events.conflicts.length, 1);
+});
+
+test("a waiting remote snapshot with no local write since it arrived is adopted as before", async t => {
+  const busy = { now: true };
+  const h = controlledHarness(t, { busy });
+  h.remote({ format: "t", value: 9, savedAt: "2026-01-01T00:00:08Z" });
+  busy.now = false;
+  await h.tick(400);
+  assert.equal(h.events.adopted.length, 1);
+  assert.equal(h.local().value, 9);
+});
