@@ -35,3 +35,25 @@ test("Arrange as a star: a selected table does not change the result", async () 
     assert.deepEqual(await arrangeStar(), withoutSelection, "selected " + entity.name);
   }
 });
+
+// The force arrangement animates; the test runs it with "reduce motion" (the final layout applies at once).
+function recordViewCalls() {
+  const calls = [];
+  bindView({ renderCanvas: noop, renderPanel: noop, renderChrome: noop, flash: noop, boxOf: () => null, fitAll: () => calls.push(["fitAll"]), centerOn: noop, viewportSize: () => ({ width: 1000, height: 800 }), worldPointAt: () => [0, 0], previewPositions: pos => calls.push(["preview", structuredClone(pos)]) });
+  return calls;
+}
+globalThis.window = { matchMedia: () => ({ matches: true }), addEventListener: noop, removeEventListener: noop };
+
+test("Arrange by forces: the view is fitted to the result, then the tables are shown at their start again", async () => {
+  loadExample();
+  const calls = recordViewCalls(), start = structuredClone(state.layout.current);
+  arrange("forces");
+  await new Promise(resolve => setTimeout(resolve, 60));
+  const fit = calls.findIndex(call => call[0] === "fitAll");
+  assert.ok(fit > 0, "fitted after a preview");
+  assert.deepEqual(calls[fit - 1][1], state.layout.current, "fitted to the final layout");
+  const startShown = calls[fit + 1];
+  assert.ok(startShown && startShown[0] === "preview", "a preview follows the fit");
+  const shownIds = Object.keys(startShown[1]);
+  assert.deepEqual(startShown[1], Object.fromEntries(shownIds.map(id => [id, start[id]])), "the animation starts from the current positions");
+});

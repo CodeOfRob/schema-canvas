@@ -177,9 +177,11 @@ export function arrange(how) {
       // Hidden opaque references still pull: hiding them is drawing only, as in the module view.
       const relations = lines(), options = { moduleOf: id => moduleOf(entityById(id, model)), extra: groupPairs() };
       const final = arrangeForces(boxes, relations, { ...options, spacing: state.forceSpacing });
-      // The view is fitted to the result first, then the same simulation is replayed frame by frame.
+      // The view is fitted to the result first; the tables then go back to where they are and the same simulation is
+      // replayed frame by frame from there (without the step back, the result would flash before the animation).
       view.previewPositions(final.pos);
       view.fitAll();
+      view.previewPositions(Object.fromEntries(boxes.map(b => [b.id, [b.x, b.y]])));
       const simulation = createForceSimulation(boxes, relations, { ...options, spacing: state.forceSpacing });
       playArrangement(share => (advanceForceSimulation(simulation, share) ? framePositions(simulation, final.shift) : null), () => {
         apply(final.pos);
