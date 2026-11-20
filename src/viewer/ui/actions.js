@@ -5,7 +5,7 @@ import { arrangeByKind, arrangeByRelations } from "../layout.js";
 import { arrangeRadial } from "../layout-radial.js";
 import { S } from "../strings.js";
 import {
-  state, activeModel, activePositions, entityById, estimatedBox, isEditing, axisKeys, kindOf, pushUndo, popUndo, savePref, tileOf, BOX_WIDTH,
+  state, activeModel, activePositions, entityById, estimatedBox, isEditing, isOpaqueHidden, axisKeys, kindOf, pushUndo, popUndo, savePref, tileOf, BOX_WIDTH,
 } from "./state.js";
 import { view } from "./view.js";
 
@@ -100,6 +100,21 @@ export function setModuleView(on) {
   savePref("module-view", on);
   refresh();
   view.fitAll();
+}
+
+/**
+ * Shows or hides opaque references in both views (a per-viewer drawing setting: no position changes). A hidden relation
+ * that is selected is deselected; a selected module arrow that gets hidden falls back to the summary in the module panel.
+ */
+export function setOpaqueHidden(on) {
+  if (state.hideOpaque === on) return;
+  state.hideOpaque = on;
+  savePref("hide-opaque", on);
+  if (state.sel && state.sel.kind === "rel") {
+    const relation = activeModel().relations.find(r => r.id === state.sel.id);
+    if (relation && isOpaqueHidden(relation)) state.sel = null;
+  }
+  refresh();
 }
 
 // ---------- positions ----------

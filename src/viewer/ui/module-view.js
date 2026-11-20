@@ -14,12 +14,21 @@ const MODULE_BOX = { w: 220, h: 92 };
 // Positions come from layout.modules (saved by dragging, ONE map for both tabs: buildModuleGraph returns all configured
 // modules in both views, so shared positions keep the comparison stable); modules without one are derived (placeModules).
 
-/** The module graph of the shown model without the modules switched off in the module filter. */
+/**
+ * The module graph of the shown model without the modules switched off in the module filter. edges are the drawn
+ * arrows (opaque ones left out while the viewer hides them); layoutEdges keeps every arrow between shown modules, so
+ * hiding never moves a box. hiddenOpaqueCount: opaque references behind the hidden arrows.
+ */
 function shownModuleGraph() {
   const model = activeModel();
   const graph = buildModuleGraph(model, { modules: state.page.config.modules, moduleOf, tileOf: r => tileOf(model, r) });
   const visible = key => !state.hidden.module.has(key);
-  return { ...graph, nodes: graph.nodes.filter(n => visible(n.key)), edges: graph.edges.filter(e => visible(e.from) && visible(e.to)) };
+  const layoutEdges = graph.edges.filter(e => visible(e.from) && visible(e.to));
+  const hidden = state.hideOpaque ? layoutEdges.filter(e => e.kind === "opaque") : [];
+  return {
+    ...graph, nodes: graph.nodes.filter(n => visible(n.key)), layoutEdges, edges: layoutEdges.filter(e => !hidden.includes(e)),
+    hiddenOpaqueCount: hidden.reduce((sum, e) => sum + e.relations.length, 0),
+  };
 }
 
 function moduleLabel(node) {
@@ -31,9 +40,9 @@ function moduleBoxHtml(node) {
   return '<div class="mh"><span class="en">' + esc(moduleLabel(node)) + "</span>" + hidden + '</div><div class="mb">' + esc(S.moduleTables(node.tableCount)) + "<br>" + esc(S.moduleInternal(node.internalRelationCount)) + "</div>";
 }
 
-/** Replaces the canvas content with the module boxes and their arrows. */
+/** Replaces the canvas content with the module boxes and their arrows; returns the number of hidden opaque references. */
 export function renderModuleCanvas(world, links) {
-  const graph = shownModuleGraph(), pos = placeModules(graph, state.layout.modules, MODULE_BOX);
+  const graph = shownModuleGraph(), pos = placeModules({ ...graph, edges: graph.layoutEdges }, state.layout.modules, MODULE_BOX);
   world.querySelectorAll(".ent, .zone, .mod").forEach(n => n.remove());
   const frag = document.createDocumentFragment();
   for (const node of graph.nodes) {
@@ -47,7 +56,7 @@ export function renderModuleCanvas(world, links) {
     frag.appendChild(el);
   }
   world.appendChild(frag);
-  drawModuleEdges(world, links, graph);
+  return drawModuleEdges(world, links, graph);
 }
 
 const ARROW_MARKERS = '<defs><marker id="m-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 z" /></marker>' +
@@ -70,6 +79,7 @@ function moduleName(key) {
   return key === UNASSIGNED ? S.moduleNone : (axisSpec("module", key) || { label: key }).label;
 }
 
+/** Draws the shown module arrows; returns the number of opaque references left undrawn by the viewer's toggle. */
 export function drawModuleEdges(world, links, graph = shownModuleGraph()) {
   const boxOf = key => {
     const el = world.querySelector('.mod[data-module="' + CSS.escape(key) + '"]');
@@ -95,6 +105,7 @@ export function drawModuleEdges(world, links, graph = shownModuleGraph()) {
     out += '<g class="lbl medge' + viol + (selected ? " sel" : "") + '" data-edge="' + esc(edge.key) + '"><title>' + esc(title) + '</title><rect x="' + (lx - w / 2) + '" y="' + (ly - 9) + '" width="' + w + '" height="18" rx="9" /><text x="' + lx + '" y="' + (ly + 4) + '" text-anchor="middle">' + esc(text) + "</text></g>";
   }
   links.innerHTML = out;
+  return graph.hiddenOpaqueCount;
 }
 
 // ---------- inspector panels ----------

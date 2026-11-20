@@ -5,11 +5,11 @@ import { declaresLayers } from "../module-graph.js";
 import { saveJsonFile, pickJsonFile } from "../storage.js";
 import { S, STATUS_LABEL } from "../strings.js";
 import { applyTransform, clearMultiSelection, drawLinks, fitAll, renderCanvas, setZoom } from "./canvas.js";
-import { addGroup, addTable, arrange, clearModulePositions, commit, placeMissing, restoreArrangement, select, setModuleView, setView, startGrouping, startLinking, undo } from "./actions.js";
+import { addGroup, addTable, arrange, clearModulePositions, commit, placeMissing, restoreArrangement, select, setModuleView, setOpaqueHidden, setView, startGrouping, startLinking, undo } from "./actions.js";
 import { esc } from "./html.js";
 import { view } from "./view.js";
 import { UNASSIGNED } from "../../model/page-data.js";
-import { state, activeModel, axisClass, axisKeys, axisSpec, hasTarget, isEditing, otherModel, savePref, saveTileDisplays } from "./state.js";
+import { state, activeModel, axisClass, axisKeys, axisSpec, hasOpaqueRelations, hasTarget, isEditing, otherModel, savePref, saveTileDisplays } from "./state.js";
 
 const $ = id => document.getElementById(id);
 
@@ -48,6 +48,12 @@ export function renderChrome() {
   arrangeRel.disabled = modules && !Object.keys(state.layout.modules).length;
   arrangeRel.title = !modules ? S.arrangeByRelationsTitle : declaresLayers(state.page.config.modules) ? S.arrangeModulesLayeredTitle : S.arrangeModulesTitle;
   $("module-view").setAttribute("aria-pressed", String(modules));
+  // Opaque references: legend entry and toggle only when a model has any (an imported target may add or drop them).
+  const opaque = hasOpaqueRelations();
+  $("legend").hidden = !hasTarget() && !opaque;
+  $("legend-opaque").hidden = !opaque;
+  $("opaque-toggle").hidden = !opaque;
+  $("opaque-toggle").setAttribute("aria-pressed", String(!state.hideOpaque));
   // The data-kind filter acts on tables only, which the module view does not draw. The module filter stays: it hides
   // modules in the module view and their tables in the table view (docs/config.md: "both views").
   $("kind-filter").hidden = !axisKeys("kind").length || modules;
@@ -243,10 +249,6 @@ export function initToolbar() {
   document.title = title;
   $("title").textContent = title;
   $("tabs").hidden = !hasTarget();
-  // The legend explains the diff colours (target only) and the dashed line of opaque references (when the page has any).
-  const hasOpaque = [state.current, state.target].some(model => model && model.relations.some(r => r.opaque));
-  $("legend").hidden = !hasTarget() && !hasOpaque;
-  $("legend-opaque").hidden = !hasOpaque;
   document.querySelectorAll(".target-only").forEach(el => { el.hidden = !hasTarget(); });
   document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
   $("add-table").addEventListener("click", addTable);
@@ -286,6 +288,7 @@ export function initToolbar() {
     if (state.sel || state.moduleView) view.renderPanel();
   });
   $("module-view").hidden = !axisKeys("module").length;
+  $("opaque-toggle").addEventListener("click", () => setOpaqueHidden(!state.hideOpaque));
   $("module-view").addEventListener("click", () => setModuleView(!state.moduleView));
   bindSlider("zone-gap", "zone-gap-val", "zoneGap", "zone-gap", drawLinks);
   bindSlider("group-join", "group-join-val", "groupJoin", "group-join");

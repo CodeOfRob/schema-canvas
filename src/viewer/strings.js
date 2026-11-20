@@ -18,6 +18,9 @@ export const S = {
   legendRenamed: "renamed / moved / merged",
   legendOpaque: "reference without foreign key",
   opaqueReference: "Opaque reference: by id, no foreign key in the database",
+  opaqueToggle: "Opaque references",
+  opaqueToggleTitle: "Draw the references without a foreign key (dashed) in the table and the module view. Hiding them changes the drawing only, nothing moves; their diff colours are hidden with them. Only for your view.",
+  opaqueHiddenCount: count => count + (count === 1 ? " opaque reference" : " opaque references") + " hidden",
   countsTitle: "Tables, relations and indexes in the shown model; the other model in brackets",
   counts: (view, tables, relations, indexes) => view + ": " + tables + " tables · " + relations + " relations · " + indexes + " indexes",
 

@@ -23,6 +23,7 @@
         <span class="chip s-removed target-only" data-s="status.removed"></span>
         <span class="chip s-same target-only" data-s="status.same"></span>
         <span class="chip s-opaque" id="legend-opaque" data-s="legendOpaque" hidden></span>
+        <span class="savestate" id="opaque-hidden" hidden></span>
       </div>
     </div>
   </header>
@@ -50,6 +51,7 @@
       <summary class="btn" data-s="viewMenu"></summary>
       <div class="pop">
         <button class="btn table-view-only" id="idx" type="button" aria-pressed="false" data-s-title="showIndexesTitle" data-s="showIndexes"></button>
+        <button class="btn" id="opaque-toggle" type="button" aria-pressed="true" data-s-title="opaqueToggleTitle" data-s="opaqueToggle" hidden></button>
         <div class="tilectl" id="tile-list" data-s-title="tileListTitle"></div>
         <button class="btn" id="arrange-rel" type="button" data-s-title="arrangeByRelationsTitle" data-s="arrangeByRelations"></button>
         <button class="btn table-view-only" id="arrange-radial" type="button" data-s-title="arrangeRadialTitle" data-s="arrangeRadial"></button>

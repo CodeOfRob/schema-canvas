@@ -31,6 +31,7 @@ export const state = {
   tileDisplays: new Map(), // tile table name -> "tile" | "badge" (per viewer)
   hidden: { kind: new Set(), module: new Set() }, // filtered-out values per axis, UNASSIGNED for "none"
   moduleView: false,   // show modules instead of tables (a viewer setting, not part of the model)
+  hideOpaque: false,   // leave opaque references undrawn in both views (a viewer setting; positions never depend on it)
   showIndexes: false,
   dimReviewed: false,
   zoneGap: 320,
@@ -90,6 +91,16 @@ export function relationStatus(relation) {
   return (state.view === "target" ? state.diff.target.relations : state.diff.current.relations)[relation.id] || "same";
 }
 
+// ---------- opaque references (by id, no foreign key) ----------
+/** True when the current or the target model has an opaque relation (the legend entry and the toggle depend on it). */
+export function hasOpaqueRelations() {
+  return [state.current, state.target].some(model => model && model.relations.some(r => r.opaque));
+}
+/** True for an opaque relation while the viewer hides them. Drawing only: layouts never ask this. */
+export function isOpaqueHidden(relation) {
+  return state.hideOpaque && relation.opaque === true;
+}
+
 // ---------- tile tables ----------
 /** For a relation drawn as a tile or badge: { tile, other, display }; null when it is a line (rule: tiles.js). */
 export function tileOf(model, relation) { return tileRule(model, relation, state.tileDisplays); }
@@ -106,6 +117,7 @@ export function loadPrefs(prefsKey, config) {
   // Only with modules configured: otherwise the toggle is hidden and a saved "on" would trap the viewer.
   state.moduleView = Object.keys(config.modules).length > 0 && readLocalJson(prefsKey + ":module-view", false) === true;
   state.showIndexes = readLocalJson(prefsKey + ":show-indexes", false) === true;
+  state.hideOpaque = readLocalJson(prefsKey + ":hide-opaque", false) === true;
   state.dimReviewed = readLocalJson(prefsKey + ":dim-reviewed", false) === true;
   const zoneGap = readLocalJson(prefsKey + ":zone-gap", null), groupJoin = readLocalJson(prefsKey + ":group-join", null);
   if (Number.isFinite(zoneGap)) state.zoneGap = zoneGap;

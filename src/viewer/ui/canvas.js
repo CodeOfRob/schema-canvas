@@ -3,7 +3,7 @@ import { boxBorderPoint } from "../geometry.js";
 import { freezeModulePositions } from "../layout.js";
 import { STATUS_LABEL, S } from "../strings.js";
 import {
-  state, activeModel, activePositions, axisClass, axisKeys, axisLabel, entityById, entityStatus, fieldStatus, indexesOf, isEditing, isFilteredOut, kindOf, relationStatus, tileOf,
+  state, activeModel, activePositions, axisClass, axisKeys, axisLabel, entityById, entityStatus, fieldStatus, indexesOf, isEditing, isFilteredOut, isOpaqueHidden, kindOf, relationStatus, tileOf,
 } from "./state.js";
 import { addField, commit, pickForLink, renameEntity, renameField, select, setReviewed, toggleGroupMember } from "./actions.js";
 import { esc } from "./html.js";
@@ -54,7 +54,7 @@ function badgesByEntity(model) {
   const result = new Map();
   for (const r of model.relations) {
     const t = tileOf(model, r);
-    if (!t || t.display !== "badge") continue;
+    if (!t || t.display !== "badge" || isOpaqueHidden(r)) continue;
     if (!result.has(r.from)) result.set(r.from, { fields: new Map(), header: [] });
     const slot = result.get(r.from), owner = entityById(r.from, model);
     const names = r.fromFields.filter(name => owner.fields.some(f => f.name === name));
@@ -91,7 +91,7 @@ function entityHtml(e, model, badges) {
 
 export function renderCanvas() {
   if (state.moduleView) {
-    renderModuleCanvas(world, links);
+    showHiddenOpaqueCount(renderModuleCanvas(world, links));
     applyTransform();
     return;
   }
@@ -166,15 +166,31 @@ function labelSvg(r, x, y, selected) {
   return '<g class="lbl' + (selected ? " sel" : "") + (r.opaque ? " opaque" : "") + '" data-rid="' + esc(r.id) + '">' + tooltip + '<rect x="' + (x - w / 2) + '" y="' + (y - 9) + '" width="' + w + '" height="18" rx="4" /><text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle">' + esc(text) + "</text></g>";
 }
 
+/** The legend's "n opaque references hidden" note; shown only while the toggle hides them. */
+function showHiddenOpaqueCount(count) {
+  const note = document.getElementById("opaque-hidden");
+  note.hidden = !state.hideOpaque;
+  note.textContent = S.opaqueHiddenCount(count);
+}
+
+/** Opaque relations the toggle keeps off the table canvas, counted only where they would otherwise be drawn. */
+function hiddenOpaqueCount(model) {
+  const shown = id => !isFilteredOut(entityById(id, model));
+  const drawable = r => { const t = tileOf(model, r); return t ? shown(t.other) : shown(r.from) && shown(r.to); };
+  return model.relations.filter(r => isOpaqueHidden(r) && drawable(r)).length;
+}
+
 export function drawLinks() {
-  if (state.moduleView) { drawModuleEdges(world, links); return; }
+  if (state.moduleView) { showHiddenOpaqueCount(drawModuleEdges(world, links)); return; }
   drawZones();
   const model = activeModel();
+  showHiddenOpaqueCount(hiddenOpaqueCount(model));
   let out = "";
   // References to a tile table are not drawn as long lines: each referencing table gets its own small tile,
   // or (badge display) its foreign-key field a badge, rendered with the table in entityHtml.
   const tileRefs = {};
   for (const r of model.relations) {
+    if (isOpaqueHidden(r)) continue;
     const t = tileOf(model, r);
     if (t && t.display === "badge") continue;
     if (t) {
