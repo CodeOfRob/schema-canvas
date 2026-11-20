@@ -87,7 +87,14 @@ test("arrangeRadial: chosen centre in the middle, neighbours on the first ring, 
   const centreOf = id => { const b = boxes.find(x => x.id === id); return [first.pos[id][0] + b.w / 2, first.pos[id][1] + b.h / 2]; };
   const dist = (a, b) => Math.hypot(centreOf(a)[0] - centreOf(b)[0], centreOf(a)[1] - centreOf(b)[1]);
   assert.ok(dist("t0", "t1") < dist("t0", "t3"), "deeper relation steps lie further out");
-  assert.ok(centreOf("t10")[0] < Math.min(...["t0", "t1", "t4", "t5", "t6", "t7"].map(id => centreOf(id)[0])), "separate groups sit left of the star");
+  // Separate groups and unrelated tables go in rows below the star: groups first, then the unrelated tables.
+  const star = ["t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7"];
+  const starBottom = Math.max(...star.map(id => first.pos[id][1] + boxes.find(b => b.id === id).h));
+  const below = boxes.filter(b => !star.includes(b.id));
+  for (const b of below) assert.ok(first.pos[b.id][1] > starBottom, b.id + " lies below the star");
+  // ... within the star's width (plus its margin), not in columns beside it.
+  const starLeft = Math.min(...star.map(id => first.pos[id][0])), starRight = Math.max(...star.map(id => first.pos[id][0] + boxes.find(b => b.id === id).w));
+  for (const b of below) assert.ok(first.pos[b.id][0] >= starLeft - 500 && first.pos[b.id][0] + b.w <= starRight + 500, b.id + " stays under the star");
 });
 
 // ---------- module positions ----------

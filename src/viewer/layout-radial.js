@@ -1,11 +1,12 @@
 // Star layout: one hub in the middle (the best-scoring of the hubs), its neighbours on a ring
 // around it, every further relation step one ring further out, each branch in its own slice of the circle.
-// Separate small groups of tables get their own compact snowflakes (balloon trees) on the left; tables without
-// any relation are lined up further left. Pure function, same input -> same output.
+// Separate small groups of tables get their own compact snowflakes (balloon trees) and, like the tables without any
+// relation, go in rows below the star. Pure function, same input -> same output.
 import { positionsAtOrigin } from "./geometry.js";
 import { ORIGIN, removeOverlaps, weightedArrangementScore } from "./layout.js";
 
-const GAP = 40, SPREAD = 1.6 * Math.PI, MARGIN = 260;
+// ROW_GAP: between the rows (and the items in a row) of separate groups and unrelated tables below the star.
+const GAP = 40, SPREAD = 1.6 * Math.PI, ROW_GAP = 80;
 // Compact rings: radial clearance between two rings (on top of 0.6 x the tables' half heights) and extra room per table
 // along a ring. Tighter rings shorten every line but put more lines under tables. Measured on the 130-table fixture and
 // a real model of that size (lines under tables / mean line px, real model): 260 + 0 gave 88 / 1331, 400 + 120 gives
@@ -164,7 +165,7 @@ function radialTree(members, root, graph) {
     spreadOnRing(onRing, mid, id => (size(id) + ANGLE_PAD) / ring[d]);
   }
   const P = new Map(members.map(id => [id, depth.get(id) ? [ring[depth.get(id)] * Math.cos(mid.get(id)), ring[depth.get(id)] * Math.sin(mid.get(id))] : [0, 0]]));
-  return { P, R: ring[maxDepth] + 400 };
+  return { P };
 }
 
 // Upper bound of the centre candidates (the hubs, see hubCandidates; the most central ones first when there are more).
@@ -211,26 +212,30 @@ function layoutAround(mainRoot, boxes, graph, groups, rank) {
   const { box } = graph;
   const main = radialTree(groups[0], mainRoot, graph);
   const centres = new Map(main.P);
-  let x = -main.R - MARGIN, y = -main.R, columnWidth = 0;
-  const smallGroups = groups.slice(1).filter(g => g.length > 1);
-  // Separate small groups take their most central table (ties: smallest id) as centre: measured on the fixture and a
-  // real model, they have 2-3 tables and no crossing whichever table is in the middle, so a search changes nothing.
-  for (const members of smallGroups) {
+  // Below the star, in rows as wide as the star: first the separate small groups (biggest first), then the tables
+  // without relations (in rank order, tallest first). Left of the star they formed long columns that dominated the
+  // picture of a real model. Each small group takes its most central table (ties: smallest id) as centre: measured on
+  // the fixture and a real model, they have 2-3 tables and no crossing whichever table is in the middle.
+  const items = [];
+  for (const members of groups.slice(1).filter(g => g.length > 1)) {
     const g = snowflake(members, byCentrality(members, graph)[0], graph);
-    if (y > -main.R && y + 2 * g.R > main.R) { x -= columnWidth + MARGIN; y = -main.R; columnWidth = 0; }
-    columnWidth = Math.max(columnWidth, 2 * g.R);
-    for (const [id, [px, py]] of g.P) centres.set(id, [x - g.R + px, y + g.R + py]);
-    y += 2 * g.R + MARGIN / 2;
+    items.push({ w: 2 * g.R, h: 2 * g.R, place: (left, top) => { for (const [id, [px, py]] of g.P) centres.set(id, [left + g.R + px, top + g.R + py]); } });
   }
   const singles = groups.slice(1).filter(g => g.length === 1).map(g => g[0]);
-  if (smallGroups.length) { x -= columnWidth + MARGIN; y = -main.R; columnWidth = 0; }
   singles.sort((a, b) => (rank(a) - rank(b)) || box.get(b).h - box.get(a).h);
   for (const id of singles) {
     const b = box.get(id);
-    if (y > -main.R && y + b.h > main.R) { x -= columnWidth + 80; y = -main.R; columnWidth = 0; }
-    columnWidth = Math.max(columnWidth, b.w);
-    centres.set(id, [x - b.w / 2, y + b.h / 2]);
-    y += b.h + 60;
+    items.push({ w: b.w, h: b.h, place: (left, top) => centres.set(id, [left + b.w / 2, top + b.h / 2]) });
+  }
+  const edge = (pick, side) => pick(...[...main.P].map(([id, [px, py]]) => side(box.get(id), px, py)));
+  const left = edge(Math.min, (b, px) => px - b.w / 2), right = edge(Math.max, (b, px) => px + b.w / 2);
+  const rowWidth = Math.max(right - left, ...items.map(item => item.w));
+  let x = left, y = edge(Math.max, (b, px, py) => py + b.h / 2) + 2 * ROW_GAP, rowHeight = 0;
+  for (const item of items) {
+    if (x > left && x + item.w > left + rowWidth) { x = left; y += rowHeight + ROW_GAP; rowHeight = 0; }
+    item.place(x, y);
+    x += item.w + ROW_GAP;
+    rowHeight = Math.max(rowHeight, item.h);
   }
   // Tall tables are only approximated by circles; push apart whatever still overlaps.
   const nodes = boxes.map(b => ({ id: b.id, x: centres.get(b.id)[0], y: centres.get(b.id)[1], w: b.w, h: b.h }));
