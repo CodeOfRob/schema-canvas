@@ -2,10 +2,11 @@
 import { isIndexExpression } from "../../model/normalize.js";
 import { computeDiff } from "../diff.js";
 import { arrangeByKind, arrangeByRelations } from "../layout.js";
+import { arrangeForces } from "../layout-force.js";
 import { arrangeRadial } from "../layout-radial.js";
 import { S } from "../strings.js";
 import {
-  state, activeModel, activePositions, entityById, estimatedBox, isEditing, isOpaqueHidden, axisKeys, kindOf, pushUndo, popUndo, savePref, tileOf, BOX_WIDTH,
+  state, activeModel, activePositions, entityById, estimatedBox, isEditing, isOpaqueHidden, axisKeys, kindOf, moduleOf, pushUndo, popUndo, savePref, tileOf, BOX_WIDTH,
 } from "./state.js";
 import { view } from "./view.js";
 
@@ -153,10 +154,13 @@ export function arrange(how) {
     let pos;
     // Relations drawn as tiles do not pull tables together.
     const lines = () => model.relations.filter(r => !tileOf(model, r));
+    // Group members pull together without a line (groups exist in the editor only).
+    const groupPairs = () => (isEditing() ? state.layout.groups.flatMap(g => g.members.slice(1).map(id => [g.members[0], id, 2])) : []);
     if (how === "relations") {
-      // Group members pull together without a line.
-      const extra = isEditing() ? state.layout.groups.flatMap(g => g.members.slice(1).map(id => [g.members[0], id, 2])) : [];
-      pos = arrangeByRelations(boxes, lines(), { extra }).pos;
+      pos = arrangeByRelations(boxes, lines(), { extra: groupPairs() }).pos;
+    } else if (how === "forces") {
+      // Hidden opaque references still pull: hiding them is drawing only, as in the module view.
+      pos = arrangeForces(boxes, lines(), { moduleOf: id => moduleOf(entityById(id, model)), extra: groupPairs() }).pos;
     } else if (how === "radial") {
       const selected = state.sel && state.sel.kind !== "rel" && state.sel.kind !== "group" ? state.sel.eid || state.sel.id : null;
       const kinds = axisKeys("kind");

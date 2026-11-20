@@ -261,6 +261,7 @@ export function initToolbar() {
   $("arrange").addEventListener("click", () => arrange("kind"));
   $("arrange-rel").addEventListener("click", () => (state.moduleView ? clearModulePositions() : arrange("relations")));
   $("arrange-radial").addEventListener("click", () => arrange("radial"));
+  $("arrange-forces").addEventListener("click", () => arrange("forces"));
   $("layout-restore").addEventListener("click", restoreArrangement);
   $("full").addEventListener("click", () => setFullscreen(!$("stage").classList.contains("full")));
   $("dim-reviewed").addEventListener("click", () => {
