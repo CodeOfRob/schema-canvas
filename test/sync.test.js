@@ -168,13 +168,19 @@ test("a waiting remote snapshot that a later local save overwrote is not adopted
   assert.equal(h.local().value, 5);
 });
 
-test("a waiting remote snapshot that arrived while a local save was being written asks (the order in the store is unknown)", async t => {
+/** The local save of 5 is being written (W1) when a remote snapshot of 9 arrives while the viewer is busy. */
+async function remoteArrivesDuringWrite(t, savedAt) {
   const busy = { now: false };
   const h = controlledHarness(t, { busy });
   h.edit(5);
-  await h.tick(900); // the save of 5 is being written
+  await h.tick(900);
   busy.now = true;
-  h.remote({ format: "t", value: 9, savedAt: "2026-01-01T00:00:07Z" });
+  h.remote({ format: "t", value: 9, savedAt });
+  return { h, busy };
+}
+
+test("a waiting remote snapshot that arrived while a local save was being written asks (the order in the store is unknown)", async t => {
+  const { h, busy } = await remoteArrivesDuringWrite(t, "2026-01-01T00:00:07Z");
   await h.finishWrite();
   busy.now = false;
   await h.tick(400);
@@ -193,12 +199,7 @@ test("a waiting remote snapshot with no local write since it arrived is adopted 
 });
 
 test("a waiting remote snapshot that arrived during one write and was followed by another write is dropped", async t => {
-  const busy = { now: false };
-  const h = controlledHarness(t, { busy });
-  h.edit(5);
-  await h.tick(900); // W1 (5) is being written
-  busy.now = true;
-  h.remote({ format: "t", value: 9, savedAt: "2026-01-01T00:00:09Z" });
+  const { h, busy } = await remoteArrivesDuringWrite(t, "2026-01-01T00:00:09Z");
   h.edit(6);
   await h.finishWrite();
   await h.tick(900); // W2 (6) begins after the remote arrived ...
