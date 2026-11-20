@@ -2,6 +2,7 @@
 // its longest dependency path down, the foundation at the bottom; barycenter sweeps order each layer to cut crossings.
 // Input is the declared dependsOn plus, for modules without it, their foreign-key edges. Opaque edges never count.
 // Pure function, same input -> same output.
+import { segmentsCross } from "./geometry.js";
 
 // Barycenter ordering settles within a few passes on graphs of a few dozen modules; the best pass is kept.
 const SWEEPS = 4;
@@ -50,14 +51,10 @@ function longestPathLayers(nodes, down) {
 /** Arrows between the (centred) slots of their modules, one layer = one unit of height, that cross each other. */
 function countCrossings(pairs, slot, layerOf) {
   const point = key => [slot.get(key), layerOf.get(key)];
-  const ccw = (a, b, c) => (c[1] - a[1]) * (b[0] - a[0]) - (b[1] - a[1]) * (c[0] - a[0]);
   let count = 0;
   for (let i = 0; i < pairs.length; i++) for (let j = i + 1; j < pairs.length; j++) {
     const [a, b] = pairs[i], [c, d] = pairs[j];
-    if (a === c || a === d || b === c || b === d) continue;
-    const [p1, p2, p3, p4] = [a, b, c, d].map(point);
-    const d1 = ccw(p3, p4, p1), d2 = ccw(p3, p4, p2), d3 = ccw(p1, p2, p3), d4 = ccw(p1, p2, p4);
-    if (d1 * d2 < 0 && d3 * d4 < 0) count++;
+    if (a !== c && a !== d && b !== c && b !== d && segmentsCross(point(a), point(b), point(c), point(d))) count++;
   }
   return count;
 }

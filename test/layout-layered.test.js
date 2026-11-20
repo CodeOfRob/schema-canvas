@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { segmentsCross } from "../src/viewer/geometry.js";
 import { arrangeLayered } from "../src/viewer/layout-layered.js";
 
 const BOX = { w: 220, h: 92 };
@@ -21,13 +22,10 @@ function overlaps(pos) {
 // Crossings of straight arrows between box centres (shared endpoints do not count).
 function crossings(pos, pairs) {
   const centre = k => [pos[k][0] + BOX.w / 2, pos[k][1] + BOX.h / 2];
-  const ccw = (a, b, c) => (c[1] - a[1]) * (b[0] - a[0]) - (b[1] - a[1]) * (c[0] - a[0]);
   let count = 0;
   for (let i = 0; i < pairs.length; i++) for (let j = i + 1; j < pairs.length; j++) {
     const [a, b] = pairs[i], [c, d] = pairs[j];
-    if (new Set([a, b, c, d]).size < 4) continue;
-    const [p1, p2, p3, p4] = [a, b, c, d].map(centre);
-    if ((ccw(p3, p4, p1) > 0) !== (ccw(p3, p4, p2) > 0) && (ccw(p1, p2, p3) > 0) !== (ccw(p1, p2, p4) > 0)) count++;
+    if (new Set([a, b, c, d]).size === 4 && segmentsCross(centre(a), centre(b), centre(c), centre(d))) count++;
   }
   return count;
 }
