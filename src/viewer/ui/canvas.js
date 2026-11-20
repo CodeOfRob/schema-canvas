@@ -3,7 +3,7 @@ import { boxBorderPoint } from "../geometry.js";
 import { freezeModulePositions } from "../layout.js";
 import { STATUS_LABEL, S } from "../strings.js";
 import {
-  state, activeModel, activePositions, axisClass, axisKeys, axisLabel, entityById, entityStatus, fieldStatus, indexesOf, isEditing, isFilteredOut, isOpaqueHidden, kindOf, relationStatus, tileOf,
+  state, activeModel, activePositions, axisClass, axisKeys, axisLabel, entityById, entityStatus, fieldStatus, hasOpaqueRelations, indexesOf, isEditing, isFilteredOut, isOpaqueHidden, kindOf, relationStatus, tileOf,
 } from "./state.js";
 import { addField, commit, pickForLink, renameEntity, renameField, select, setReviewed, toggleGroupMember } from "./actions.js";
 import { esc } from "./html.js";
@@ -166,10 +166,11 @@ function labelSvg(r, x, y, selected) {
   return '<g class="lbl' + (selected ? " sel" : "") + (r.opaque ? " opaque" : "") + '" data-rid="' + esc(r.id) + '">' + tooltip + '<rect x="' + (x - w / 2) + '" y="' + (y - 9) + '" width="' + w + '" height="18" rx="4" /><text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle">' + esc(text) + "</text></g>";
 }
 
-/** The legend's "n opaque references hidden" note; shown only while the toggle hides them. */
+/** The legend's "n opaque references hidden" note; shown only while the toggle hides them (a saved "hide" on a page
+ * without opaque references shows nothing, like the hidden toggle). */
 function showHiddenOpaqueCount(count) {
   const note = document.getElementById("opaque-hidden");
-  note.hidden = !state.hideOpaque;
+  note.hidden = !state.hideOpaque || !hasOpaqueRelations();
   note.textContent = S.opaqueHiddenCount(count);
 }
 
