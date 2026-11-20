@@ -96,3 +96,24 @@ test("on a 500-table model the bounded search stays deterministic", () => {
   const relations = model.relations.filter(r => !hubs.has(r.from) && !hubs.has(r.to));
   assert.deepEqual(arrangeRadial(model.boxes, relations), arrangeRadial(model.boxes, relations));
 });
+
+test("compact rings: every ring is one circle, and only as big as its tables need", () => {
+  const { boxes, relations } = fixture();
+  const { pos, centre } = arrangeRadial(boxes, relations);
+  const box = new Map(boxes.map(b => [b.id, b]));
+  const at = id => [pos[id][0] + box.get(id).w / 2, pos[id][1] + box.get(id).h / 2];
+  const neighbours = new Map(boxes.map(b => [b.id, new Set()]));
+  for (const r of relations) { neighbours.get(r.from).add(r.to); neighbours.get(r.to).add(r.from); }
+  const depth = new Map([[centre, 0]]), queue = [centre];
+  while (queue.length) { const x = queue.shift(); for (const y of neighbours.get(x)) if (!depth.has(y)) { depth.set(y, depth.get(x) + 1); queue.push(y); } }
+  const radius = id => Math.hypot(at(id)[0] - at(centre)[0], at(id)[1] - at(centre)[1]);
+  const rings = Math.max(...depth.values());
+  for (let d = 1; d <= rings; d++) {
+    const radii = [...depth].filter(([, v]) => v === d).map(([id]) => radius(id));
+    const mean = radii.reduce((a, b) => a + b, 0) / radii.length;
+    assert.ok((Math.max(...radii) - Math.min(...radii)) / mean < 0.03, "ring " + d + " spreads " + Math.round(Math.min(...radii)) + "-" + Math.round(Math.max(...radii)));
+  }
+  // Sized by the narrowest slice instead, the first ring lay 3700 px out on this fixture.
+  const first = [...depth].filter(([, v]) => v === 1).map(([id]) => radius(id));
+  assert.ok(Math.max(...first) < 1200, "first ring at " + Math.round(Math.max(...first)) + " px");
+});

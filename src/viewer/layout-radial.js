@@ -6,6 +6,12 @@ import { positionsAtOrigin } from "./geometry.js";
 import { ORIGIN, removeOverlaps, weightedArrangementScore } from "./layout.js";
 
 const GAP = 40, SPREAD = 1.6 * Math.PI, MARGIN = 260;
+// Compact rings: radial clearance between two rings (on top of 0.6 x the tables' half heights) and extra room per table
+// along a ring. Tighter rings shorten every line but put more lines under tables. Measured on the 130-table fixture and
+// a real model of that size (lines under tables / mean line px, real model): 260 + 0 gave 88 / 1331, 400 + 120 gives
+// 63 / 1759, 400 + 240 54 / 2121 (no shorter than before); 400 + 120 also keeps every ring within 1.3-1.6 % of
+// one radius after the overlap removal (0 padding: up to 9.9 %).
+const RING_GAP = 400, ANGLE_PAD = 120;
 
 function buildGraph(boxes, relations) {
   const box = new Map(boxes.map(b => [b.id, b]));
@@ -95,6 +101,24 @@ function snowflake(members, root, graph) {
   return { P, R: R.get(root) };
 }
 
+/**
+ * Pushes the angles of one ring apart (in place, keeping their order) until every pair of neighbours is at least the
+ * mean of their angular widths apart. The ring is sized so the widths fit into the full circle.
+ */
+function spreadOnRing(ids, angle, width) {
+  if (ids.length < 2) return;
+  for (let pass = 0; pass < 500; pass++) {
+    let moved = false;
+    for (let i = 0; i < ids.length; i++) {
+      const a = ids[i], b = ids[(i + 1) % ids.length];
+      const gap = angle.get(b) - angle.get(a) + (i === ids.length - 1 ? 2 * Math.PI : 0);
+      const want = (width(a) + width(b)) / 2;
+      if (gap < want - 1e-9) { const push = (want - gap) / 2; angle.set(a, angle.get(a) - push); angle.set(b, angle.get(b) + push); moved = true; }
+    }
+    if (!moved) return;
+  }
+}
+
 /** The main group as a radial tree: each branch gets a slice proportional to the space its tables need. */
 function radialTree(members, root, graph) {
   const { box, adj } = graph;
@@ -119,22 +143,25 @@ function radialTree(members, root, graph) {
     }
     kids.set(v, ordered);
   }
-  const slice = new Map(), mid = new Map();
+  const mid = new Map();
   const assign = (v, a0, a1) => {
-    slice.set(v, a1 - a0); mid.set(v, (a0 + a1) / 2);
+    mid.set(v, (a0 + a1) / 2);
     const total = kids.get(v).reduce((s, k) => s + need.get(k), 0);
     let a = a0;
     for (const k of kids.get(v)) { const span = (a1 - a0) * need.get(k) / total; assign(k, a, a + span); a += span; }
   };
   assign(root, -Math.PI / 2, 1.5 * Math.PI);
-  // Rings: large enough for every table to fit into its slice, and clear of the previous ring.
+  // Compact rings: a ring is only as big as its tables need side by side (and clear of the previous ring); the slices
+  // only give each table its angle, in branch order, and the angles are then spread until neighbours fit. Sizing the
+  // ring by the narrowest slice instead made the first ring around a hub 3300 px wide on the real model.
   const ring = [0];
   for (let d = 1; d <= maxDepth; d++) {
-    const onRing = members.filter(id => depth.get(id) === d);
-    const fitR = Math.max(...onRing.map(id => size(id) / Math.min(slice.get(id), Math.PI)));
+    const onRing = members.filter(id => depth.get(id) === d).sort((a, b) => mid.get(a) - mid.get(b));
     const prevH = Math.max(...members.filter(id => depth.get(id) === d - 1).map(id => box.get(id).h));
     const thisH = Math.max(...onRing.map(id => box.get(id).h));
-    ring.push(Math.max(fitR, ring[d - 1] + (prevH + thisH) / 2 * 0.6 + 260));
+    const sideBySide = onRing.reduce((sum, id) => sum + size(id) + ANGLE_PAD, 0) / (2 * Math.PI);
+    ring.push(Math.max(sideBySide, ring[d - 1] + (prevH + thisH) / 2 * 0.6 + RING_GAP));
+    spreadOnRing(onRing, mid, id => (size(id) + ANGLE_PAD) / ring[d]);
   }
   const P = new Map(members.map(id => [id, depth.get(id) ? [ring[depth.get(id)] * Math.cos(mid.get(id)), ring[depth.get(id)] * Math.sin(mid.get(id))] : [0, 0]]));
   return { P, R: ring[maxDepth] + 400 };

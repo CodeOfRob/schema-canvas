@@ -120,10 +120,10 @@ test("on the 130-table fixture Forces has far shorter lines and a much smaller d
   const { boxes, relations, moduleOf } = fixture();
   const forces = weightedArrangementScore(boxes, arrangeForces(boxes, relations, { moduleOf }).pos, relations);
   const star = weightedArrangementScore(boxes, arrangeRadial(boxes, relations).pos, relations);
-  // Measured: Forces 171 crossings + 183 lines under tables, mean line 835 px, 54 Mpx²; the best-scoring Star
-  // 186 + 52, mean line 2596 px, 414 Mpx² (Star with the old "most central" centre: 412 + 76). Star now wins on
+  // Measured: Forces 171 crossings + 183 lines under tables, mean line 835 px, 54 Mpx²; Star (hub centre, compact
+  // rings) 183 + 51, mean line 2048 px, 313 Mpx² (before the compact rings 2596 px and 414 Mpx²). Star wins on
   // crossings; Forces keeps related tables close and the drawing compact.
-  assert.ok(forces.meanLine * 2.5 < star.meanLine, JSON.stringify({ forces, star }));
+  assert.ok(forces.meanLine * 2 < star.meanLine, JSON.stringify({ forces, star }));
   assert.ok(forces.area * 4 < star.area, JSON.stringify({ forces, star }));
   assert.ok(forces.crossings + forces.under < 400, "regression guard: " + JSON.stringify(forces));
 });
