@@ -13,3 +13,21 @@ export function segmentsCross(p1, p2, p3, p4) {
   const side = (a, b, c) => (c[1] - a[1]) * (b[0] - a[0]) - (b[1] - a[1]) * (c[0] - a[0]);
   return side(p3, p4, p1) * side(p3, p4, p2) < 0 && side(p1, p2, p3) * side(p1, p2, p4) < 0;
 }
+
+/** Centred nodes ({id, x, y, w, h}, x/y = centre) from top-left boxes ({id, x, y, w, h}); the layouts compute on centres. */
+export function centredNodes(boxes) {
+  return boxes.map(b => ({ id: b.id, x: b.x + b.w / 2, y: b.y + b.h / 2, w: b.w, h: b.h }));
+}
+
+/**
+ * Top-left positions of centred nodes, the drawing's top-left corner moved to origin and every value rounded.
+ * shift is what was added to each unrounded top-left corner, so in-between states can be drawn in the same frame.
+ * @param nodes [{id, x, y, w, h}] x/y = centre, @param origin [x, y]
+ * @returns {{ pos: Record<string, [number, number]>, shift: [number, number] }}
+ */
+export function positionsAtOrigin(nodes, [originX, originY] = [0, 0]) {
+  const minX = Math.min(...nodes.map(n => n.x - n.w / 2)), minY = Math.min(...nodes.map(n => n.y - n.h / 2));
+  const pos = {};
+  for (const n of nodes) pos[n.id] = [Math.round(n.x - n.w / 2 - minX + originX), Math.round(n.y - n.h / 2 - minY + originY)];
+  return { pos, shift: [originX - minX, originY - minY] };
+}

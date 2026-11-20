@@ -3,7 +3,7 @@
 // sweeps order each layer to cut crossings.
 // Input is the declared dependsOn plus, for modules without it, their foreign-key edges. Opaque edges never count.
 // Pure function, same input -> same output.
-import { segmentsCross } from "./geometry.js";
+import { positionsAtOrigin, segmentsCross } from "./geometry.js";
 
 // Barycenter ordering settles within a few passes on graphs of a few dozen modules; the best pass is kept.
 const SWEEPS = 4;
@@ -130,6 +130,5 @@ export function arrangeLayered(nodes, edges, box, { gapX = 120, gapY = 110 } = {
   const stackHeight = row ? row * pitchY - gapY : box.h;
   const outsideHeight = outside.length * pitchY - gapY;
   outside.forEach((n, i) => { pos[n.key] = [right, (stackHeight - outsideHeight) / 2 + i * pitchY]; });
-  const all = Object.values(pos), minX = Math.min(...all.map(p => p[0])), minY = Math.min(...all.map(p => p[1]));
-  return Object.fromEntries(Object.entries(pos).map(([key, [x, y]]) => [key, [Math.round(x - minX), Math.round(y - minY)]]));
+  return positionsAtOrigin(Object.entries(pos).map(([id, [x, y]]) => ({ id, x: x + box.w / 2, y: y + box.h / 2, ...box }))).pos;
 }

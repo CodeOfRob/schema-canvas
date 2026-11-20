@@ -1,7 +1,10 @@
 // Automatic arrangements. Pure functions: boxes in ({id, x, y, w, h}, top-left), positions out ({id: [x, y]}).
+import { centredNodes, positionsAtOrigin } from "./geometry.js";
 import { arrangeLayered } from "./layout-layered.js";
 
-const ORIGIN_X = 60, ORIGIN_Y = 80;
+/** Where every automatic arrangement puts the drawing's top-left corner (room for the zone labels above it). */
+export const ORIGIN = [60, 80];
+const [ORIGIN_X, ORIGIN_Y] = ORIGIN;
 const OVERLAP_EPSILON = 1e-6;
 
 /** Rough box height when the DOM has not measured a table yet. */
@@ -162,7 +165,7 @@ export function arrangeByRelations(boxes, relations, { extra = [], starts = 8, g
   let best = null;
   for (let s = 0; s < starts; s++) {
     const random = seededRandom(seed * (s + 1));
-    const nodes = boxes.map(b => (s === 0 ? { x: b.x + b.w / 2, y: b.y + b.h / 2, w: b.w, h: b.h } : { x: random() * side, y: random() * side, w: b.w, h: b.h }));
+    const nodes = s === 0 ? centredNodes(boxes) : boxes.map(b => ({ id: b.id, x: random() * side, y: random() * side, w: b.w, h: b.h }));
     stressLayout(nodes, springs, 300, unit);
     removeOverlaps(nodes, gapX, gapY);
     const score = layoutScore(nodes, lines);
@@ -188,10 +191,7 @@ export function arrangeByRelations(boxes, relations, { extra = [], starts = 8, g
     }
     if (!improved) break;
   }
-  const minX = Math.min(...nodes.map(v => v.x - v.w / 2)), minY = Math.min(...nodes.map(v => v.y - v.h / 2));
-  const pos = {};
-  boxes.forEach((b, i) => { pos[b.id] = [Math.round(nodes[i].x - b.w / 2 - minX + ORIGIN_X), Math.round(nodes[i].y - b.h / 2 - minY + ORIGIN_Y)]; });
-  return { pos, score: layoutScore(nodes, lines) };
+  return { pos: positionsAtOrigin(nodes, ORIGIN).pos, score: layoutScore(nodes, lines) };
 }
 
 const MODULE_GAP = { gapX: 120, gapY: 110 };

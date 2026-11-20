@@ -2,9 +2,10 @@
 // around it, every further relation step one ring further out, each branch in its own slice of the circle.
 // Separate small groups of tables get their own compact snowflakes (balloon trees) on the left; tables without
 // any relation are lined up further left. Pure function, same input -> same output.
-import { removeOverlaps } from "./layout.js";
+import { positionsAtOrigin } from "./geometry.js";
+import { ORIGIN, removeOverlaps } from "./layout.js";
 
-const GAP = 40, SPREAD = 1.6 * Math.PI, MARGIN = 260, ORIGIN_X = 60, ORIGIN_Y = 80;
+const GAP = 40, SPREAD = 1.6 * Math.PI, MARGIN = 260;
 
 function buildGraph(boxes, relations) {
   const box = new Map(boxes.map(b => [b.id, b]));
@@ -186,8 +187,5 @@ export function arrangeRadial(boxes, relations, { centre = null, rank = () => 0 
   // Tall tables are only approximated by circles; push apart whatever still overlaps.
   const nodes = boxes.map(b => ({ id: b.id, x: centres.get(b.id)[0], y: centres.get(b.id)[1], w: b.w, h: b.h }));
   removeOverlaps(nodes, 40, 40);
-  const minX = Math.min(...nodes.map(n => n.x - n.w / 2)), minY = Math.min(...nodes.map(n => n.y - n.h / 2));
-  const pos = {};
-  for (const n of nodes) pos[n.id] = [Math.round(n.x - n.w / 2 - minX + ORIGIN_X), Math.round(n.y - n.h / 2 - minY + ORIGIN_Y)];
-  return { pos, centre: mainRoot };
+  return { pos: positionsAtOrigin(nodes, ORIGIN).pos, centre: mainRoot };
 }
