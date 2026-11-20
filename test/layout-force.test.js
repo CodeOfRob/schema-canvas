@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { advanceForceSimulation, arrangeForces, createForceSimulation, forceTick, framePositions, settledPositions } from "../src/viewer/layout-force.js";
 import { arrangeRadial } from "../src/viewer/layout-radial.js";
-import { scoreArrangement } from "../src/viewer/layout.js";
+import { weightedArrangementScore } from "../src/viewer/layout.js";
 import { largeModel } from "./large-model.js";
 
 // The fixture as the viewer passes it: relations to the hub (tile) tables are not lines and do not pull.
@@ -116,13 +116,16 @@ test("advancing by shares of the cooling schedule (the animation's clock) ends i
   assert.deepEqual(settledPositions(simulation), expected);
 });
 
-test("on the 130-table fixture Forces has fewer crossings and far shorter lines than Star", () => {
+test("on the 130-table fixture Forces has far shorter lines and a much smaller drawing than Star", () => {
   const { boxes, relations, moduleOf } = fixture();
-  const forces = scoreArrangement(boxes, arrangeForces(boxes, relations, { moduleOf }).pos, relations);
-  const star = scoreArrangement(boxes, arrangeRadial(boxes, relations).pos, relations);
-  // Measured when tuned: Forces 171 crossings + 183 lines under tables, Star 412 + 76; total line length 1 : 4.4.
-  assert.ok(forces.crossings + forces.under < star.crossings + star.under, JSON.stringify({ forces, star }));
-  assert.ok(forces.length * 3 < star.length, JSON.stringify({ forces, star }));
+  const forces = weightedArrangementScore(boxes, arrangeForces(boxes, relations, { moduleOf }).pos, relations);
+  const star = weightedArrangementScore(boxes, arrangeRadial(boxes, relations).pos, relations);
+  // Measured: Forces 171 crossings + 183 lines under tables, mean line 835 px, 54 Mpx²; the best-scoring Star
+  // 186 + 52, mean line 2596 px, 414 Mpx² (Star with the old "most central" centre: 412 + 76). Star now wins on
+  // crossings; Forces keeps related tables close and the drawing compact.
+  assert.ok(forces.meanLine * 2.5 < star.meanLine, JSON.stringify({ forces, star }));
+  assert.ok(forces.area * 4 < star.area, JSON.stringify({ forces, star }));
+  assert.ok(forces.crossings + forces.under < 400, "regression guard: " + JSON.stringify(forces));
 });
 
 // ---------- spacing (the viewer's slider) ----------

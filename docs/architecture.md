@@ -30,8 +30,8 @@ target.model.json, layout.json, config.json ┘   (validate, warn)      (esbuild
 | `src/viewer/main.js` | Browser entry point |
 | `src/viewer/model.js` | Loads and validates page data and saved snapshots |
 | `src/viewer/diff.js` | Current vs. target diff from `origin` references |
-| `src/viewer/layout.js` | Automatic layouts (stress layout by relations, by data kind), overlap removal, the shared layout score |
-| `src/viewer/layout-radial.js` | Star layout around one table |
+| `src/viewer/layout.js` | Automatic layouts (stress layout by relations, by data kind), overlap removal, the shared layout scores (`scoreArrangement`, `weightedArrangementScore`) |
+| `src/viewer/layout-radial.js` | Star layout around one table (the selected one, else the best-scoring centre) |
 | `src/viewer/layout-layered.js` | Layered module layout from `dependsOn` (foundation at the bottom) |
 | `src/viewer/layout-force.js` | Force layout: springs, repulsion, collision, module clusters; one `forceTick` step for the static and the animated run |
 | `src/viewer/classify.js` | One resolver for the classification axes (data kind, module) |

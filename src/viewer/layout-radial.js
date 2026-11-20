@@ -1,9 +1,9 @@
-// Star layout: one table in the middle (the selected one, else the most central), its neighbours on a ring
+// Star layout: one table in the middle (the selected one, else the best-scoring one), its neighbours on a ring
 // around it, every further relation step one ring further out, each branch in its own slice of the circle.
 // Separate small groups of tables get their own compact snowflakes (balloon trees) on the left; tables without
 // any relation are lined up further left. Pure function, same input -> same output.
 import { positionsAtOrigin } from "./geometry.js";
-import { ORIGIN, removeOverlaps } from "./layout.js";
+import { ORIGIN, removeOverlaps, weightedArrangementScore } from "./layout.js";
 
 const GAP = 40, SPREAD = 1.6 * Math.PI, MARGIN = 260;
 
@@ -140,35 +140,27 @@ function radialTree(members, root, graph) {
   return { P, R: ring[maxDepth] + 400 };
 }
 
-/**
- * @param boxes [{id, x, y, w, h}] top-left
- * @param relations [{from, to}] drawn as lines
- * @param options.centre id of the table in the middle (ignored when it is not in the biggest group)
- * @param options.rank (id) => number, order of the unrelated tables (e.g. the data-kind order)
- * @returns {{ pos: Record<string, [number, number]>, centre: string|null }}
- */
-export function arrangeRadial(boxes, relations, { centre = null, rank = () => 0 } = {}) {
-  if (!boxes.length) return { pos: {}, centre: null };
-  const graph = buildGraph(boxes, relations);
-  const { box, adj, degree } = graph;
-  const groups = components(boxes.map(b => b.id), adj);
-  // Centre of a group: the requested table, else the smallest mean distance to all others (ties: more relations).
-  const centreOf = members => {
-    if (centre && members.includes(centre)) return centre;
-    let best = members[0], bestScore = Infinity;
-    for (const id of members) {
-      const d = [...distancesFrom(id, adj).values()], score = d.reduce((a, b) => a + b, 0) / d.length - degree(id) * 0.01;
-      if (score < bestScore) { bestScore = score; best = id; }
-    }
-    return best;
-  };
-  const mainRoot = centreOf(groups[0]);
+// Centre candidates tried when no table is chosen. One run plus its score costs 2-3.5 ms on 130 tables, so all of
+// them (about 115) take 0.2-0.35 s. The best centre ranked anywhere from 1st to 60th by the old centrality guess, so a
+// short list of "central" tables would miss it; beyond this many, the most central ones are tried (bounded wait).
+const MAX_CENTRE_CANDIDATES = 120;
+
+/** Smallest mean number of relation steps to all others first (ties: more relations, then id). */
+function byCentrality(members, { adj, degree }) {
+  const meanSteps = new Map(members.map(id => { const d = [...distancesFrom(id, adj).values()]; return [id, d.reduce((a, b) => a + b, 0) / d.length - degree(id) * 0.01]; }));
+  return [...members].sort((a, b) => meanSteps.get(a) - meanSteps.get(b) || (a < b ? -1 : a > b ? 1 : 0));
+}
+
+function layoutAround(mainRoot, boxes, graph, groups, rank, chosen) {
+  const { box } = graph;
   const main = radialTree(groups[0], mainRoot, graph);
   const centres = new Map(main.P);
   let x = -main.R - MARGIN, y = -main.R, columnWidth = 0;
   const smallGroups = groups.slice(1).filter(g => g.length > 1);
+  // Separate small groups keep the chosen table or else the most central one as their centre: measured on the fixture
+  // and a real model, they have 2-3 tables and no crossing whichever table is in the middle, so a search changes nothing.
   for (const members of smallGroups) {
-    const g = snowflake(members, centreOf(members), graph);
+    const g = snowflake(members, members.includes(chosen) ? chosen : byCentrality(members, graph)[0], graph);
     if (y > -main.R && y + 2 * g.R > main.R) { x -= columnWidth + MARGIN; y = -main.R; columnWidth = 0; }
     columnWidth = Math.max(columnWidth, 2 * g.R);
     for (const [id, [px, py]] of g.P) centres.set(id, [x - g.R + px, y + g.R + py]);
@@ -187,5 +179,29 @@ export function arrangeRadial(boxes, relations, { centre = null, rank = () => 0 
   // Tall tables are only approximated by circles; push apart whatever still overlaps.
   const nodes = boxes.map(b => ({ id: b.id, x: centres.get(b.id)[0], y: centres.get(b.id)[1], w: b.w, h: b.h }));
   removeOverlaps(nodes, 40, 40);
-  return { pos: positionsAtOrigin(nodes, ORIGIN).pos, centre: mainRoot };
+  return positionsAtOrigin(nodes, ORIGIN).pos;
+}
+
+/**
+ * @param boxes [{id, x, y, w, h}] top-left
+ * @param relations [{from, to}] drawn as lines
+ * @param options.centre id of the table in the middle (ignored when it is not in the biggest group). Without one,
+ *   every table of the biggest group is tried as the centre and the run with the lowest weightedArrangementScore
+ *   wins (ties: smallest id).
+ * @param options.rank (id) => number, order of the unrelated tables (e.g. the data-kind order)
+ * @returns {{ pos: Record<string, [number, number]>, centre: string|null }}
+ */
+export function arrangeRadial(boxes, relations, { centre = null, rank = () => 0 } = {}) {
+  if (!boxes.length) return { pos: {}, centre: null };
+  const graph = buildGraph(boxes, relations);
+  const groups = components(boxes.map(b => b.id), graph.adj);
+  if (centre && groups[0].includes(centre)) return { pos: layoutAround(centre, boxes, graph, groups, rank, centre), centre };
+  let best = null;
+  for (const candidate of byCentrality(groups[0], graph).slice(0, MAX_CENTRE_CANDIDATES)) {
+    const pos = layoutAround(candidate, boxes, graph, groups, rank, centre);
+    const score = weightedArrangementScore(boxes, pos, relations).total;
+    // Candidates come in centrality order, not id order: an equal score goes to the smaller id.
+    if (!best || score < best.score || (score === best.score && candidate < best.centre)) best = { pos, score, centre: candidate };
+  }
+  return { pos: best.pos, centre: best.centre };
 }

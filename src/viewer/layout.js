@@ -86,7 +86,33 @@ export function scoreArrangement(boxes, pos, relations) {
     const a = index.get(r.from), b = index.get(r.to);
     if (a != null && b != null && a !== b) pairs.set(Math.min(a, b) + "-" + Math.max(a, b), [Math.min(a, b), Math.max(a, b)]);
   }
-  return layoutScore(nodes, [...pairs.values()]);
+  return { ...layoutScore(nodes, [...pairs.values()]), lines: pairs.size };
+}
+
+/**
+ * Weights of weightedArrangementScore, in score points. Crossings and lines under tables count alike (as in
+ * layoutScore): both make a line hard to follow. Mean line length and area are secondary: chosen on the Star
+ * candidates of the 130-table fixture (3 seeds) and a real model of the same size. On the fixture the centre with
+ * the fewest crossings + lines under tables also had the shortest lines and nearly the smallest area, so any weights
+ * pick it. On the real model these weights pick a centre with 21 fewer crossings + lines under tables than the old
+ * choice, shorter lines and the same area; ranking by crossings + lines under tables alone would have taken one with
+ * 15 fewer crossings still, but 28 % longer lines and 54 % more area. 0.05-0.2 per px and 0.1-0.4 per Mpx² chose the same layouts everywhere; the smallest keep crossings first.
+ */
+export const ARRANGEMENT_WEIGHTS = { crossing: 1, under: 1, meanLinePx: 0.05, areaMpx2: 0.1 };
+
+/**
+ * One number to compare arrangements of the same tables (lower is better): crossings, lines under tables, mean line
+ * length (px) and drawing area (million px²), weighted by ARRANGEMENT_WEIGHTS.
+ * @param boxes [{id, w, h}], @param pos {id: [x, y]} top-left, @param relations [{from, to}]
+ */
+export function weightedArrangementScore(boxes, pos, relations) {
+  const { crossings, under, length, lines } = scoreArrangement(boxes, pos, relations);
+  const meanLine = lines ? length / lines : 0;
+  const x0 = Math.min(...boxes.map(b => pos[b.id][0])), y0 = Math.min(...boxes.map(b => pos[b.id][1]));
+  const x1 = Math.max(...boxes.map(b => pos[b.id][0] + b.w)), y1 = Math.max(...boxes.map(b => pos[b.id][1] + b.h));
+  const area = (x1 - x0) * (y1 - y0) / 1e6;
+  const w = ARRANGEMENT_WEIGHTS;
+  return { crossings, under, meanLine, area, total: w.crossing * crossings + w.under * under + w.meanLinePx * meanLine + w.areaMpx2 * area };
 }
 
 // Stress layout: every pair of tables wants a distance that grows with the number of relation steps between them.

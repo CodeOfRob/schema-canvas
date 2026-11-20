@@ -22,6 +22,9 @@
   the middle. Animated for two seconds; a click or key press skips to the same result; respects "reduce motion";
   one undo step. A **Spacing** slider (0.5x-2.5x) next to it widens or tightens the result live, always from the
   same start, so moving it back restores the earlier layout; letting go is one undo step.
+- **Arrange as a star** without a selected table tries every table as the centre and keeps the best layout
+  (fewest crossings and lines under tables, then shorter lines and smaller area); the same model always gives the
+  same star. A selected table still becomes the centre.
 - `dataKinds` entries reject unknown keys (a typo such as `colour` was silently dropped before).
 
 - Fix: a state saved against an older built-in target model (in this browser or in the shared store) no longer

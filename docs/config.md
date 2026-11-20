@@ -148,6 +148,15 @@ declares `dependsOn`, the boxes are arranged in **layers**, the foundation at th
 Dragged positions (`modules` in layout.json) always win; **Arrange** in the module view forgets them and shows the
 derived arrangement again.
 
+#### Arrange as a star
+
+**View -> Arrange as a star** puts one table in the middle, its neighbours on a ring around it and every further
+relation step one ring further out; separate small groups and tables without relations line up on the left.
+A **selected table** becomes the centre. With nothing selected, every table of the biggest group is tried as the
+centre (up to 120) and the layout with the lowest score wins: crossings plus lines under tables, then mean line
+length and area as smaller terms (weights in `ARRANGEMENT_WEIGHTS`, `src/viewer/layout.js`). Equal scores go to the
+table whose id sorts first, so the same model always gives the same star. On 130 tables this takes about 0.3 s.
+
 #### Modules in the table view: Arrange by forces
 
 **View -> Arrange by forces** arranges the tables like a graph view: every relation is a spring (a foreign key pulls

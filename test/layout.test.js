@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { arrangeByKind, arrangeByRelations, removeOverlaps, scoreArrangement, seededRandom } from "../src/viewer/layout.js";
+import { ARRANGEMENT_WEIGHTS, arrangeByKind, arrangeByRelations, removeOverlaps, scoreArrangement, seededRandom, weightedArrangementScore } from "../src/viewer/layout.js";
 
 const overlapping = (a, b, gap = 0) => a.x < b.x + b.w + gap && b.x < a.x + a.w + gap && a.y < b.y + b.h + gap && b.y < a.y + a.h + gap;
 function overlapCount(boxes, pos) {
@@ -53,6 +53,19 @@ test("scoreArrangement counts crossings and lines under tables of finished posit
   assert.equal(Math.round(score.length), Math.round(2 * Math.hypot(200, 200)));
 });
 
+test("weightedArrangementScore adds crossings, lines under tables, mean line length and area with fixed weights", () => {
+  const box = id => ({ id, w: 20, h: 20 });
+  const boxes = ["a", "b", "c", "d", "e"].map(box);
+  const pos = { a: [0, 0], b: [200, 200], c: [200, 0], d: [0, 200], e: [40, 40] };
+  const score = weightedArrangementScore(boxes, pos, [{ from: "a", to: "b" }, { from: "c", to: "d" }]);
+  assert.equal(score.crossings, 1);
+  assert.equal(score.under, 1);
+  assert.equal(Math.round(score.meanLine), Math.round(Math.hypot(200, 200)));
+  assert.equal(score.area, 220 * 220 / 1e6, "drawing area in million px²");
+  const w = ARRANGEMENT_WEIGHTS;
+  assert.equal(score.total, w.crossing * 1 + w.under * 1 + w.meanLinePx * score.meanLine + w.areaMpx2 * score.area);
+});
+
 test("arrangeByKind gives every kind its own zone, in the configured order", () => {
   const boxes = sampleBoxes(9, 7);
   const kinds = { t0: "b", t1: "a", t2: "a", t3: "b", t4: null, t5: "a", t6: "b", t7: "a", t8: "zzz-unknown" };
@@ -78,7 +91,6 @@ test("arrangeRadial: chosen centre in the middle, neighbours on the first ring, 
   const dist = (a, b) => Math.hypot(centreOf(a)[0] - centreOf(b)[0], centreOf(a)[1] - centreOf(b)[1]);
   assert.ok(dist("t0", "t1") < dist("t0", "t3"), "deeper relation steps lie further out");
   assert.ok(centreOf("t10")[0] < Math.min(...["t0", "t1", "t4", "t5", "t6", "t7"].map(id => centreOf(id)[0])), "separate groups sit left of the star");
-  assert.equal(arrangeRadial(boxes, relations).centre, "t0", "without a choice the most central table is the centre");
 });
 
 // ---------- module positions ----------
