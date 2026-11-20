@@ -48,3 +48,22 @@ export function islandsWithin(boxes, gap) {
   boxes.forEach((b, i) => { const root = find(i); if (!islands.has(root)) islands.set(root, []); islands.get(root).push(b); });
   return [...islands.values()];
 }
+
+/**
+ * Convex hull of points [x, y] (Andrew's monotone chain): starts at the lowest x (then lowest y) and runs
+ * counter-clockwise in y-up terms (clockwise on screen); inner and collinear points are dropped.
+ */
+export function convexHull(points) {
+  const sorted = [...points].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  if (sorted.length < 3) return sorted;
+  const turn = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const chain = list => {
+    const out = [];
+    for (const p of list) {
+      while (out.length >= 2 && turn(out[out.length - 2], out[out.length - 1], p) <= 0) out.pop();
+      out.push(p);
+    }
+    return out.slice(0, -1);
+  };
+  return [...chain(sorted), ...chain([...sorted].reverse())];
+}

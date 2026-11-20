@@ -1,9 +1,10 @@
 // Infinite canvas: tables as absolutely positioned boxes in a translated + scaled "world", relations as SVG.
 import { boxBorderPoint, islandsWithin } from "../geometry.js";
 import { freezeModulePositions } from "../layout.js";
+import { MODULE_AREA_PAD, areaPath, moduleAreas } from "../module-areas.js";
 import { STATUS_LABEL, S } from "../strings.js";
 import {
-  state, activeModel, activePositions, axisClass, axisKeys, axisLabel, entityById, entityStatus, fieldStatus, indexesOf, isEditing, isFilteredOut, isRelationHidden, kindOf, relationStatus, switchableLineTypes, tileOf,
+  state, activeModel, activePositions, axisClass, axisKeys, axisLabel, entityById, entityStatus, fieldStatus, indexesOf, isEditing, isFilteredOut, isRelationHidden, kindOf, moduleOf, relationStatus, switchableLineTypes, tileOf,
 } from "./state.js";
 import { addField, commit, pickForLink, renameEntity, renameField, select, setReviewed, toggleGroupMember } from "./actions.js";
 import { esc } from "./html.js";
@@ -92,6 +93,7 @@ function entityHtml(e, model, badges) {
 
 export function renderCanvas() {
   if (state.moduleView) {
+    drawModuleAreas();
     showHiddenRelationCount(renderModuleCanvas(world, links));
     applyTransform();
     return;
@@ -171,7 +173,17 @@ function hiddenRelationCount(model) {
   return model.relations.filter(r => isRelationHidden(r) && drawable(r)).length;
 }
 
+/** Module areas behind the drawn tables (legend toggle); cleared in the module view and while switched off. */
+function drawModuleAreas() {
+  const layer = document.getElementById("module-area-layer");
+  if (!state.showModuleAreas || state.moduleView) { layer.innerHTML = ""; return; }
+  const model = activeModel();
+  const boxes = [...world.querySelectorAll(".ent")].map(el => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight, module: moduleOf(entityById(el.dataset.id, model)) }));
+  layer.innerHTML = moduleAreas(boxes, axisKeys("module")).map(area => '<path class="' + axisClass("module", area.module) + '" stroke-width="' + 2 * MODULE_AREA_PAD + '" d="' + areaPath(area.hull) + '"/>').join("");
+}
+
 export function drawLinks() {
+  drawModuleAreas();
   if (state.moduleView) { showHiddenRelationCount(drawModuleEdges(world, links)); return; }
   drawZones();
   const model = activeModel();

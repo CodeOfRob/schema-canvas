@@ -36,6 +36,7 @@ export const state = {
   hiddenLines: new Set(), // line types switched off in the legend (line-visibility.js; a viewer setting, drawing only)
   forceSpacing: 1,     // spacing factor of "Arrange by forces" (slider; a viewer setting)
   showIndexes: false,
+  showModuleAreas: false, // soft area behind the tables of each module (legend toggle; a viewer setting, drawing only)
   dimReviewed: false,
   zoneGap: 320,
   groupJoin: 100,
@@ -129,6 +130,7 @@ export function loadPrefs(prefsKey, config) {
   state.showIndexes = readLocalJson(prefsKey + ":show-indexes", false) === true;
   state.hiddenLines = hiddenLineTypesFrom(readLocalJson(prefsKey + ":hidden-lines", null), readLocalJson(prefsKey + ":hide-opaque", false));
   state.dimReviewed = readLocalJson(prefsKey + ":dim-reviewed", false) === true;
+  state.showModuleAreas = readLocalJson(prefsKey + ":module-areas", false) === true;
   const spacing = readLocalJson(prefsKey + ":force-spacing", null);
   if (Number.isFinite(spacing) && spacing >= SPACING_RANGE.min && spacing <= SPACING_RANGE.max) state.forceSpacing = spacing;
   const zoneGap = readLocalJson(prefsKey + ":zone-gap", null), groupJoin = readLocalJson(prefsKey + ":group-join", null);

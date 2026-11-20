@@ -18,6 +18,8 @@ export const S = {
   legendRenamed: "renamed / moved / merged",
   legendOpaque: "reference without foreign key",
   legendModules: "Modules",
+  moduleAreas: "Areas",
+  moduleAreasTitle: "Show a soft area in the module's colour behind its tables. Drawing only, nothing moves; only for your view.",
   opaqueReference: "Opaque reference: by id, no foreign key in the database",
   lineToggleTitle: "Click to show or hide these relation lines. Drawing only, nothing moves; only for your view.",
   lineToggleTableViewOnly: "Diff colours of relation lines: switchable in the table view",

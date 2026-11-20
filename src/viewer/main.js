@@ -24,7 +24,8 @@ function injectAxisStyles({ dataKinds, modules }) {
   const moduleRules = Object.values(modules).map((spec, i) =>
     ".mod.m-" + i + " { border-left: 6px solid " + color(spec, i) + "; }\n" +
     "button.filterbtn.m-" + i + "::before, .ent .mtag.m-" + i + "::before, .mkey.m-" + i + "::before { background: " + color(spec, i) + "; }\n" +
-    ".ent .mtag.m-" + i + " { border-color: color-mix(in srgb, " + color(spec, i) + " 60%, var(--line)); }");
+    ".ent .mtag.m-" + i + " { border-color: color-mix(in srgb, " + color(spec, i) + " 60%, var(--line)); }\n" +
+    "svg.mareas path.m-" + i + " { fill: " + color(spec, i) + "; stroke: " + color(spec, i) + "; }");
   const style = document.createElement("style");
   style.textContent = [...kindRules, ...moduleRules].join("\n");
   document.head.appendChild(style);

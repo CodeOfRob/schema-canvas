@@ -28,7 +28,8 @@
   0.5 s instead of 4.4 s.
 - **Module tags**: in the table view each table shows its module as a small coloured tag on its top edge, and a
   **Modules** legend lists the module colours (same colours as the module view and the filter). Pages without
-  `modules` look as before.
+  `modules` look as before. **Areas** in that legend (off by default, per browser) adds a soft area in the module
+  colour behind each module's tables; drawing only.
 - `dataKinds` entries reject unknown keys (a typo such as `colour` was silently dropped before).
 
 - Fix: a state saved against an older built-in target model (in this browser or in the shared store) no longer

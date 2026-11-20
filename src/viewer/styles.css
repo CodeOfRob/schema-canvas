@@ -4,6 +4,7 @@
   --accent: #1f5fae; --accent-ink: #ffffff; --accent-bg: #e3edf9;
   --add: #1d7a46; --add-bg: #e3f4ea; --ren: #1f5fae; --ren-bg: #e3edf9;
   --chg: #9a5b00; --chg-bg: #fbefd9; --del: #b3261e; --del-bg: #fbe4e2;
+  --area-opacity: 0.12;
   --font-display: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -12,7 +13,7 @@
   --bg: #0f1520; --surface: #161e2c; --fg: #e4e9f1; --muted: #9aa5b8; --line: #2c3749; --grid: #1a2333;
   --accent: #6ea4ea; --accent-ink: #0f1520; --accent-bg: #172a45;
   --add: #5fcf8e; --add-bg: #173326; --ren: #7fb0f0; --ren-bg: #172a45;
-  --chg: #f0b45a; --chg-bg: #3a2c12; --del: #f08a82; --del-bg: #3d1a18; color-scheme: dark } }
+  --chg: #f0b45a; --chg-bg: #3a2c12; --del: #f08a82; --del-bg: #3d1a18; --area-opacity: 0.2; color-scheme: dark } }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -27,6 +28,9 @@ header > div:first-child { min-width: 0; flex: 1 1 420px; }
 .mlegend { align-items: center; }
 .mlegend .ltitle { font: 600 11px var(--font-body); color: var(--muted); }
 .mkey { font: 500 11px var(--font-body); white-space: nowrap; }
+.chip.mareas-toggle { color: var(--muted); background: transparent; border-color: var(--line); }
+.chip.mareas-toggle[aria-pressed="true"] { color: var(--accent); background: var(--accent-bg); border-color: var(--accent); text-decoration: none; }
+.chip.mareas-toggle[aria-pressed="false"] { text-decoration: none; }
 .fatal { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--del-bg); color: var(--del); font-weight: 500; }
 .chip.s-opaque { border: 1px dashed var(--muted); color: var(--muted); background: transparent; }
 /* Legend entries that switch their relation lines on and off. Off = muted text on no fill, struck through: a cue that
@@ -99,6 +103,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .viewport.panning { cursor: grabbing; }
 .viewport.linking { cursor: crosshair; }
 .world { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
+/* Module areas: behind zones, tables and lines (z-index -1 inside the world's stacking context); colours per module from
+   main.js injectAxisStyles. The opacity applies to fill and outline stroke together, so they never add up. */
+svg.mareas { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: -1; }
+svg.mareas path { opacity: var(--area-opacity); stroke-linejoin: round; }
 svg.links { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
 svg.links line, svg.links path { stroke: var(--muted); stroke-width: 1.4; fill: none; }
 svg.links .added { stroke: var(--add); stroke-width: 2; }

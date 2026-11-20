@@ -107,6 +107,11 @@ filter buttons use the same colour per module: its `color`, else the built-in pa
 module carry no tag; a page without `modules` shows neither tags nor the legend. Tags only draw: box sizes, layouts
 and counts stay the same. The module view shows no tags and no legend (its boxes are the modules).
 
+**Areas** in that legend (off by default, saved per browser) draws a soft area in the module's colour behind the tables
+of each module: the rounded outline around tables that lie at most 120 px apart, so a module whose tables are spread out
+gets several areas. It is drawn behind tables, zones and lines, never takes a click, follows dragged tables and
+arrangement animations, and changes nothing else. Exports are JSON (model and layout) and never contain tags or areas.
+
 `dependsOn` turns on layer rules. Once any module declares it, an arrow is red when
 
 - it lies on a cycle between modules (the modules reference each other, directly or around a loop), or

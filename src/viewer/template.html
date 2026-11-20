@@ -28,6 +28,7 @@
       <div class="legend mlegend" id="module-legend" data-s-label="legendModules" hidden>
         <span class="ltitle" data-s="legendModules"></span>
         <span class="legend" id="module-legend-keys"></span>
+        <button class="chip mareas-toggle" type="button" id="module-areas-toggle" aria-pressed="false" data-s="moduleAreas" data-s-title="moduleAreasTitle"></button>
       </div>
     </div>
   </header>
@@ -88,7 +89,7 @@
 
   <div class="main">
     <div class="viewport" id="viewport">
-      <div class="world" id="world"><svg class="links" id="links" width="1" height="1"></svg></div>
+      <div class="world" id="world"><svg class="mareas" id="module-area-layer" width="1" height="1" aria-hidden="true"></svg><svg class="links" id="links" width="1" height="1"></svg></div>
     </div>
     <aside class="panel" id="panel" aria-live="polite"></aside>
   </div>

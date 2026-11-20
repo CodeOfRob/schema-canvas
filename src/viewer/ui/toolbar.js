@@ -56,6 +56,7 @@ export function renderChrome() {
   $("legend-opaque").hidden = !opaque;
   // Module colour keys: table view only (the module view's boxes carry the module themselves).
   $("module-legend").hidden = modules || !axisKeys("module").length;
+  $("module-areas-toggle").setAttribute("aria-pressed", String(state.showModuleAreas));
   renderLineToggles();
   renderForceSpacing();
   // The data-kind filter acts on tables only, which the module view does not draw. The module filter stays: it hides
@@ -298,6 +299,12 @@ export function initToolbar() {
   $("arrange-forces").addEventListener("click", () => arrange("forces"));
   $("layout-restore").addEventListener("click", restoreArrangement);
   $("full").addEventListener("click", () => setFullscreen(!$("stage").classList.contains("full")));
+  $("module-areas-toggle").addEventListener("click", () => {
+    state.showModuleAreas = !state.showModuleAreas;
+    savePref("module-areas", state.showModuleAreas);
+    renderChrome();
+    drawLinks();
+  });
   $("dim-reviewed").addEventListener("click", () => {
     state.dimReviewed = !state.dimReviewed;
     savePref("dim-reviewed", state.dimReviewed);
