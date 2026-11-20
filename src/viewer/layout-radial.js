@@ -1,4 +1,4 @@
-// Star layout: one table in the middle (the best-scoring one), its neighbours on a ring
+// Star layout: one hub in the middle (the best-scoring of the hubs), its neighbours on a ring
 // around it, every further relation step one ring further out, each branch in its own slice of the circle.
 // Separate small groups of tables get their own compact snowflakes (balloon trees) on the left; tables without
 // any relation are lined up further left. Pure function, same input -> same output.
@@ -140,9 +140,8 @@ function radialTree(members, root, graph) {
   return { P, R: ring[maxDepth] + 400 };
 }
 
-// Centre candidates tried when no table is chosen. One run plus its score costs 2-3.5 ms on 130 tables, so all of
-// them (about 115) take 0.2-0.35 s. The best centre ranked anywhere from 1st to 60th by the old centrality guess, so a
-// short list of "central" tables would miss it; beyond this many, the most central ones are tried (bounded wait).
+// Upper bound of the centre candidates (the hubs, see hubCandidates; the most central ones first when there are more).
+// One run plus its score costs 2-3.5 ms on 130 tables; the bound keeps a model with very many hubs responsive.
 const MAX_CENTRE_CANDIDATES = 120;
 // Bigger models: one candidate costs about tables² + lines² checks (overlap removal over table pairs, crossings over line
 // pairs). Measured per candidate: 3.5 ms at 130 tables / 197 lines, 37 ms at 500 / 734, so 120 candidates took 4.4 s
@@ -151,6 +150,23 @@ const MAX_CENTRE_CANDIDATES = 120;
 // tries the same candidates on any machine, so it always gives the same star.
 const CENTRE_SEARCH_BUDGET = 12e6;
 const MIN_CENTRE_CANDIDATES = 5;
+
+// The centre is a hub (GF 20.11.2026): with every table as a candidate the best score went to a table with a single
+// relation on the real model, so the middle held one leaf and the hubs sat on the second ring 3000 px out; it did not
+// read as a star. The score differences between centres were small (6 % between that leaf and the best hub).
+const HUB_SHARE = 0.1;
+const MIN_HUB_CANDIDATES = 3;
+
+/**
+ * Centre candidates of the biggest group: the HUB_SHARE of its tables with the most relations (at least
+ * MIN_HUB_CANDIDATES; every table tying with the last one counts in), ordered by degree, then id.
+ */
+export function hubCandidates(ids, degreeOf) {
+  const sorted = [...ids].sort((a, b) => degreeOf(b) - degreeOf(a) || (a < b ? -1 : a > b ? 1 : 0));
+  const count = Math.min(sorted.length, Math.max(MIN_HUB_CANDIDATES, Math.ceil(sorted.length * HUB_SHARE)));
+  const cut = degreeOf(sorted[count - 1]);
+  return sorted.filter(id => degreeOf(id) >= cut);
+}
 
 /** How many centres the star tries for a model of this size (the most central ones first). */
 export function centreCandidateCount(tableCount, lineCount) {
@@ -198,11 +214,11 @@ function layoutAround(mainRoot, boxes, graph, groups, rank) {
 /**
  * @param boxes [{id, x, y, w, h}] top-left
  * @param relations [{from, to}] drawn as lines
- * Every table of the biggest group is tried as the centre and the run with the lowest weightedArrangementScore wins
- * (ties: smallest id); the viewer always searches.
+ * Every hub of the biggest group (hubCandidates) is tried as the centre and the run with the lowest
+ * weightedArrangementScore wins (ties: smallest id); the viewer always searches.
  * @param options.centre fixes the centre of the biggest group instead (ignored for a table outside it). The viewer
  *   never passes it; it lets a caller compare one centre against the search (the tests prove the search is never
- *   worse than any fixed centre) and look at the rings around a known table.
+ *   worse than any other hub as the centre) and look at the rings around a known table.
  * @param options.rank (id) => number, order of the unrelated tables (e.g. the data-kind order)
  * @returns {{ pos: Record<string, [number, number]>, centre: string|null }}
  */
@@ -212,7 +228,9 @@ export function arrangeRadial(boxes, relations, { centre = null, rank = () => 0 
   const groups = components(boxes.map(b => b.id), graph.adj);
   if (centre && groups[0].includes(centre)) return { pos: layoutAround(centre, boxes, graph, groups, rank), centre };
   let best = null;
-  for (const candidate of byCentrality(groups[0], graph).slice(0, centreCandidateCount(boxes.length, relations.length))) {
+  const hubs = new Set(hubCandidates(groups[0], graph.degree));
+  const candidates = byCentrality(groups[0], graph).filter(id => hubs.has(id)).slice(0, centreCandidateCount(boxes.length, relations.length));
+  for (const candidate of candidates) {
     const pos = layoutAround(candidate, boxes, graph, groups, rank);
     const score = weightedArrangementScore(boxes, pos, relations).total;
     // Candidates come in centrality order, not id order: an equal score goes to the smaller id.
