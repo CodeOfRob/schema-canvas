@@ -2,14 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createSync } from "../src/viewer/storage.js";
 
-function harness({ failSave = false, isBusy, delayMs = 5 } = {}) {
+/** A sync over a fake store holding { value }; records adoptions and conflicts. */
+function syncOver(store, options = {}) {
   const events = { adopted: [], conflicts: [], statuses: [], saved: [] };
-  let remoteListener = null, errorListener = null;
-  const store = {
-    kind: "fake",
-    async save(payload) { if (failSave) throw new Error("disk full"); events.saved.push(payload); },
-    subscribe(onRemote, onError) { remoteListener = onRemote; errorListener = onError; return () => {}; },
-  };
   let local = { value: 1 };
   const sync = createSync({
     store,
@@ -18,11 +13,23 @@ function harness({ failSave = false, isBusy, delayMs = 5 } = {}) {
     adopt: payload => { events.adopted.push(payload); local = { value: payload.value }; },
     onConflict: (payload, choice) => events.conflicts.push({ payload, choice }),
     onStatus: (status, detail) => events.statuses.push([status, detail]),
-    delayMs,
-    ...(isBusy ? { isBusy } : {}),
+    delayMs: 5,
+    ...options,
   });
-  sync.start();
-  return { sync, events, remote: raw => remoteListener(raw), failSubscription: e => errorListener(e), edit: v => { local = { value: v }; sync.schedule(); } };
+  return { sync, events, local: () => local, edit: v => { local = { value: v }; sync.schedule(); } };
+}
+
+function harness({ failSave = false, ...options } = {}) {
+  let remoteListener = null, errorListener = null, events = null;
+  const store = {
+    kind: "fake",
+    async save(payload) { if (failSave) throw new Error("disk full"); events.saved.push(payload); },
+    subscribe(onRemote, onError) { remoteListener = onRemote; errorListener = onError; return () => {}; },
+  };
+  const h = syncOver(store, options);
+  events = h.events;
+  h.sync.start();
+  return { ...h, remote: raw => remoteListener(raw), failSubscription: e => errorListener(e) };
 }
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -126,29 +133,19 @@ test("a remote snapshot waits while the user is busy (drag, arrangement animatio
 // The store holds one document; a remote snapshot that arrived before a local write began was overwritten by it.
 function controlledHarness(t, { busy }) {
   t.mock.timers.enable({ apis: ["setTimeout"] });
-  const events = { adopted: [], conflicts: [], saved: [] };
   const writes = [];
-  let local = { value: 1 }, remoteListener = null;
+  let remoteListener = null, events = null;
   const store = {
     kind: "fake",
     save(payload) { return new Promise(resolve => writes.push(() => { events.saved.push(payload); resolve(); })); },
     subscribe(onRemote) { remoteListener = onRemote; return () => {}; },
   };
-  const sync = createSync({
-    store,
-    snapshot: () => ({ format: "t", ...local }),
-    validate: raw => { if (!raw || raw.format !== "t") throw new Error("bad"); return raw; },
-    adopt: payload => { events.adopted.push(payload); local = { value: payload.value }; },
-    onConflict: (payload, choice) => events.conflicts.push({ payload, choice }),
-    onStatus: () => {},
-    isBusy: () => busy.now,
-    delayMs: 900,
-  });
-  sync.start();
+  const h = syncOver(store, { isBusy: () => busy.now, delayMs: 900 });
+  events = h.events;
+  h.sync.start();
   const flush = () => new Promise(resolve => setImmediate(resolve));
   return {
-    sync, events, local: () => local,
-    edit: v => { local = { value: v }; sync.schedule(); },
+    ...h,
     remote: raw => remoteListener(raw),
     /** Lets the store finish the oldest running write. */
     finishWrite: async () => { writes.shift()(); await flush(); },
