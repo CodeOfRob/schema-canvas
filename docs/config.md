@@ -169,15 +169,18 @@ derived arrangement again.
 
 #### Arrange as a star
 
-**View -> Arrange as a star** puts one table in the middle, its neighbours on a ring around it and every further
-relation step one ring further out; separate small groups and tables without relations line up on the left.
-Every table of the biggest group is tried as the centre (up to 120) and the layout with the lowest score wins:
-crossings plus lines under tables, then mean line length and area as smaller terms (weights in
-`ARRANGEMENT_WEIGHTS`, `src/viewer/layout.js`). Equal scores go to the table whose id sorts first. The selection
-plays no part, and separate small groups take their most central table (ties: smallest id), so the same model
-always gives the same star. On 130 tables this takes about 0.3 s. Bigger models try fewer centres, the most central
-ones first, so the wait stays near half a second (500 tables: 15 centres); the number depends on the model's size
-only, never on the machine.
+**View -> Arrange as a star** puts a hub in the middle, its neighbours on a ring around it and every further
+relation step one ring further out, each branch in its own part of the circle. Each ring is a circle only as large as
+its tables need side by side. Separate small groups and tables without relations go in rows below the star, as wide
+as the star: the groups first (biggest first), then the single tables.
+
+The centre is always a hub: the 10 % of tables in the biggest group with the most relations (at least 3, and every
+table tying with the last one). Each hub is tried as the centre and the layout with the lowest score wins: crossings
+plus lines under tables, then mean line length and area as smaller terms (weights in `ARRANGEMENT_WEIGHTS`,
+`src/viewer/layout.js`). Equal scores go to the table whose id sorts first. The selection plays no part, and separate
+small groups take their most central table (ties: smallest id), so the same model always gives the same star. On 130
+tables this takes about 0.1 s. Bigger models with many hubs try fewer of them, the most central first, so the wait
+stays near half a second (500 tables: 8 centres); the number depends on the model's size only, never on the machine.
 
 #### Modules in the table view: Arrange by forces
 

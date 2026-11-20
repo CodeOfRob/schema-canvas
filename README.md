@@ -32,7 +32,7 @@ mail, host anywhere or open from disk.
   groups, edit types, keys, defaults, notes, data kinds, modules and origins, move fields between tables, undo.
 - **Data kinds**: colour tables by kind (for example "catalog" vs. "sales"), draw background zones per kind,
   hide kinds with filter buttons.
-- **Four automatic layouts**: by relations (stress layout, few crossings), as a star around one table, by forces
+- **Four automatic layouts**: by relations (stress layout, few crossings), as a star around a hub table, by forces
   (springs and repulsion like a graph view, tables of one module gather in islands, animated) and by data kind.
 - **Review support**: tick tables as reviewed and dim them; mark fields whose content changes although their type does not.
 - **Text sections and translations**: a description and markdown sections (decisions, open questions) from

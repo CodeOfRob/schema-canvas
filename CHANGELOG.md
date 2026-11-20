@@ -22,10 +22,12 @@
   the middle. Animated for two seconds; a click or key press skips to the same result; respects "reduce motion";
   one undo step. A **Spacing** slider (0.5x-2.5x) next to it widens or tightens the result live, always from the
   same start, so moving it back restores the earlier layout; letting go is one undo step.
-- **Arrange as a star** tries every table as the centre and keeps the best layout (fewest crossings and lines
-  under tables, then shorter lines and smaller area); the same model always gives the same star. The selected table
-  no longer becomes the centre. Big models try fewer centres (by size, so still deterministic): 500 tables take about
-  0.5 s instead of 4.4 s.
+- **Arrange as a star** puts a hub in the middle: it tries the 10 % of tables with the most relations (at least 3)
+  as the centre and keeps the best layout (fewest crossings and lines under tables, then shorter lines and smaller
+  area); the same model always gives the same star, and the selected table no longer becomes the centre. The rings
+  are only as large as their tables need (shorter lines, smaller drawing), and separate groups and unrelated tables
+  go in rows below the star instead of columns beside it. Big models try fewer centres (by size, so still
+  deterministic): 500 tables take about 0.5 s.
 - **Module tags**: in the table view each table shows its module as a small coloured tag on its top edge, and a
   **Modules** legend lists the module colours (same colours as the module view and the filter). Pages without
   `modules` look as before. **Areas** in that legend (off by default, per browser) adds a soft area in the module

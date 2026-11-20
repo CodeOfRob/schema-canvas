@@ -52,7 +52,7 @@ export const S = {
   arrangeModulesLayeredTitle: "Forget the dragged module positions and arrange the modules in layers by dependsOn again: foundation at the bottom, dependent modules above",
   arrangeByRelationsTitle: "Related tables close together, few crossing lines and few lines under tables",
   arrangeRadial: "Arrange as a star",
-  arrangeRadialTitle: "One table in the middle, every further relation step one ring further out, each branch in its own slice. Every table is tried as the middle and the layout with the fewest crossings and lines under tables (then shorter lines, smaller area) wins, so the same model always gives the same star",
+  arrangeRadialTitle: "A hub in the middle, every further relation step one ring further out, each branch in its own part of the ring; separate groups and unrelated tables in rows below. The tables with the most relations are tried as the middle and the layout with the fewest crossings and lines under tables (then shorter lines, smaller area) wins, so the same model always gives the same star",
   arrangeForces: "Arrange by forces",
   arrangeForcesTitle: "Relations pull like springs, all tables push each other apart and tables of one module gather in an island; tables without relations stay near the middle. Starts from the current positions, so a second run refines the first. A click or key press skips the animation",
   forceSpacing: "Spacing",
