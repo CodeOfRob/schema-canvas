@@ -13,7 +13,7 @@ const SNAP = 10;
 let viewport, world, links;
 
 export function chip(status) {
-  return '<span class="chip s-' + status + '">' + STATUS_LABEL[status] + "</span>";
+  return '<span class="chip s-' + status + '">' + esc(STATUS_LABEL[status]) + "</span>";
 }
 
 /** Type as shown in a table row: base type plus [] for lists and ? for nullable. */
@@ -83,9 +83,9 @@ function entityHtml(e, model, badges) {
   }
   if (state.showIndexes) {
     const list = indexesOf(e, model);
-    if (list.length) html += '<div class="ixs">' + list.map(i => '<div class="ir" title="' + esc(indexDescription(i)) + '"><span class="fk">' + (i.unique ? S.indexUnique : S.indexPlain) + '</span><span class="fn">' + esc(indexText(i)) + "</span></div>").join("") + "</div>";
+    if (list.length) html += '<div class="ixs">' + list.map(i => '<div class="ir" title="' + esc(indexDescription(i)) + '"><span class="fk">' + esc(i.unique ? S.indexUnique : S.indexPlain) + '</span><span class="fn">' + esc(indexText(i)) + "</span></div>").join("") + "</div>";
   }
-  if (isEditing()) html += '<button class="addf" type="button">' + S.addField + "</button>";
+  if (isEditing()) html += '<button class="addf" type="button">' + esc(S.addField) + "</button>";
   return html;
 }
 

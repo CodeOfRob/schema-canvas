@@ -24,16 +24,16 @@ function countsText(model, viewName) {
 function renderTileList() {
   const names = [...state.tileDisplays.keys()].sort();
   const text = name => (state.tileDisplays.get(name) === "badge" ? S.tileListBadge(name) : name);
-  $("tile-list").innerHTML = '<span class="muted">' + S.tileListLabel + "</span> " + (names.length
+  $("tile-list").innerHTML = '<span class="muted">' + esc(S.tileListLabel) + "</span> " + (names.length
     ? names.map(n => '<button class="chipbtn" type="button" data-untile="' + esc(n) + '" title="' + esc(S.untile(n)) + '">' + esc(text(n)) + " ×</button>").join(" ")
-    : '<span class="muted">' + S.tileListEmpty + "</span>");
+    : '<span class="muted">' + esc(S.tileListEmpty) + "</span>");
 }
 
 function renderEnums() {
   const enums = activeModel().enums;
   $("enums").innerHTML = enums.length
     ? enums.map(e => '<table class="enum"><thead><tr><th>' + esc(e.name) + "</th></tr></thead><tbody>" + e.values.map(v => "<tr><td>" + esc(v) + "</td></tr>").join("") + "</tbody></table>").join("")
-    : '<p class="muted">' + S.enumsEmpty + "</p>";
+    : '<p class="muted">' + esc(S.enumsEmpty) + "</p>";
 }
 
 /** Brings every toolbar control in line with the state (cheap; called after each refresh). */
