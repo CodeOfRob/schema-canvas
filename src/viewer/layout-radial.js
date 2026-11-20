@@ -104,21 +104,41 @@ function snowflake(members, root, graph) {
 }
 
 /**
- * Pushes the angles of one ring apart (in place, keeping their order) until every pair of neighbours is at least the
- * mean of their angular widths apart. The ring is sized so the widths fit into the full circle.
+ * Spreads the angles of one ring so every pair of neighbours is at least the mean of their angular widths apart,
+ * keeping their order and moving the tables as little as possible (least squares). Exact, not iterative: cut the
+ * circle at its widest gap, subtract the cumulative minimum gaps and the constraint becomes "non-decreasing", which
+ * pool-adjacent-violators solves in one pass. If the result then crowds the cut, the ring is (nearly) full and the
+ * tables close up evenly around their mean angle. The ring is sized so the widths fit into the full circle.
+ * Takes angles sorted ascending within one turn; returns new angles, still in that order and ascending.
  */
-function spreadOnRing(ids, angle, width) {
-  if (ids.length < 2) return;
-  for (let pass = 0; pass < 500; pass++) {
-    let moved = false;
-    for (let i = 0; i < ids.length; i++) {
-      const a = ids[i], b = ids[(i + 1) % ids.length];
-      const gap = angle.get(b) - angle.get(a) + (i === ids.length - 1 ? 2 * Math.PI : 0);
-      const want = (width(a) + width(b)) / 2;
-      if (gap < want - 1e-9) { const push = (want - gap) / 2; angle.set(a, angle.get(a) - push); angle.set(b, angle.get(b) + push); moved = true; }
+export function spreadOnRing(angles, widths) {
+  const n = angles.length;
+  const gapAfter = i => (i === n - 1 ? angles[0] + 2 * Math.PI : angles[i + 1]) - angles[i];
+  const needAfter = i => (widths[i] + widths[(i + 1) % n]) / 2;
+  if (n < 2 || angles.every((_, i) => gapAfter(i) >= needAfter(i))) return angles.slice();
+  let cut = 0;
+  for (let i = 1; i < n; i++) if (gapAfter(i) > gapAfter(cut)) cut = i;
+  const order = Array.from({ length: n }, (_, k) => (cut + 1 + k) % n);
+  const unwrapped = order.map((i, k) => angles[i] + (cut + 1 + k >= n ? 2 * Math.PI : 0));
+  const offset = [0];
+  for (let k = 1; k < n; k++) offset.push(offset[k - 1] + needAfter(order[k - 1]));
+  const blocks = [];
+  for (let k = 0; k < n; k++) {
+    blocks.push({ sum: unwrapped[k] - offset[k], count: 1 });
+    while (blocks.length > 1 && blocks.at(-2).sum / blocks.at(-2).count > blocks.at(-1).sum / blocks.at(-1).count) {
+      const last = blocks.pop();
+      blocks.at(-1).sum += last.sum;
+      blocks.at(-1).count += last.count;
     }
-    if (!moved) return;
   }
+  let level = blocks.flatMap(b => Array(b.count).fill(b.sum / b.count));
+  if (level[n - 1] - level[0] + offset[n - 1] + needAfter(order[n - 1]) > 2 * Math.PI) {
+    const mean = level.reduce((a, b) => a + b, 0) / n;
+    level = level.map(() => mean);
+  }
+  const result = new Array(n);
+  order.forEach((i, k) => { result[i] = level[k] + offset[k] - (cut + 1 + k >= n ? 2 * Math.PI : 0); });
+  return result;
 }
 
 /** The main group as a radial tree: each branch gets a slice proportional to the space its tables need. */
@@ -163,10 +183,13 @@ function radialTree(members, root, graph) {
     const thisH = Math.max(...onRing.map(id => box.get(id).h));
     // Room a table takes along the ring: its box seen side-on at its angle (a tall table at the side of the ring needs
     // its height, at the top or bottom its width).
-    const along = id => Math.abs(box.get(id).w * Math.sin(mid.get(id))) + Math.abs(box.get(id).h * Math.cos(mid.get(id))) + GAP + ANGLE_PAD;
-    const sideBySide = onRing.reduce((sum, id) => sum + along(id), 0) / (2 * Math.PI);
+    // Measured once at the starting angles: the spread moves the angles, and widths read from the moving angles would
+    // change under it.
+    const room = new Map(onRing.map(id => [id, Math.abs(box.get(id).w * Math.sin(mid.get(id))) + Math.abs(box.get(id).h * Math.cos(mid.get(id))) + GAP + ANGLE_PAD]));
+    const sideBySide = onRing.reduce((sum, id) => sum + room.get(id), 0) / (2 * Math.PI);
     ring.push(Math.max(sideBySide, ring[d - 1] + (prevH + thisH) / 2 * 0.6 + RING_GAP));
-    spreadOnRing(onRing, mid, id => along(id) / ring[d]);
+    const spread = spreadOnRing(onRing.map(id => mid.get(id)), onRing.map(id => room.get(id) / ring[d]));
+    onRing.forEach((id, i) => mid.set(id, spread[i]));
   }
   const P = new Map(members.map(id => [id, depth.get(id) ? [ring[depth.get(id)] * Math.cos(mid.get(id)), ring[depth.get(id)] * Math.sin(mid.get(id))] : [0, 0]]));
   return { P };

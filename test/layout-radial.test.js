@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { arrangeRadial, centreCandidateCount, hubCandidates } from "../src/viewer/layout-radial.js";
+import { arrangeRadial, centreCandidateCount, hubCandidates, spreadOnRing } from "../src/viewer/layout-radial.js";
 import { weightedArrangementScore } from "../src/viewer/layout.js";
 import { largeModel } from "./large-model.js";
 
@@ -116,4 +116,42 @@ test("compact rings: every ring is one circle, and only as big as its tables nee
   // Sized by the narrowest slice instead, the first ring lay 3700 px out on this fixture.
   const first = [...depth].filter(([, v]) => v === 1).map(([id]) => radius(id));
   assert.ok(Math.max(...first) < 1200, "first ring at " + Math.round(Math.max(...first)) + " px");
+});
+
+function assertNeighboursHaveRoom(angles, widths) {
+  for (let i = 0; i < angles.length; i++) {
+    const next = (i + 1) % angles.length;
+    const gap = angles[next] - angles[i] + (next === 0 ? 2 * Math.PI : 0);
+    assert.ok(gap >= (widths[i] + widths[next]) / 2 - 1e-9, "tables " + i + " and " + next + " overlap by " + ((widths[i] + widths[next]) / 2 - gap));
+  }
+}
+
+test("spreading a ring: neighbours end at least their room apart, in their order, even on a full ring (fixture rooms)", () => {
+  const { boxes } = fixture();
+  // Every fixture table on one ring, crowded into a quarter of it; the radius makes the rooms fill the circle exactly
+  // (the tightest case the ring sizing allows).
+  const rooms = boxes.map(b => b.w / 2 + b.h / 2 + 40);
+  const total = rooms.reduce((a, b) => a + b, 0), radius = total / (2 * Math.PI);
+  const widths = rooms.map(r => r / radius);
+  assertNeighboursHaveRoom(spreadOnRing(boxes.map((_, i) => -Math.PI / 2 + (i / boxes.length) * (Math.PI / 2)), widths), widths);
+});
+
+test("spreading a ring: neighbours have room on any ring the sizing allows (seeded random rings)", () => {
+  // Separate clumps spread on their own and can then overrun the place the circle was cut open; random rings find
+  // that case (about 1 in 20) where hand-picked ones did not.
+  let seed = 7;
+  const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let run = 0; run < 2000; run++) {
+    const count = 3 + Math.floor(random() * 8), fill = 0.5 + random() * 0.5;
+    const raw = Array.from({ length: count }, random), sum = raw.reduce((a, b) => a + b, 0);
+    const widths = raw.map(w => (w / sum) * fill * 2 * Math.PI);
+    const start = Array.from({ length: count }, () => random() * 2 * Math.PI).sort((a, b) => a - b);
+    assertNeighboursHaveRoom(spreadOnRing(start, widths), widths);
+  }
+});
+
+test("spreading a ring leaves tables that already have room where they are", () => {
+  const start = [0, 1, 2, 3];
+  assert.deepEqual(spreadOnRing(start, [0.2, 0.2, 0.2, 0.2]), start);
+  assert.deepEqual(spreadOnRing([5], [1]), [5]);
 });
