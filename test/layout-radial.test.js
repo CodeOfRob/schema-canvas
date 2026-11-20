@@ -81,12 +81,12 @@ test("equal scores: the centre with the smallest id wins, whatever the order of 
 });
 
 test("the centre search is bounded by size, not by the clock: all candidates up to the fixture size, few on a huge model", () => {
-  // The 130-table fixture (197 lines) and a real model of that size keep the full search.
-  assert.equal(centreCandidateCount(130, 197), 120);
-  assert.equal(centreCandidateCount(138, 185), 120);
-  // 500 tables: one candidate costs about 10x as much, so far fewer are tried; never fewer than a handful.
+  // The 130-table fixture (197 lines) and a real model of that size can try far more than their 12-13 hubs.
+  assert.ok(centreCandidateCount(130, 197) >= 100);
+  assert.ok(centreCandidateCount(138, 185) >= 100);
+  // 500 tables: one candidate costs about 20x as much, so far fewer are tried; never fewer than a handful.
   const big = centreCandidateCount(500, 734);
-  assert.ok(big >= 5 && big <= 20, "500 tables: " + big + " candidates");
+  assert.ok(big >= 5 && big <= 10, "500 tables: " + big + " candidates");
   assert.equal(centreCandidateCount(5000, 9000), 5);
 });
 

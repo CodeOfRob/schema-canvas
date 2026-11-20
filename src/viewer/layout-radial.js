@@ -9,10 +9,11 @@ import { ORIGIN, removeOverlaps, weightedArrangementScore } from "./layout.js";
 const GAP = 40, SPREAD = 1.6 * Math.PI, ROW_GAP = 80;
 // Compact rings: radial clearance between two rings (on top of 0.6 x the tables' half heights) and extra room per table
 // along a ring. Tighter rings shorten every line but put more lines under tables. Measured on the 130-table fixture and
-// a real model of that size (lines under tables / mean line px, real model): 260 + 0 gave 88 / 1331, 400 + 120 gives
-// 63 / 1759, 400 + 240 54 / 2121 (no shorter than before); 400 + 120 also keeps every ring within 1.3-1.6 % of
-// one radius after the overlap removal (0 padding: up to 9.9 %).
-const RING_GAP = 400, ANGLE_PAD = 120;
+// a real model of that size (lines under tables / mean line px, real model; before the compact rings 46 / 2349):
+// clearance 260 with a table's mean side as its room along the ring gave 88 / 1331 and rings bent by the overlap
+// removal up to 9.9 %; clearance 400 with the side-on room plus 40 px gives 60 / 1777, every ring within 0.1 % of one
+// radius, and on 500 tables a third of the overlap-removal work (one centre 59 ms instead of 110 ms).
+const RING_GAP = 400, ANGLE_PAD = 40;
 
 function buildGraph(boxes, relations) {
   const box = new Map(boxes.map(b => [b.id, b]));
@@ -160,9 +161,12 @@ function radialTree(members, root, graph) {
     const onRing = members.filter(id => depth.get(id) === d).sort((a, b) => mid.get(a) - mid.get(b));
     const prevH = Math.max(...members.filter(id => depth.get(id) === d - 1).map(id => box.get(id).h));
     const thisH = Math.max(...onRing.map(id => box.get(id).h));
-    const sideBySide = onRing.reduce((sum, id) => sum + size(id) + ANGLE_PAD, 0) / (2 * Math.PI);
+    // Room a table takes along the ring: its box seen side-on at its angle (a tall table at the side of the ring needs
+    // its height, at the top or bottom its width).
+    const along = id => Math.abs(box.get(id).w * Math.sin(mid.get(id))) + Math.abs(box.get(id).h * Math.cos(mid.get(id))) + GAP + ANGLE_PAD;
+    const sideBySide = onRing.reduce((sum, id) => sum + along(id), 0) / (2 * Math.PI);
     ring.push(Math.max(sideBySide, ring[d - 1] + (prevH + thisH) / 2 * 0.6 + RING_GAP));
-    spreadOnRing(onRing, mid, id => (size(id) + ANGLE_PAD) / ring[d]);
+    spreadOnRing(onRing, mid, id => along(id) / ring[d]);
   }
   const P = new Map(members.map(id => [id, depth.get(id) ? [ring[depth.get(id)] * Math.cos(mid.get(id)), ring[depth.get(id)] * Math.sin(mid.get(id))] : [0, 0]]));
   return { P };
@@ -172,11 +176,11 @@ function radialTree(members, root, graph) {
 // One run plus its score costs 2-3.5 ms on 130 tables; the bound keeps a model with very many hubs responsive.
 const MAX_CENTRE_CANDIDATES = 120;
 // Bigger models: one candidate costs about tables² + lines² checks (overlap removal over table pairs, crossings over line
-// pairs). Measured per candidate: 3.5 ms at 130 tables / 197 lines, 37 ms at 500 / 734, so 120 candidates took 4.4 s
-// there. This budget keeps the full search up to the fixture size and a real model of the same size (about 53 000
-// per candidate) and caps the wait near half a second on 500 tables. A size cap, not a clock: the same model always
-// tries the same candidates on any machine, so it always gives the same star.
-const CENTRE_SEARCH_BUDGET = 12e6;
+// pairs). Measured per candidate with compact rings: about 3 ms at 130 tables / 197 lines, 59 ms at 500 / 734. This
+// budget allows about 114 candidates at the fixture size and a real model of the same size (about 53 000 per
+// candidate), more than their 12-13 hubs, and 8 on 500 tables (about half a second). A size cap, not a clock: the
+// same model always tries the same candidates on any machine, so it always gives the same star.
+const CENTRE_SEARCH_BUDGET = 6.4e6;
 const MIN_CENTRE_CANDIDATES = 5;
 
 // The centre is a hub (GF 20.11.2026): with every table as a candidate the best score went to a table with a single
