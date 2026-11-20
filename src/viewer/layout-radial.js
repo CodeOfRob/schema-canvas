@@ -1,4 +1,4 @@
-// Star layout: one table in the middle (the selected one, else the best-scoring one), its neighbours on a ring
+// Star layout: one table in the middle (the best-scoring one), its neighbours on a ring
 // around it, every further relation step one ring further out, each branch in its own slice of the circle.
 // Separate small groups of tables get their own compact snowflakes (balloon trees) on the left; tables without
 // any relation are lined up further left. Pure function, same input -> same output.
@@ -151,16 +151,16 @@ function byCentrality(members, { adj, degree }) {
   return [...members].sort((a, b) => meanSteps.get(a) - meanSteps.get(b) || (a < b ? -1 : a > b ? 1 : 0));
 }
 
-function layoutAround(mainRoot, boxes, graph, groups, rank, chosen) {
+function layoutAround(mainRoot, boxes, graph, groups, rank) {
   const { box } = graph;
   const main = radialTree(groups[0], mainRoot, graph);
   const centres = new Map(main.P);
   let x = -main.R - MARGIN, y = -main.R, columnWidth = 0;
   const smallGroups = groups.slice(1).filter(g => g.length > 1);
-  // Separate small groups keep the chosen table or else the most central one as their centre: measured on the fixture
-  // and a real model, they have 2-3 tables and no crossing whichever table is in the middle, so a search changes nothing.
+  // Separate small groups take their most central table (ties: smallest id) as centre: measured on the fixture and a
+  // real model, they have 2-3 tables and no crossing whichever table is in the middle, so a search changes nothing.
   for (const members of smallGroups) {
-    const g = snowflake(members, members.includes(chosen) ? chosen : byCentrality(members, graph)[0], graph);
+    const g = snowflake(members, byCentrality(members, graph)[0], graph);
     if (y > -main.R && y + 2 * g.R > main.R) { x -= columnWidth + MARGIN; y = -main.R; columnWidth = 0; }
     columnWidth = Math.max(columnWidth, 2 * g.R);
     for (const [id, [px, py]] of g.P) centres.set(id, [x - g.R + px, y + g.R + py]);
@@ -185,9 +185,11 @@ function layoutAround(mainRoot, boxes, graph, groups, rank, chosen) {
 /**
  * @param boxes [{id, x, y, w, h}] top-left
  * @param relations [{from, to}] drawn as lines
- * @param options.centre id of the table in the middle (ignored when it is not in the biggest group). Without one,
- *   every table of the biggest group is tried as the centre and the run with the lowest weightedArrangementScore
- *   wins (ties: smallest id).
+ * Every table of the biggest group is tried as the centre and the run with the lowest weightedArrangementScore wins
+ * (ties: smallest id); the viewer always searches.
+ * @param options.centre fixes the centre of the biggest group instead (ignored for a table outside it). The viewer
+ *   never passes it; it lets a caller compare one centre against the search (the tests prove the search is never
+ *   worse than any fixed centre) and look at the rings around a known table.
  * @param options.rank (id) => number, order of the unrelated tables (e.g. the data-kind order)
  * @returns {{ pos: Record<string, [number, number]>, centre: string|null }}
  */
@@ -195,10 +197,10 @@ export function arrangeRadial(boxes, relations, { centre = null, rank = () => 0 
   if (!boxes.length) return { pos: {}, centre: null };
   const graph = buildGraph(boxes, relations);
   const groups = components(boxes.map(b => b.id), graph.adj);
-  if (centre && groups[0].includes(centre)) return { pos: layoutAround(centre, boxes, graph, groups, rank, centre), centre };
+  if (centre && groups[0].includes(centre)) return { pos: layoutAround(centre, boxes, graph, groups, rank), centre };
   let best = null;
   for (const candidate of byCentrality(groups[0], graph).slice(0, MAX_CENTRE_CANDIDATES)) {
-    const pos = layoutAround(candidate, boxes, graph, groups, rank, centre);
+    const pos = layoutAround(candidate, boxes, graph, groups, rank);
     const score = weightedArrangementScore(boxes, pos, relations).total;
     // Candidates come in centrality order, not id order: an equal score goes to the smaller id.
     if (!best || score < best.score || (score === best.score && candidate < best.centre)) best = { pos, score, centre: candidate };

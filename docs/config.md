@@ -152,10 +152,11 @@ derived arrangement again.
 
 **View -> Arrange as a star** puts one table in the middle, its neighbours on a ring around it and every further
 relation step one ring further out; separate small groups and tables without relations line up on the left.
-A **selected table** becomes the centre. With nothing selected, every table of the biggest group is tried as the
-centre (up to 120) and the layout with the lowest score wins: crossings plus lines under tables, then mean line
-length and area as smaller terms (weights in `ARRANGEMENT_WEIGHTS`, `src/viewer/layout.js`). Equal scores go to the
-table whose id sorts first, so the same model always gives the same star. On 130 tables this takes about 0.3 s.
+Every table of the biggest group is tried as the centre (up to 120) and the layout with the lowest score wins:
+crossings plus lines under tables, then mean line length and area as smaller terms (weights in
+`ARRANGEMENT_WEIGHTS`, `src/viewer/layout.js`). Equal scores go to the table whose id sorts first. The selection
+plays no part, and separate small groups take their most central table (ties: smallest id), so the same model
+always gives the same star. On 130 tables this takes about 0.3 s.
 
 #### Modules in the table view: Arrange by forces
 

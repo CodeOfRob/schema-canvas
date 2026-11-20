@@ -32,11 +32,21 @@ test("on the fixture the best centre beats the old heuristic centre clearly", ()
   assert.ok(best.crossings + best.under < 0.6 * (old.crossings + old.under), JSON.stringify({ best, old }));
 });
 
-test("a chosen centre stays the centre (one run, no search)", () => {
+test("a fixed centre (for comparisons) stays the centre; small groups never take it", () => {
   const { boxes, relations } = fixture();
-  const chosen = arrangeRadial(boxes, relations, { centre: "table045" });
-  assert.equal(chosen.centre, "table045");
+  const fixed = arrangeRadial(boxes, relations, { centre: "table045" });
+  assert.equal(fixed.centre, "table045");
   assert.notEqual(arrangeRadial(boxes, relations).centre, "table045", "the search would have picked another one");
+  // A table outside the biggest group (here: one of a separate pair) is ignored: the search runs as without it, and
+  // the pair keeps its own deterministic centre.
+  const searched = arrangeRadial(boxes, relations);
+  const inMain = new Set([searched.centre]);
+  for (let grown = true; grown;) {
+    grown = false;
+    for (const r of relations) if (inMain.has(r.from) !== inMain.has(r.to)) { inMain.add(r.from); inMain.add(r.to); grown = true; }
+  }
+  const pairMember = relations.find(r => !inMain.has(r.from)).from;
+  assert.deepEqual(arrangeRadial(boxes, relations, { centre: pairMember }), searched);
 });
 
 test("equal scores: the centre with the smallest id wins, whatever the order of the tables", () => {

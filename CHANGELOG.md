@@ -22,9 +22,9 @@
   the middle. Animated for two seconds; a click or key press skips to the same result; respects "reduce motion";
   one undo step. A **Spacing** slider (0.5x-2.5x) next to it widens or tightens the result live, always from the
   same start, so moving it back restores the earlier layout; letting go is one undo step.
-- **Arrange as a star** without a selected table tries every table as the centre and keeps the best layout
-  (fewest crossings and lines under tables, then shorter lines and smaller area); the same model always gives the
-  same star. A selected table still becomes the centre.
+- **Arrange as a star** tries every table as the centre and keeps the best layout (fewest crossings and lines
+  under tables, then shorter lines and smaller area); the same model always gives the same star. The selected table
+  no longer becomes the centre.
 - `dataKinds` entries reject unknown keys (a typo such as `colour` was silently dropped before).
 
 - Fix: a state saved against an older built-in target model (in this browser or in the shared store) no longer
@@ -42,7 +42,7 @@
 - Indexes: optional `note` (why the index exists) and expression entries such as `lower(email)`.
 - config.json: `description` under the title, text `sections` below the canvas (small markdown subset),
   `description` per data kind, `strings` to replace or translate every interface text, `language`.
-- Third automatic layout: a star around the selected (or most central) table.
+- Third automatic layout: a star around one table.
 - Fix: relations of merged tables that share a key all get a diff status; before, all but one silently
   counted as unchanged.
 

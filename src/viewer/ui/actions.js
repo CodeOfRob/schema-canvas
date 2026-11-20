@@ -188,10 +188,10 @@ export function arrange(how) {
       });
       return;
     } else if (how === "radial") {
-      const selected = state.sel && state.sel.kind !== "rel" && state.sel.kind !== "group" ? state.sel.eid || state.sel.id : null;
+      // The centre is always searched (GF 20.11.2026): a table that happens to be selected must not change the star.
       const kinds = axisKeys("kind");
       const rank = id => { const i = kinds.indexOf(kindOf(entityById(id, model))); return i < 0 ? kinds.length : i; };
-      pos = arrangeRadial(boxes, lines(), { centre: selected, rank }).pos;
+      pos = arrangeRadial(boxes, lines(), { rank }).pos;
     } else {
       pos = arrangeByKind(boxes, axisKeys("kind"), id => kindOf(entityById(id, model)));
     }
