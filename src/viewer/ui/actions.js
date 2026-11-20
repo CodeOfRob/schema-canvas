@@ -159,6 +159,8 @@ export function arrange(how) {
   setTimeout(() => {
     const model = activeModel(), viewName = state.view;
     const boxes = measuredBoxes(model);
+    // Nothing to arrange: no animation and no empty undo step.
+    if (!boxes.length) { view.flash(""); return; }
     const apply = pos => {
       commit(s => {
         if (!s.arrangedFrom[viewName]) s.arrangedFrom[viewName] = JSON.parse(JSON.stringify(s.layout[viewName]));

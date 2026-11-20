@@ -57,3 +57,14 @@ test("Arrange by forces: the view is fitted to the result, then the tables are s
   const shownIds = Object.keys(startShown[1]);
   assert.deepEqual(startShown[1], Object.fromEntries(shownIds.map(id => [id, start[id]])), "the animation starts from the current positions");
 });
+
+for (const how of ["forces", "radial", "relations", "kind"]) {
+  test("Arrange (" + how + ") on a view without tables does nothing: no undo step", async () => {
+    loadExample();
+    recordViewCalls();
+    state.current = { ...state.current, entities: [], relations: [] };
+    arrange(how);
+    await new Promise(resolve => setTimeout(resolve, 60));
+    assert.equal(state.undo.length, 0);
+  });
+}
