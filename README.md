@@ -32,7 +32,8 @@ mail, host anywhere or open from disk.
   groups, edit types, keys, defaults, notes, data kinds, modules and origins, move fields between tables, undo.
 - **Data kinds**: colour tables by kind (for example "catalog" vs. "sales"), draw background zones per kind,
   hide kinds with filter buttons.
-- **Three automatic layouts**: by relations (stress layout, few crossings), as a star around one table, and by data kind.
+- **Four automatic layouts**: by relations (stress layout, few crossings), as a star around one table, by forces
+  (springs and repulsion like a graph view, tables of one module gather in islands, animated) and by data kind.
 - **Review support**: tick tables as reviewed and dim them; mark fields whose content changes although their type does not.
 - **Text sections and translations**: a description and markdown sections (decisions, open questions) from
   `config.json`; every interface text can be replaced, for example to translate the page.
@@ -118,7 +119,8 @@ How edits are saved in each case: [docs/storage.md](docs/storage.md).
 - Prisma: native database types (`@db.VarChar(20)`), `@map` / `@@map` names, views and composite types
   are not shown; the Prisma type is used.
 - tbls: views and materialized views are skipped; check constraints and triggers are not shown.
-- The relation layout compares every pair of tables; beyond a few hundred tables it gets slow.
+- The relation layout compares every pair of tables; beyond a few hundred tables it gets slow. The force layout
+  compares every pair too, but each step is cheap (about 50 ms in all for 130 tables).
 - The page renders all tables as DOM elements; very large schemas (1000+ tables) will feel heavy.
 - No collaborative merging: the conflict dialog picks one whole state.
 

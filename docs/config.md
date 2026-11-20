@@ -134,6 +134,17 @@ declares `dependsOn`, the boxes are arranged in **layers**, the foundation at th
 Dragged positions (`modules` in layout.json) always win; **Arrange** in the module view forgets them and shows the
 derived arrangement again.
 
+#### Modules in the table view: Arrange by forces
+
+**View -> Arrange by forces** arranges the tables like a graph view: every relation is a spring (a foreign key pulls
+harder than an opaque reference), all tables push each other apart, and the tables of one module are pulled towards
+the module's centre, so each module becomes an island. Tables without a module feel no such pull; tables without any
+relation and module are held near the middle. Relations to tile tables do not pull, hidden opaque references do
+(hiding is drawing only), and in the editor the members of a group pull together. The run starts from the current
+positions, so a second click refines the first. It is animated for two seconds (a click or key press skips to the
+result, which is the same either way; with "reduce motion" set in the system it is applied at once) and is one undo
+step.
+
 ## layout.json
 
 Positions are kept apart from the model, so regenerating a model never wipes them.

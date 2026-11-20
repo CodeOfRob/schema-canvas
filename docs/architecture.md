@@ -30,13 +30,14 @@ target.model.json, layout.json, config.json ┘   (validate, warn)      (esbuild
 | `src/viewer/main.js` | Browser entry point |
 | `src/viewer/model.js` | Loads and validates page data and saved snapshots |
 | `src/viewer/diff.js` | Current vs. target diff from `origin` references |
-| `src/viewer/layout.js` | Automatic layouts (stress layout by relations, by data kind) |
+| `src/viewer/layout.js` | Automatic layouts (stress layout by relations, by data kind), overlap removal, the shared layout score |
 | `src/viewer/layout-radial.js` | Star layout around one table |
 | `src/viewer/layout-layered.js` | Layered module layout from `dependsOn` (foundation at the bottom) |
+| `src/viewer/layout-force.js` | Force layout: springs, repulsion, collision, module clusters; one `forceTick` step for the static and the animated run |
 | `src/viewer/classify.js` | One resolver for the classification axes (data kind, module) |
 | `src/viewer/tiles.js` | The tile rule: which relations are no line (tile or badge), per-viewer tile preference |
 | `src/viewer/module-graph.js` | Module view as data: nodes, edges with foreign-key counts, layer-rule violations |
-| `src/viewer/geometry.js` | Box geometry shared by the table canvas and the module view |
+| `src/viewer/geometry.js` | Box geometry shared by the table canvas, the module view and the layouts (box/centre conversion, moving a layout to its origin) |
 | `src/viewer/markdown.js` | Safe markdown subset for the config texts |
 | `src/viewer/storage.js` | Stores and the sync / conflict rule (`createSync`) |
 | `src/viewer/snapshot-base.js` | Fingerprint of the built-in target and the load decision for saved snapshots |
@@ -47,6 +48,7 @@ target.model.json, layout.json, config.json ┘   (validate, warn)      (esbuild
 | `src/viewer/ui/inspector.js` | Detail panel |
 | `src/viewer/ui/toolbar.js` | Toolbar, menus, import / export |
 | `src/viewer/ui/module-view.js` | Module view on the canvas and its inspector panels |
+| `src/viewer/ui/arrange-animation.js` | Plays an arrangement frame by frame, then applies it with one commit; click or key skips |
 | `src/viewer/ui/sections.js` | Description and text sections from the config |
 | `src/viewer/ui/persistence.js` | Connects state to storage, the conflict dialog and the saved-state question |
 | `src/viewer/ui/view.js` | Late-bound render functions that keep the UI import graph acyclic |

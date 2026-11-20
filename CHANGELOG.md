@@ -14,6 +14,10 @@
   fall back to their foreign keys.
 - **View -> Opaque references** hides references without a foreign key in the table and the module view (drawing
   only, positions stay); the legend counts the hidden ones.
+- **View -> Arrange by forces**: a force-directed table layout (relations as springs, all tables repelling each
+  other, no overlaps), where the tables of one module gather in an island and tables without relations stay near
+  the middle. Animated for two seconds; a click or key press skips to the same result; respects "reduce motion";
+  one undo step.
 - `dataKinds` entries reject unknown keys (a typo such as `colour` was silently dropped before).
 
 - Fix: a state saved against an older built-in target model (in this browser or in the shared store) no longer
