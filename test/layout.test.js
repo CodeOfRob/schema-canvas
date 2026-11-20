@@ -42,22 +42,19 @@ test("arrangeByRelations puts related tables closer than unrelated ones", () => 
   assert.ok(dist("t0", "t1") < dist("t0", "t4"));
 });
 
+// Five small tables: lines a-b and c-d cross in an X; e sits on the line a-b.
+const CROSSING_BOXES = ["a", "b", "c", "d", "e"].map(id => ({ id, w: 20, h: 20 }));
+const CROSSING_POSITIONS = { a: [0, 0], b: [200, 200], c: [200, 0], d: [0, 200], e: [40, 40] };
+
 test("scoreArrangement counts crossings and lines under tables of finished positions", () => {
-  const box = id => ({ id, w: 20, h: 20 });
-  const boxes = ["a", "b", "c", "d", "e"].map(box);
-  // a-b and c-d cross in an X; e sits on the line a-b.
-  const pos = { a: [0, 0], b: [200, 200], c: [200, 0], d: [0, 200], e: [40, 40] };
-  const score = scoreArrangement(boxes, pos, [{ from: "a", to: "b" }, { from: "c", to: "d" }, { from: "b", to: "a" }]);
+  const score = scoreArrangement(CROSSING_BOXES, CROSSING_POSITIONS, [{ from: "a", to: "b" }, { from: "c", to: "d" }, { from: "b", to: "a" }]);
   assert.equal(score.crossings, 1);
   assert.equal(score.under, 1, "e is under a-b; the duplicate b-a counts once");
   assert.equal(Math.round(score.length), Math.round(2 * Math.hypot(200, 200)));
 });
 
 test("weightedArrangementScore adds crossings, lines under tables, mean line length and area with fixed weights", () => {
-  const box = id => ({ id, w: 20, h: 20 });
-  const boxes = ["a", "b", "c", "d", "e"].map(box);
-  const pos = { a: [0, 0], b: [200, 200], c: [200, 0], d: [0, 200], e: [40, 40] };
-  const score = weightedArrangementScore(boxes, pos, [{ from: "a", to: "b" }, { from: "c", to: "d" }]);
+  const score = weightedArrangementScore(CROSSING_BOXES, CROSSING_POSITIONS, [{ from: "a", to: "b" }, { from: "c", to: "d" }]);
   assert.equal(score.crossings, 1);
   assert.equal(score.under, 1);
   assert.equal(Math.round(score.meanLine), Math.round(Math.hypot(200, 200)));
