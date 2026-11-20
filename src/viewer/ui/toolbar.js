@@ -8,6 +8,7 @@ import { applyTransform, clearMultiSelection, drawLinks, fitAll, renderCanvas, s
 import { addGroup, addTable, arrange, clearModulePositions, commit, isForceSpacingLive, placeMissing, restoreArrangement, select, setForceSpacing, setModuleView, setView, startGrouping, startLinking, toggleLineType, undo } from "./actions.js";
 import { SPACING_RANGE } from "../layout-force.js";
 import { esc } from "./html.js";
+import { moduleLegendHtml } from "./module-marks.js";
 import { view } from "./view.js";
 import { UNASSIGNED } from "../../model/page-data.js";
 import { state, activeModel, axisClass, axisKeys, axisSpec, hasOpaqueRelations, hasTarget, isEditing, otherModel, savePref, saveTileDisplays, switchableLineTypes } from "./state.js";
@@ -53,6 +54,8 @@ export function renderChrome() {
   const opaque = hasOpaqueRelations();
   $("legend").hidden = !hasTarget() && !opaque;
   $("legend-opaque").hidden = !opaque;
+  // Module colour keys: table view only (the module view's boxes carry the module themselves).
+  $("module-legend").hidden = modules || !axisKeys("module").length;
   renderLineToggles();
   renderForceSpacing();
   // The data-kind filter acts on tables only, which the module view does not draw. The module filter stays: it hides
@@ -280,6 +283,7 @@ export function initToolbar() {
   $("title").textContent = title;
   $("tabs").hidden = !hasTarget();
   document.querySelectorAll(".target-only").forEach(el => { el.hidden = !hasTarget(); });
+  $("module-legend-keys").innerHTML = moduleLegendHtml();
   document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
   $("add-table").addEventListener("click", addTable);
   $("add-rel").addEventListener("click", () => startLinking());

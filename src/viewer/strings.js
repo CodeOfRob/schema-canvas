@@ -17,6 +17,7 @@ export const S = {
   legendLabel: "Legend",
   legendRenamed: "renamed / moved / merged",
   legendOpaque: "reference without foreign key",
+  legendModules: "Modules",
   opaqueReference: "Opaque reference: by id, no foreign key in the database",
   lineToggleTitle: "Click to show or hide these relation lines. Drawing only, nothing moves; only for your view.",
   lineToggleTableViewOnly: "Diff colours of relation lines: switchable in the table view",

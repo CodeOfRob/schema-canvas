@@ -7,6 +7,7 @@ import {
 } from "./state.js";
 import { addField, commit, pickForLink, renameEntity, renameField, select, setReviewed, toggleGroupMember } from "./actions.js";
 import { esc } from "./html.js";
+import { moduleTagHtml } from "./module-marks.js";
 import { drawModuleEdges, renderModuleCanvas } from "./module-view.js";
 
 const SNAP = 10;
@@ -74,7 +75,7 @@ function entityHtml(e, model, badges) {
   const st = entityStatus(e);
   const review = isEditing() ? '<input type="checkbox" class="rv" title="' + esc(S.reviewedCheckboxTitle) + '" aria-label="' + esc(S.reviewedCheckboxLabel(e.name)) + '"' + (e.reviewed ? " checked" : "") + ">" : "";
   const headerBadges = badges ? badges.header.map(r => badgeHtml(r, model)).join("") : "";
-  let html = '<div class="eh">' + review + '<span class="en">' + esc(e.name) + "</span>" + headerBadges + (st && st.status !== "same" ? chip(st.status) : "") + "</div>";
+  let html = '<div class="eh">' + review + '<span class="en">' + esc(e.name) + "</span>" + moduleTagHtml(e) + headerBadges + (st && st.status !== "same" ? chip(st.status) : "") + "</div>";
   for (const f of e.fields) {
     const selected = state.sel && state.sel.kind === "field" && state.sel.fid === f.id;
     const fieldBadges = badges && badges.fields.get(f.name);

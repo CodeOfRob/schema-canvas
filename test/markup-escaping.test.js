@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 // STATUS_LABEL[...] lookup must sit inside an esc( ... ) call. Functions (S.<name>(...)) are skipped: their results go
 // through esc() at the consumer.
 // shortcut: inspector.js is not covered yet (it still inserts raw S.* texts); add it here once it is cleaned up.
-const FILES = ["module-view.js", "canvas.js", "toolbar.js"];
+const FILES = ["module-view.js", "module-marks.js", "canvas.js", "toolbar.js"];
 
 function unescapedTexts(line) {
   const found = [];

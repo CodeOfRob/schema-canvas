@@ -25,6 +25,9 @@
 - **Arrange as a star** tries every table as the centre and keeps the best layout (fewest crossings and lines
   under tables, then shorter lines and smaller area); the same model always gives the same star. The selected table
   no longer becomes the centre.
+- **Module tags**: in the table view each table shows its module as a small coloured tag on its top edge, and a
+  **Modules** legend lists the module colours (same colours as the module view and the filter). Pages without
+  `modules` look as before.
 - `dataKinds` entries reject unknown keys (a typo such as `colour` was silently dropped before).
 
 - Fix: a state saved against an older built-in target model (in this browser or in the shared store) no longer

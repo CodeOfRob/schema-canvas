@@ -101,6 +101,12 @@ table view. Tables without a module form the box "(no module)". The module filte
 views. The module view shows schema (foreign-key) coupling only: calls, events or jobs between modules do not
 appear.
 
+In the table view every table with a module carries a small tag on the top edge of its box with the module's label,
+and the header shows a **Modules** legend (colour + label, in the order of `modules`). Tag, legend, module boxes and
+filter buttons use the same colour per module: its `color`, else the built-in palette by position. Tables without a
+module carry no tag; a page without `modules` shows neither tags nor the legend. Tags only draw: box sizes, layouts
+and counts stay the same. The module view shows no tags and no legend (its boxes are the modules).
+
 `dependsOn` turns on layer rules. Once any module declares it, an arrow is red when
 
 - it lies on a cycle between modules (the modules reference each other, directly or around a loop), or
