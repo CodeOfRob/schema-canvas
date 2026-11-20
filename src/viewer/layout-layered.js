@@ -1,5 +1,6 @@
-// Layered module arrangement (Sugiyama style, without dummy nodes for long arrows): every module sits on the layer of
-// its longest dependency path down, the foundation at the bottom; barycenter sweeps order each layer to cut crossings.
+// Layered module arrangement (Sugiyama style, without dummy nodes for long arrows): every module sits above everything
+// it depends on, as high as possible (modules nothing depends on at the top), the foundation at the bottom; barycenter
+// sweeps order each layer to cut crossings.
 // Input is the declared dependsOn plus, for modules without it, their foreign-key edges. Opaque edges never count.
 // Pure function, same input -> same output.
 import { segmentsCross } from "./geometry.js";
@@ -39,13 +40,23 @@ function dependencyGraph(nodes, edges, rank) {
   return down;
 }
 
-function longestPathLayers(nodes, down) {
-  const layer = new Map();
-  const depth = key => {
-    if (!layer.has(key)) layer.set(key, Math.max(0, ...[...down.get(key)].map(dep => depth(dep) + 1)));
-    return layer.get(key);
+/**
+ * Layer per module, 0 = bottom. As late as possible: a module sits directly below its highest dependent, and a module
+ * nothing depends on goes to the top layer, so a module with slack (short path down, no dependents) is shown with the
+ * other top-level modules instead of half-way down. rank = longest path UP to a module nobody depends on; layer =
+ * maxRank - rank. An explicit dependsOn: [] stays on layer 0 (declared foundation); that never breaks "above every
+ * dependency", because a dependent always has a smaller rank than the deepest one.
+ */
+function asLateAsPossibleLayers(nodes, down) {
+  const up = new Map(nodes.map(n => [n.key, []]));
+  for (const [from, deps] of down) for (const dep of deps) up.get(dep).push(from);
+  const rank = new Map();
+  const rankOf = key => {
+    if (!rank.has(key)) rank.set(key, Math.max(0, ...up.get(key).map(dependent => rankOf(dependent) + 1)));
+    return rank.get(key);
   };
-  return nodes.map(n => depth(n.key));
+  const maxRank = Math.max(0, ...nodes.map(n => rankOf(n.key)));
+  return nodes.map(n => (n.dependsOn && n.dependsOn.length === 0 ? 0 : maxRank - rankOf(n.key)));
 }
 
 /** Arrows between the (centred) slots of their modules, one layer = one unit of height, that cross each other. */
@@ -100,7 +111,7 @@ export function arrangeLayered(nodes, edges, box, { gapX = 120, gapY = 110 } = {
   const layered = nodes.filter(n => !n.unassigned), outside = nodes.filter(n => n.unassigned);
   const rank = new Map(layered.map((n, i) => [n.key, i]));
   const down = dependencyGraph(layered, edges, rank);
-  const depths = longestPathLayers(layered, down);
+  const depths = asLateAsPossibleLayers(layered, down);
   const layers = Array.from({ length: layered.length ? Math.max(...depths) + 1 : 0 }, () => []);
   layered.forEach((n, i) => layers[depths[i]].push(n.key));
   const ordered = orderLayers(layers, down, rank);

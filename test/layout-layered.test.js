@@ -30,13 +30,26 @@ function crossings(pos, pairs) {
   return count;
 }
 
-test("layer = longest path down over dependsOn: foundation at the bottom, dependent modules higher up", () => {
+test("every module sits above everything it depends on: foundation at the bottom, dependent modules higher up", () => {
   const pos = arrange(declared({ app: ["billing", "base"], billing: ["ordering"], ordering: ["base"], base: [] }));
   const y = k => pos[k][1];
   assert.ok(y("base") > y("ordering"), "base below ordering");
   assert.ok(y("ordering") > y("billing"), "ordering below billing");
-  assert.ok(y("billing") > y("app"), "app sits above billing (longest path), not next to it via base");
+  assert.ok(y("billing") > y("app"), "app sits above billing, not next to it via base");
   assert.equal(overlaps(pos).length, 0);
+});
+
+test("a module nothing depends on goes to the top layer, however short its own path down (as late as possible)", () => {
+  const pos = arrange(declared({ platform: [], documents: ["platform"], properties: ["documents"], app: ["properties"], optional: ["platform", "documents"], extra: ["documents"] }));
+  assert.equal(pos.optional[1], pos.app[1], "optional sits in the top row with app");
+  assert.equal(pos.extra[1], pos.app[1], "so does extra");
+  assert.ok(pos.optional[1] < pos.properties[1]);
+});
+
+test("an explicit dependsOn: [] stays on the bottom layer even when its dependents sit high", () => {
+  const pos = arrange(declared({ top: ["mid", "flag"], mid: ["base"], base: [], flag: [] }));
+  assert.equal(pos.flag[1], pos.base[1], "declared foundation, not pulled up under top");
+  assert.ok(pos.top[1] < pos.mid[1] && pos.mid[1] < pos.base[1]);
 });
 
 test("dependsOn: [] is an explicit foundation: same row as the other bottom modules", () => {
@@ -58,7 +71,7 @@ test("a module without dependsOn falls back to its foreign-key edges; opaque edg
   const nodes = [{ key: "base", dependsOn: [] }, { key: "loose" }, { key: "free" }];
   const pos = arrange(nodes, [...fk([["loose", "base"]]), ...opaque([["base", "free"], ["free", "loose"]])]);
   assert.ok(pos.loose[1] < pos.base[1], "loose sits above base through its foreign key");
-  assert.equal(pos.free[1], pos.base[1], "free has only opaque edges: foundation row");
+  assert.equal(pos.free[1], pos.loose[1], "free has only opaque edges: nothing depends on it, top row");
   assert.deepEqual(arrange(nodes, fk([["loose", "base"]])), pos, "opaque edges change nothing");
 });
 

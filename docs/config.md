@@ -119,8 +119,9 @@ hidden with them. Red arrows are never opaque, so nothing red can be hidden.
 Without any `dependsOn` the boxes are placed by their foreign keys (related modules close together). Once any module
 declares `dependsOn`, the boxes are arranged in **layers**, the foundation at the bottom:
 
-- a module's layer is its longest path down over `dependsOn`, so every module sits above everything it depends on;
-  `"dependsOn": []` puts a module on the bottom layer;
+- every module sits above everything it depends on, and as high as that allows: a module nothing depends on goes to
+  the top layer (even with a short path down), any other one directly below its highest dependent;
+  `"dependsOn": []` keeps a module on the bottom layer;
 - a module without `dependsOn` falls back to its foreign-key arrows (opaque ones never count); if those form a cycle,
   the arrow that would close it is ignored for the arrangement, keeping declared `dependsOn` and the module earlier in
   `modules`;
